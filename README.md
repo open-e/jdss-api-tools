@@ -12,13 +12,13 @@ Show help:
 
 EXAMPLES:
 
-<br>1. Create Clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target. Every time it runs, it will delete the clone created last run and re-create new one. So, the target exports most recent data every run.  The example is using default password and port. Tools automatically recognize the volume type. If given volume is iSCSI volume, the clone of the iSCSI volume will be attached to iSCSI target. If given volume is NAS dataset, the crated clone will be exported via network share as shown in the next example. 
+<br>1. Create Clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target. Every time it runs, it will delete the clone created last run and re-create new one. So, the target exports most recent data every run.  The example is using default password and port. Tools automatically recognize the volume type. If given volume is iSCSI volume, the clone of the iSCSI volume will be attached to iSCSI target. If given volume is NAS dataset, the crated clone will be exported via network share as shown in the next example.
 
-	jdss-api-tools.exe  clone Pool-0 zvol00  192.168.0.220
+	jdss-api-tools.exe  clone --pool=Pool-0 --volume=zvol00  192.168.0.220
 
 <br>2. Create Clone of NAS volume vol00 from Pool-0 and share via new created SMB share. Every  time it runs, it will delete the clone created last run and re-create new one. So, the share  exports most recent data every run.  The example is using default password and port.
 
-		jdss-api-tools.exe  clone Pool-0 vol00  192.168.0.220
+		jdss-api-tools.exe  clone --pool=Pool-0 --volume=vol00  192.168.0.220
 
 <br>3. Shutdown three JovianDSS servers using default port but non default password
 
