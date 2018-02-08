@@ -92,7 +92,7 @@ def get_args():
      So, the share  exports most recent data every run.
      The example is using default password and port.
 
-      %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
  3. Shutdown three JovianDSS servers using default port but non default password
 
