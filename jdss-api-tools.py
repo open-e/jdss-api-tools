@@ -76,11 +76,30 @@ def get_args():
         description='''The %(prog)s remotely execute given command.''',
         epilog='''EXAMPLES:
 
- 1. Create Clone of iSCSI volume and attach to iSCSI target , delete the clone created last run
-      %(prog)s clone Pool-0 zvol00 192.168.0.220
- 2. Shutdown three JovianDSS servers using default port but non default password
+ 1. Create Clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+     Every time it runs, it will delete the clone created last run and re-create new one.
+     So, the target exports most recent data every run.
+     The example is using default password and port.
+     Tools automatically recognize the volume type. If given volume is iSCSI volume,
+     the clone of the iSCSI volume will be attached to iSCSI target.
+     If given volume is NAS dataset, the crated clone will be exported via network share
+     as shown in the next example.
+
+      %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+ 2. Create Clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
+     Every time it runs, it will delete the clone created last run and re-create new one.
+     So, the share  exports most recent data every run.
+     The example is using default password and port.
+
+      %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+ 3. Shutdown three JovianDSS servers using default port but non default password
+
       %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
- 3. Reboot single JovianDSS server
+
+ 4. Reboot single JovianDSS server
+
       %(prog)s reboot 192.168.0.220
     ''')
 
@@ -91,13 +110,13 @@ def get_args():
         help='Available commands:  %(choices)s.'
     )
     parser.add_argument(
-        '--pool_name',
-        metavar='pool',
+        '--pool',
+        metavar='pool_name',
         help='Enter pool name'
     )
     parser.add_argument(
-        '--volume_name',
-        metavar='volume',
+        '--volume',
+        metavar='volume_name',
         help='Enter SAN(zvol) or NAS(vol) volume name'
     )
     parser.add_argument(
@@ -147,10 +166,11 @@ def get_args():
     api_user = args.user
     api_password = args.pswd
     action = args.cmd
-    pool_name = args.pool_name
-    volume_name = args.volume_name
+    pool_name = args.pool
+    volume_name = args.volume
     delay = args.delay
     nodes = args.ip
+
 
     
     ##  validate ip-addr
@@ -170,8 +190,8 @@ def get_args():
 
 
 def count_provided_args(*args):
-    return args.count(not None)
-
+    return map(bool, args).count(True)
+    
 
 def wait_for_nodes():
     
