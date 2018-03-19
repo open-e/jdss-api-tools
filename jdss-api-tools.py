@@ -96,23 +96,23 @@ def get_args():
       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
 
- 5. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+ 5. Delete Clone of iSCSI volume zvol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+
+ 6. Delete Clone of NAS volume vol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+
+
+ 7. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
      Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
      In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
      Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
      Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
       %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
-
- 
- 6. Delete Clone of iSCSI volume zvol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
-
-
- 7. Delete Clone of NAS volume vol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
  8. Shutdown three JovianDSS servers using default port but non default password.
