@@ -2,17 +2,18 @@
 jdss-api-tools send REST API commands to JovianDSS servers
 
 In order to create single exe file run:
-C:\Python27>Scripts\pyinstaller.exe --onefile jdss-api-tools.py
+C:\Python27\Scripts\pyinstaller.exe --onefile jdss-api-tools.py
 And try it:
-C:\Python27>dist\jdss-api-tools.exe -h
+C:\Python27\dist\jdss-api-tools.exe -h
 
 NOTE:
-In case of error: "msvcr100.dll missing ..."
-please download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+In case of error "msvcr100.dll missing ...",
+download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 
 
 2018-02-07  initial release
 2018-03-06  add create pool
+2018-03-18  add delete_clone option (it deletes the snapshot as well) (kris@dddistribution.be)
 
 """
     
@@ -34,12 +35,12 @@ line_sep                = '='*62
 action                  = ''
 delay                   = 0
 nodes                   = []
-auto_target_name        = "iqn.auto-api.backup.target"        
+auto_target_name        = "iqn.auto.api.backup.target"        
 auto_share_name         = "auto_api_backup_share"        
 auto_scsiid             = time.strftime("%Yi%mi%di%Hi%M")  #"1234567890123456"
 auto_snap_name          = "auto_api_backup_snap"
-auto_vol_clone_name     = "auto_api_vol_clone"
-auto_zvol_clone_name    = "auto_api_zvol_clone"
+auto_vol_clone_name     = "_auto_api_vol_clone"
+auto_zvol_clone_name    = "_auto_api_zvol_clone"
 
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
@@ -64,7 +65,7 @@ def get_args():
         epilog='''EXAMPLES:
 
  1. Create Clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
-     Every time it runs, it will delete the clone created last run and re-create new one.
+     Every time it runs, it will delete_clone the clone created last run and re-create new one.
      So, the target exports most recent data every run.
      The example is using default password and port.
      Tools automatically recognize the volume type. If given volume is iSCSI volume,
@@ -74,23 +75,25 @@ def get_args():
 
       %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
+
  2. Create Clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
      Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the share  exports most recent data every run.
+     So, the shareexports most recent data every run.
      The example is using default password and port.
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
- 3. Create pool on single node or cluster with single JBOD
-     : Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
-      %(prog)s  create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3   192.168.0.220
+ 3. Create pool on single node or cluster with single JBOD:
+     Pool-0 with 2 * raidz1(3 disks) total 6 disks 
+
+      %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
 
- 4. Create pool on Metro Cluster with single JBOD with 4-way mirrors
-     : Pool-0 with 2 * mirrors(4 disks) total 8 disks 
+ 4. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
+     Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
-      %(prog)s  create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4   192.168.0.220
+      %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
 
  5. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
@@ -99,15 +102,29 @@ def get_args():
      Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
      Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
-      %(prog)s  create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4  192.168.0.220
+      %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
+
  
- 6. Shutdown three JovianDSS servers using default port but non default password
+ 6. Delete Clone of iSCSI volume zvol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+
+ 7. Delete Clone of NAS volume vol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+
+
+ 8. Shutdown three JovianDSS servers using default port but non default password.
 
       %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
+
     or with IP range syntax ".."
+
       %(prog)s --pswd password shutdown 192.168.0.220..222
 
- 7. Reboot single JovianDSS server
+
+ 9. Reboot single JovianDSS server.
 
       %(prog)s reboot 192.168.0.220
     ''')
@@ -115,7 +132,7 @@ def get_args():
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone','create_pool', 'shutdown', 'reboot'],
+        choices=['clone', 'create_pool', 'delete_clone', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -237,7 +254,7 @@ def get_args():
         menu = True
     
     ##expand nodes list if ip range provided in args
-    ## i.e. 192.168.0.220..221 will be expqnded to: ["192.168.0.220","192.168.0.221"]
+    ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     expanded_nodes = []
     for ip in nodes:
         if ".." in ip:
@@ -249,7 +266,7 @@ def get_args():
     ##  first node
     node    = nodes[0]
             
-    ##  validate ip-addr    
+    ##  validate ip-addr
     for ip in nodes :
         if not valid_ip(ip) :
             sys_exit( 'IP address {} is invalid'.format(ip))
@@ -414,7 +431,7 @@ def check_given_volume_name(ignore_error=None):
             if zvol.name == volume_name:
                 return 'volume'
         if ignore_error is None:
-            sys_exit_with_timestamp( 'Error: {} does not exist on {} node: {}'.format(volume_name, pool_name, node))
+            sys_exit_with_timestamp( 'Error: {} does not exist on {} Node: {}'.format(volume_name, pool_name, node))
         else:
             return None
 
@@ -490,28 +507,28 @@ def create_snapshot(vol_type,ignore_error=None):
 def create_clone(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
-        ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to diffrent resources
+        ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
         api = interface(node)
         # Create clone of NAS vol == dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAP_NAME}/clones'.format(
                 POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAP_NAME=auto_snap_name)
             ## vol
-            clone_name = auto_vol_clone_name + time_stamp_clone_syntax()                                    
+            clone_name = volume_name + time_stamp_clone_syntax() + auto_vol_clone_name
             data = dict(name=clone_name)
         # Create clone of SAN zvol == volume
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
                 POOL_NAME=pool_name, VOLUME_NAME=volume_name)
             ## zvol
-            clone_name = auto_zvol_clone_name + time_stamp_clone_syntax()                                  
-            data = dict(name=clone_name, snapshot=auto_snap_name)     
+            clone_name = volume_name + time_stamp_clone_syntax() + auto_zvol_clone_name
+            data = dict(name=clone_name, snapshot=auto_snap_name)
         try:
             api.driver.post(endpoint, data)
             print_with_timestamp("Clone of {}/{} has been successfully created.".format(pool_name,volume_name))
         except:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name, node))    
+                sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name, node))
 
 
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
@@ -523,8 +540,11 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
                        POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
             try:
                 api.driver.delete(endpoint)
+                print_with_timestamp("Share, clone and snapshot of {}/{} have been successfully deleted.".format(pool_name,volume_name))
+                print()
             except:
                 print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name, node))
+                print()
         # Delete snapshot and clone of SAN zvol (using recursively options) 
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
@@ -532,9 +552,11 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
             data = dict(recursively_children=True, recursively_dependents=True, force_umount=True)
             try:
                 api.driver.delete(endpoint,data)
+                print_with_timestamp("Clone and snapshot of {}/{} have been successfully deleted.".format(pool_name,volume_name))
+                print()
             except:
                 print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name, node))
-
+                print()
 
 def create_target(ignore_error=None):
     for node in nodes:
@@ -637,7 +659,7 @@ def remove_disks(jbods):
         jbods_disks_size = [ [disk[0] for disk in jbod]  for jbod in jbods ]
         all_disks_size = merge_sublists( jbods_disks_size ) ## convert lists of jbods to single disks list
         average_disk_size = float(sum(all_disks_size)) / len(all_disks_size)  ## 
-        return [ [ disk for disk in jbod if disk[0]>= (average_disk_size - disk_size_tolerance)] for jbod in jbods ] ##>= do not remove if all drives are same size size
+        return [ [ disk for disk in jbod if disk[0]>= (average_disk_size - disk_size_tolerance)] for jbod in jbods ] ##>= do not remove if all drives are same size
     
 
 def check_all_disks_size_equal(jbods):
@@ -680,7 +702,7 @@ def read_jbods_and_create_pool(choice='0'):
         {}
          {}\t: Read single Powered-ON JBOD disks (first JBOD = 0)
          L\t: List JBODs disks
-         C\t: Create Pool & quit
+         C\t: Create pool & quit
          Q\t: Quit
         {}""".format(line_sep, line_sep, ",".join(map(str,range(given_jbods_num))), line_sep))
         print("\tGiven JBODs number: {}".format(given_jbods_num))
@@ -770,7 +792,6 @@ def read_jbods_and_create_pool(choice='0'):
     print("\n")
     for pool in sorted(pools):
         print("\tNode {} {}: {}*{}[{} disk]".format(node, pool, *get_pool_details(node, pool)))
-
         
 
 def main() :
@@ -779,18 +800,25 @@ def main() :
     wait_for_nodes()
 
     if action == 'clone':
-        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be euqal 2
+        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
             sys_exit_with_timestamp( 'Error: Clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
         create_new_backup_clone( vol_type )
 
+    elif action == 'delete_clone':
+        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
+        if c < 2:
+            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
+        vol_type = check_given_volume_name()
+        delete_snapshot_and_clone( vol_type, ignore_error=True )
+
     elif action == 'create_pool':
         if check_given_pool_name(ignore_error=True):
-            sys_exit_with_timestamp("Error: Pool {} allready exist.".format(pool_name))
+            sys_exit_with_timestamp("Error: Pool {} already exist.".format(pool_name))
         read_jbods_and_create_pool()
-        
+ 
     elif action == 'shutdown':
         shutdown_nodes()
 
