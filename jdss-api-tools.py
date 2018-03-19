@@ -65,7 +65,7 @@ def get_args():
         epilog='''EXAMPLES:
 
  1. Create Clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
-     Every time it runs, it will delete_clone the clone created last run and re-create new one.
+     Every time it runs, it will delete the clone created last run and re-create new one.
      So, the target exports most recent data every run.
      The example is using default password and port.
      Tools automatically recognize the volume type. If given volume is iSCSI volume,
@@ -78,7 +78,7 @@ def get_args():
 
  2. Create Clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
      Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the shareexports most recent data every run.
+     So, the share exports most recent data every run.
      The example is using default password and port.
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
