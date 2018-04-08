@@ -127,12 +127,16 @@ def get_args():
  9. Reboot single JovianDSS server.
 
       %(prog)s reboot 192.168.0.220
+
+ 10. Set Host name to "node220", Server name to "server220" and server description to "jdss220".
+
+      %(prog)s set_host --host=node220 --server=server220 --description=jdss220  192.168.0.220
     ''')
 
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'create_pool', 'delete_clone', 'shutdown', 'reboot'],
+        choices=['clone', 'create_pool', 'delete_clone', 'set_host', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -178,6 +182,24 @@ def get_args():
         default=1,
         type=int,
         help='Enter number of vdevs in pool'
+    )
+    parser.add_argument(
+        '--host',
+        metavar='name',
+        default=None,
+        help='Enter host name'
+    )
+    parser.add_argument(
+        '--server',
+        metavar='name',
+        default=None,
+        help='Enter server name'
+    )
+    parser.add_argument(
+        '--description',
+        metavar='desc.',
+        default=None,
+        help='Enter server description'
     )
     parser.add_argument(
         'ip',
@@ -231,6 +253,7 @@ def get_args():
     
     global api_port, api_user, api_password, action, pool_name, volume_name, delay, nodes, node, menu
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
+    global host_name, server_name, server_description
 
     api_port                = args.port
     api_user                = args.user
@@ -243,7 +266,10 @@ def get_args():
     jbods_num               = args.jbods
     vdevs_num               = args.vdevs
     vdev_type               = args.vdev
-    disk_size_tolerance     = args.tolerance * GiB 
+    disk_size_tolerance     = args.tolerance * GiB
+    host_name               = args.host
+    server_name             = args.server
+    server_description      = args.description
     
     delay                   = args.delay
     nodes                   = args.ip
@@ -379,6 +405,27 @@ def reboot_nodes() :
         api.driver.post(endpoint,data)
         print_with_timestamp( 'Reboot: {}'.format(node))
 
+
+def set_host_server_name(host_name=None, server_name=None, server_description=None):
+    api = interface(node)
+    data = dict()
+    endpoint = '/product'  
+    if host_name:
+        data["host_name"] = host_name
+    if server_name:
+        data["server_name"] = server_name
+    if server_description:
+        data["server_description"] = server_description
+
+    api.driver.put(endpoint,data)
+
+    if host_name:
+        print_with_timestamp( 'Set Host Name: {}'.format(host_name))
+    if server_name:
+        print_with_timestamp( 'Set Server Name: {}'.format(server_name))        
+    if server_description:
+        print_with_timestamp( 'Set Server Description: {}'.format(server_description))
+        
 
 def get_pool_details(node, pool_name):
     api = interface(node)
@@ -819,6 +866,12 @@ def main() :
             sys_exit_with_timestamp("Error: Pool {} already exist.".format(pool_name))
         read_jbods_and_create_pool()
  
+    elif action == 'set_host':
+        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host 
+        if c not in (1,2,3):
+            sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
+        set_host_server_name(host_name, server_name, server_description)
+
     elif action == 'shutdown':
         shutdown_nodes()
 
