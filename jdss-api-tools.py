@@ -14,12 +14,16 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-02-07  initial release
 2018-03-06  add create pool
 2018-03-18  add delete_clone option (it deletes the snapshot as well) (kris@dddistribution.be)
+2018-04-23  add set_host  --host --server --description
+2018-04-23  add network
+2018-04-23  add info
 
 """
     
 from __future__ import print_function
 import sys
 import time
+import datetime
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
 import logging
@@ -55,7 +59,21 @@ zvol_name_prefix = 'zvol00'
 def interface(node):
     return API.via_rest(node, api_port, api_user, api_password)
 
+def get(endpoint):
+    global node
+    api=interface(node)
+    return api.driver.get(endpoint)['data']
 
+def put(endpoint,data):
+    global node
+    api=interface(node)
+    return api.driver.put(endpoint,data)
+
+def post(endpoint,data):
+    global node
+    api=interface(node)
+    return api.driver.post(endpoint,data)
+    
 def get_args():
 
     parser = argparse.ArgumentParser(
@@ -131,12 +149,22 @@ def get_args():
  10. Set Host name to "node220", Server name to "server220" and server description to "jdss220".
 
       %(prog)s set_host --host=node220 --server=server220 --description=jdss220  192.168.0.220
+
+ 11. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
+      Missing netmask option will set default 255.255.255.0 
+
+      %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
+
+ 12. Print system info 
+
+      %(prog)s info 192.168.0.220
     ''')
 
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'create_pool', 'delete_clone', 'set_host', 'shutdown', 'reboot'],
+        choices=['clone', 'create_pool', 'delete_clone', 'set_host', 'network',
+                 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -202,6 +230,36 @@ def get_args():
         help='Enter server description'
     )
     parser.add_argument(
+        '--nic',
+        metavar='eth#',
+        default=None,
+        help='Enter NIC name. Example: eth0, eth1, bond0, bond1, etc.'
+    )
+    parser.add_argument(
+        '--new_ip',
+        metavar='addr',
+        default=None,
+        help='Enter new IP address for selected NIC'
+    )
+    parser.add_argument(
+        '--new_mask',
+        metavar='mask',
+        default='255.255.255.0',
+        help='Enter new subnet mask for selected NIC'
+    )
+    parser.add_argument(
+        '--new_gw',
+        metavar='addr',
+        default=None,
+        help='Enter new gateway for selected NIC'
+    )
+    parser.add_argument(
+        '--new_dns',
+        metavar='addr',
+        default=None,   # default None, empty str will clear dns
+        help='Enter new dns address or coma separated list'
+    )
+    parser.add_argument(
         'ip',
         metavar='jdss-ip-addr',
         nargs='+',
@@ -253,6 +311,7 @@ def get_args():
     
     global api_port, api_user, api_password, action, pool_name, volume_name, delay, nodes, node, menu
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
+    global nic_name, new_ip_addr, new_mask, new_gw, new_dns
     global host_name, server_name, server_description
 
     api_port                = args.port
@@ -270,7 +329,13 @@ def get_args():
     host_name               = args.host
     server_name             = args.server
     server_description      = args.description
-    
+
+    nic_name                = args.nic
+    new_ip_addr             = args.new_ip
+    new_mask                = args.new_mask
+    new_gw                  = args.new_gw
+    new_dns                 = args.new_dns
+
     delay                   = args.delay
     nodes                   = args.ip
 
@@ -306,6 +371,18 @@ def get_args():
     if not 22 <= args.port <= 65535:
         sys_exit( 'Port {} is out of allowed range 22..65535'.format(port))
 
+
+def new_dns_convert_to_list(new_dns):
+    if new_dns is None:
+        return None
+    if new_dns is '':
+        return []
+    for sep in ',;':
+        if sep in new_dns:
+            new_dns=new_dns.split(sep)
+    if type(new_dns) is str:
+        new_dns=new_dns.split() #no separator, single item new_dns list
+    return new_dns
 
 
 def count_provided_args(*args):
@@ -357,14 +434,13 @@ def expand_ip_range(ip_range):
 
 
 def wait_for_nodes():
-    
+    global node
     for node in nodes :
-        api = interface(node)
         repeat = 100
         counter = 0
         while True:
             try:
-                product = api.driver.get('/product')
+                get('/conn_test')
             except:
                 if counter % 3:
                     print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
@@ -387,29 +463,24 @@ def display_delay(msg):
 
 
 def shutdown_nodes():
+    global node
     display_delay('Shutdown')
     for node in nodes:
-        api = interface(node)
-        endpoint = '/power/shutdown'
-        data = dict(force=True) 
-        api.driver.post(endpoint,data)
+        post('/power/shutdown',dict(force=True))
         print_with_timestamp( 'Shutdown: {}'.format(node))
 
 
 def reboot_nodes() :
+    global node
     display_delay('Reboot')
     for node in nodes:
-        api = interface(node)
-        endpoint = '/power/reboot'
-        data = dict(force=True) 
-        api.driver.post(endpoint,data)
+        post('/power/reboot', dict(force=True))
         print_with_timestamp( 'Reboot: {}'.format(node))
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
-    api = interface(node)
+
     data = dict()
-    endpoint = '/product'  
     if host_name:
         data["host_name"] = host_name
     if server_name:
@@ -417,7 +488,7 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
     if server_description:
         data["server_description"] = server_description
 
-    api.driver.put(endpoint,data)
+    put('/product',data)
 
     if host_name:
         print_with_timestamp( 'Set Host Name: {}'.format(host_name))
@@ -425,7 +496,97 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         print_with_timestamp( 'Set Server Name: {}'.format(server_name))        
     if server_description:
         print_with_timestamp( 'Set Server Description: {}'.format(server_description))
+
+
+###
+def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
+    global node
+    error = ''
+    
+    if new_ip_addr is None:
+        sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
+    # list_of_ip
+    dns = new_dns_convert_to_list(new_dns)
+    for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
+        if ip:
+            if not valid_ip(ip):
+                sys_exit( 'IP address {} is invalid'.format(new_ip_addr))
+    endpoint = '/network/interfaces/{INTERFACE}'.format(
+                   INTERFACE=nic_name)
+    data = dict(configuration="static", address=new_ip_addr, netmask=new_mask)
+    if new_gw:
+        data["gateway"]=new_gw
+    try:
+        put(endpoint,data)
+    except Exception as e:
+        error = str(e)
+        # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+        # e : HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+        node = new_ip_addr  #the node ip was changed
+        time.sleep(1)
         
+    
+    ## set default gateway
+    if new_gw:
+        endpoint = '/network/default-gateway'
+        data = dict(interface=nic_name)
+        put(endpoint,data)
+    if dns is not None:
+        endpoint = '/network/dns'
+        data = dict(servers=dns)
+        put(endpoint,data)
+    if "HTTPSConnectionPool" in error and node in error and "timeout" in error:
+        sys_exit( 'The accces NIC changed to {}'.format(new_ip_addr))
+    
+
+def info():
+    global node
+    for node in nodes:
+        version = get('/product')["header"]
+        serial_number = get('/product')["serial_number"]
+        serial_number = '{} TRIAL'.format(serial_number) if serial_number.startswith('T') else serial_number
+        storage_capacity = get('/product')['storage_capacity']     # -1  means Unlimited
+        storage_capacity = int(storage_capacity/pow(1024,4)) if storage_capacity > -1 else 'Unlimited'
+        server_name = get('/product')["server_name"]
+        host_name = get('/product')["host_name"]
+        current_system_time = get('/time')['timestamp']
+        system_time = datetime.datetime.fromtimestamp(current_system_time).strftime('%Y-%m-%d %H:%M:%S')
+        time_zone = get('/time')['timezone']
+        ntp_status = get('/time')['daemon']
+        ntp_status = 'Yes' if ntp_status else 'No'
+        product_key = get('/licenses/product').keys()[0]
+
+        key_name={"strg":"Storage Extension Key",
+                  "ha_rd":"Advanced HA Metro Cluster",
+                  "ha_aa":"Standard HA Cluster"}
+
+        extensions = get('/licenses/extensions')
+        print_out_licence_keys = []
+        for lic_key in extensions.keys():
+            licence_type = key_name[ extensions[lic_key]['type']]
+            licence_storage =  extensions[lic_key]['value']
+            licence_storage = '' if licence_storage in 'None' else ' {}TB'.format(licence_storage)
+            licence_description = '{:>30}:'.format( licence_type + licence_storage) 
+            print_out_licence_keys.append('{}\t{}'.format( licence_description , lic_key ))
+        print_out_licence_keys.sort(reverse=True)
+        
+        print()
+        print('{:>30}:\t{}'.format("NODE", node))
+        print('{:>30}:\t{}'.format("System Time",system_time))
+        print('{:>30}:\t{}'.format("Time Zone",time_zone))
+        print('{:>30}:\t{}'.format("Time from NTP",ntp_status))
+        print('{:>30}:\t{}'.format("Software Version",version))
+        print('{:>30}:\t{}'.format("Serial Number",serial_number))
+        print('{:>30}:\t{} TB'.format("Licensed Storage Capacity",storage_capacity))
+        print('{:>30}:\t{}'.format("Product Key", product_key))
+
+        for key in print_out_licence_keys :
+            print(key)
+
+        print('{:>30}:\t{}'.format("Server Name",server_name))
+        print('{:>30}:\t{}'.format("Host Name",host_name))
+        
+
 
 def get_pool_details(node, pool_name):
     api = interface(node)
@@ -503,11 +664,11 @@ def read_jbod(n):
     """
     read unused disks serial numbers in given jbod n= 0,1,2,...
     """
-    api = interface(node)
     jbod = []
     global metro
     metro = False
     
+    api = interface(node)
     unused_disks = api.storage.disks.unused
     for disk in unused_disks:
         if disk.origin in "iscsi":
@@ -871,6 +1032,15 @@ def main() :
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
+
+    elif action == 'network':
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        if c not in (1,2,3,4,5):
+            sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
+        network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
+
+    elif action == 'info':
+        info()
 
     elif action == 'shutdown':
         shutdown_nodes()
