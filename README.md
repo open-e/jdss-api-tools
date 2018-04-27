@@ -70,6 +70,14 @@ EXAMPLES:
 
 	jdss-api-tools.exe set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
+<br>11. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0 
+
+  jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
+
+<br>12. Print system info
+
+  jdss-api-tools.exe info 192.168.0.220
+
 #
 #After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
