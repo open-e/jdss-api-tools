@@ -505,28 +505,27 @@ def print_interface_details(header,fields):
     interfaces = get('/network/interfaces')
     interfaces.sort(key=lambda k : k['name'])
 
-    lenght={}
+    fields_lenght={}
     for field in fields:
-        lenght[field]=0
+        fields_lenght[field]=0
     for interface in interfaces:
         for i,field in enumerate(fields):
+            value = '-'
             if field in ('negotiated_speed','speed'):
                 if type(interface[field]) is int:
-                    interface[field] = interface[field]/1000
+                    interface[field] /= 1000
             if field in interface.keys():
                 value = str(interface[field])
-            else:
-                value = '-'
-            current_max_lenght = max(len(header[i]), len(value)) 
-            if current_max_lenght > lenght[field]:
-                lenght[field] = current_max_lenght
+            current_max_field_lenght = max(len(header[i]), len(value)) 
+            if current_max_field_lenght > fields_lenght[field]:
+                fields_lenght[field] = current_max_field_lenght
 
     ## add field seperator
-    for key in lenght.keys():
-            lenght[key] +=  3
+    for key in fields_lenght.keys():
+            fields_lenght[key] +=  3
 
-    header_format_template   = '{:_>' + '}{:_>'.join([str(lenght[field]) for field in fields]) + '}'
-    field_format_template          =  '{:>' +  '}{:>'.join([str(lenght[field]) for field in fields]) + '}'
+    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_lenght[field]) for field in fields]) + '}'
+    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_lenght[field]) for field in fields]) + '}'
 
     print()
     print( header_format_template.format( *(header)))
@@ -534,15 +533,13 @@ def print_interface_details(header,fields):
     for interface in interfaces:
         interface_details = []
         for field in fields:
-            try:
-                f = interface[field]
-            except:
-                f = '-'
-            if str(f) in ('None',' '):
-                f = '-'
-            interface_details.append(f)
+            value = '-'
+            if field in interface.keys():
+                value = str(interface[field])
+                if value in 'None':
+                    value = '-'
+            interface_details.append(value)
         print(field_format_template.format(*interface_details))
-
 
         
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
