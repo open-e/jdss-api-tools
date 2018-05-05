@@ -17,6 +17,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-04-23  add set_host  --host --server --description
 2018-04-23  add network
 2018-04-23  add info
+2018-05-05  add network info 
 
 """
     
@@ -499,9 +500,54 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
 
 
 ###
+def print_interface_details(header,fields):
+
+    interfaces = get('/network/interfaces')
+    interfaces.sort(key=lambda k : k['name'])
+
+    lenght={}
+    for field in fields:
+        lenght[field]=0
+    for interface in interfaces:
+        for i,field in enumerate(fields):
+            if field in ('negotiated_speed','speed'):
+                if type(interface[field]) is int:
+                    interface[field] = interface[field]/1000
+            if field in interface.keys():
+                value = str(interface[field])
+            else:
+                value = '-'
+            current_max = max(len(header[i]), len(value)) 
+            if current_max > lenght[field]:
+                lenght[field] = max(len(header[i]), len(value))
+    ## add field seperator
+    for key in lenght.keys():
+            lenght[key] +=  2
+
+    header_print_template   = '{:_>' + '}{:_>'.join([str(lenght[field]) for field in fields]) + '}'
+    print_template          =  '{:>' +  '}{:>'.join([str(lenght[field]) for field in fields]) + '}'
+
+    print()
+    print( header_print_template.format( *(header)))
+
+    for interface in interfaces:
+        interface_details = []
+        for field in fields:
+            try:
+                f = interface[field]
+            except:
+                f = '-'
+            if str(f) in ('None',' '):
+                f = '-'
+            interface_details.append(f)
+        print(print_template.format(*interface_details))
+
+
+        
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node
     error = ''
+    timeouted = False
     
     if new_ip_addr is None:
         sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
@@ -522,9 +568,10 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         error = str(e)
         # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
         # e : HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        node = new_ip_addr  #the node ip was changed
+        timeouted = ("HTTPSConnectionPool" in error) and (node in error) and ("timeout" in error)
+        if timeouted:
+            node = new_ip_addr  #the node ip was changed
         time.sleep(1)
-        
     
     ## set default gateway
     if new_gw:
@@ -535,7 +582,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         endpoint = '/network/dns'
         data = dict(servers=dns)
         put(endpoint,data)
-    if "HTTPSConnectionPool" in error and node in error and "timeout" in error:
+    if timeouted:
         sys_exit( 'The accces NIC changed to {}'.format(new_ip_addr))
     
 
@@ -555,6 +602,8 @@ def info():
         ntp_status = get('/time')['daemon']
         ntp_status = 'Yes' if ntp_status else 'No'
         product_key = get('/licenses/product').keys()[0]
+        dns = get('/network/dns')['servers']
+        default_gateway = get('/network/default-gateway')['interface']
 
         key_name={"strg":"Storage Extension Key",
                   "ha_rd":"Advanced HA Metro Cluster",
@@ -585,6 +634,17 @@ def info():
 
         print('{:>30}:\t{}'.format("Server Name",server_name))
         print('{:>30}:\t{}'.format("Host Name",host_name))
+        print('{:>30}:\t{}'.format("DNS",', '.join([str(ip_addr) for ip_addr in dns])))
+        print('{:>30}:\t{}'.format("Default Gateway",default_gateway))
+        
+
+        ## PRINT NIC DETAILS
+        header= ( 'name', 'model', 'Gbit/s', 'mac')
+        fields= ( 'name', 'model', 'speed',  'mac_address')
+        print_interface_details(header,fields)
+        header= ('name', 'type', 'address', 'netmask', 'gateway', 'negotiated_Gbit/s' )
+        fields= ('name', 'type', 'address', 'netmask', 'gateway', 'negotiated_speed')
+        print_interface_details(header,fields)
         
 
 
