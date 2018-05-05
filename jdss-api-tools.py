@@ -517,18 +517,19 @@ def print_interface_details(header,fields):
                 value = str(interface[field])
             else:
                 value = '-'
-            current_max = max(len(header[i]), len(value)) 
-            if current_max > lenght[field]:
-                lenght[field] = max(len(header[i]), len(value))
+            current_max_lenght = max(len(header[i]), len(value)) 
+            if current_max_lenght > lenght[field]:
+                lenght[field] = current_max_lenght
+
     ## add field seperator
     for key in lenght.keys():
-            lenght[key] +=  2
+            lenght[key] +=  3
 
-    header_print_template   = '{:_>' + '}{:_>'.join([str(lenght[field]) for field in fields]) + '}'
-    print_template          =  '{:>' +  '}{:>'.join([str(lenght[field]) for field in fields]) + '}'
+    header_format_template   = '{:_>' + '}{:_>'.join([str(lenght[field]) for field in fields]) + '}'
+    field_format_template          =  '{:>' +  '}{:>'.join([str(lenght[field]) for field in fields]) + '}'
 
     print()
-    print( header_print_template.format( *(header)))
+    print( header_format_template.format( *(header)))
 
     for interface in interfaces:
         interface_details = []
@@ -540,7 +541,7 @@ def print_interface_details(header,fields):
             if str(f) in ('None',' '):
                 f = '-'
             interface_details.append(f)
-        print(print_template.format(*interface_details))
+        print(field_format_template.format(*interface_details))
 
 
         
@@ -642,8 +643,8 @@ def info():
         header= ( 'name', 'model', 'Gbit/s', 'mac')
         fields= ( 'name', 'model', 'speed',  'mac_address')
         print_interface_details(header,fields)
-        header= ('name', 'type', 'address', 'netmask', 'gateway', 'negotiated_Gbit/s' )
-        fields= ('name', 'type', 'address', 'netmask', 'gateway', 'negotiated_speed')
+        header= ('name', 'type', 'address', 'netmask', 'gateway', 'duplex', 'negotiated_Gbit/s' )
+        fields= ('name', 'type', 'address', 'netmask', 'gateway', 'duplex', 'negotiated_speed')
         print_interface_details(header,fields)
         
 
