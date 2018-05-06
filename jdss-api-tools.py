@@ -17,7 +17,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-04-23  add set_host  --host --server --description
 2018-04-23  add network
 2018-04-23  add info
-2018-05-05  add network info 
+2018-05-05  add network info
+2018-05-06  add pools info
 
 """
     
@@ -500,7 +501,53 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
 
 
 ###
-def print_interface_details(header,fields):
+def print_pools_details(header,fields):
+    pools = get('/pools')
+    pools.sort(key=lambda k : k['name'])
+
+    fields_lenght={}
+    for field in fields:
+        fields_lenght[field]=0
+    for pool in pools:
+        for i,field in enumerate(fields):
+            value = '-'
+            if field in ('size','available'):
+                pool[field] =  round(float(pool[field])/pow(1024,4),2)
+            if field in ('iostats'):
+                pool[field] =  str(pool[field]).replace("u'","").replace("{","").replace("}","").replace("'","")
+            if field in pool.keys():
+                value = str(pool[field])
+            current_max_field_lenght = max(len(header[i]), len(value)) 
+            if current_max_field_lenght > fields_lenght[field]:
+                fields_lenght[field] = current_max_field_lenght
+
+    ## add field seperator
+    for key in fields_lenght.keys():
+            fields_lenght[key] +=  3
+
+    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_lenght[field]) for field in fields]) + '}'
+    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_lenght[field]) for field in fields]) + '}'
+
+    print()
+    if len(pools):
+        print( header_format_template.format( *(header)))
+    else:
+        print('\tNo imported/active pools found ')
+
+    for pool in pools:
+        pool_details = []
+        for field in fields:
+            value = '-'
+            if field in pool.keys():
+                value = str(pool[field])
+                if value in 'None':
+                    value = '-'
+            pool_details.append(value)
+        print(field_format_template.format(*pool_details))
+
+
+###
+def print_interfaces_details(header,fields):
 
     interfaces = get('/network/interfaces')
     interfaces.sort(key=lambda k : k['name'])
@@ -636,13 +683,19 @@ def info():
         print('{:>30}:\t{}'.format("Default Gateway",default_gateway))
         
 
-        ## PRINT NIC DETAILS
+        ## PRINT NICs DETAILS
         header= ( 'name', 'model', 'Gbit/s', 'mac')
         fields= ( 'name', 'model', 'speed',  'mac_address')
-        print_interface_details(header,fields)
+        print_interfaces_details(header,fields)
         header= ('name', 'type', 'address', 'netmask', 'gateway', 'duplex', 'negotiated_Gbit/s' )
         fields= ('name', 'type', 'address', 'netmask', 'gateway', 'duplex', 'negotiated_speed')
-        print_interface_details(header,fields)
+        print_interfaces_details(header,fields)
+
+        ## PRINT POOLs DETAILS
+        header= ('name', 'size_TiB', 'available_TiB', 'health', 'io-error-stats' )
+        fields= ('name', 'size',     'available',     'health', 'iostats' )
+        print_pools_details(header,fields)
+
         
 
 
