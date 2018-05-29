@@ -19,6 +19,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-04-23  add info
 2018-05-05  add network info
 2018-05-06  add pools info
+2018-05-28  add set_time
 
 """
     
@@ -152,12 +153,19 @@ def get_args():
 
       %(prog)s set_host --host=node220 --server=server220 --description=jdss220  192.168.0.220
 
- 11. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
+ 11. Set Timezone and with NTP-time with default NTP servers.
+
+      %(prog)s set_time --timezone=America/New_York 192.168.0.220
+      %(prog)s set_time --timezone=America/Chicago 192.168.0.220
+      %(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220
+      %(prog)s set_time --timezone=Europe/Berlin 192.168.0.220
+
+ 12. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
       Missing netmask option will set default 255.255.255.0 
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
- 12. Print system info 
+ 13. Print system info 
 
       %(prog)s info 192.168.0.220
     ''')
@@ -165,7 +173,7 @@ def get_args():
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'create_pool', 'delete_clone', 'set_host', 'network',
+        choices=['clone', 'create_pool', 'delete_clone', 'set_host', 'set_time', 'network',
                  'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
@@ -230,6 +238,24 @@ def get_args():
         metavar='desc.',
         default=None,
         help='Enter server description'
+    )
+    parser.add_argument(
+        '--timezone',
+        metavar='zone',
+        default=None,
+        help='Enter timezone'
+    )
+    parser.add_argument(
+        '--ntp',
+        metavar='ON|OFF',
+        default='ON',
+        help='Enter "ON" to enable, "OFF to disable NTP'
+    )
+    parser.add_argument(
+        '--ntp_servers',
+        metavar='servers',
+        default='0.pool.ntp.org,1.pool.ntp.org,2.pool.ntp.org',
+        help='Enter NTP servers(s)'
     )
     parser.add_argument(
         '--nic',
@@ -314,7 +340,7 @@ def get_args():
     global api_port, api_user, api_password, action, pool_name, volume_name, delay, nodes, node, menu
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns
-    global host_name, server_name, server_description
+    global host_name, server_name, server_description, timezone, ntp, ntp_servers
 
     api_port                = args.port
     api_user                = args.user
@@ -331,6 +357,9 @@ def get_args():
     host_name               = args.host
     server_name             = args.server
     server_description      = args.description
+    timezone                = args.timezone
+    ntp                     = args.ntp
+    ntp_servers             = args.ntp_servers
 
     nic_name                = args.nic
     new_ip_addr             = args.new_ip
@@ -498,6 +527,28 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         print_with_timestamp( 'Set Server Name: {}'.format(server_name))        
     if server_description:
         print_with_timestamp( 'Set Server Description: {}'.format(server_description))
+
+
+def set_time(timezone=None, ntp=None, ntp_servers=None):
+
+    data = dict()
+    if timezone:
+        data["timezone"] = timezone
+    if ntp.upper() == "OFF":
+        data["daemon"] = False    
+    else:
+        data["daemon"] = True     
+    if ntp_servers:
+        data["servers"] = ntp_servers.split(",")
+
+    put('/time',data)
+
+    if timezone:
+        print_with_timestamp( 'Set Timezone: {}'.format(timezone))
+    if ntp:
+        print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))        
+    if ntp_servers:
+        print_with_timestamp( 'Set NTP Servers: {}'.format(ntp_servers))
 
 
 ###
@@ -1143,6 +1194,12 @@ def main() :
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
+
+    elif action == 'set_time':
+        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host 
+        if c not in (1,2,3):
+            sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
+        set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
         c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 

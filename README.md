@@ -70,11 +70,18 @@ EXAMPLES:
 
 	jdss-api-tools.exe set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
-<br>11. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0
+<br>11. Set Timezone and with NTP-time with default NTP servers.
+
+	jdss-api-tools.exe set_time --timezone=America/New_York 192.168.0.220
+	jdss-api-tools.exe set_time --timezone=America/Chicago 192.168.0.220
+	jdss-api-tools.exe set_time --timezone=America/Los_Angeles 192.168.0.220
+	jdss-api-tools.exe set_time --timezone=Europe/Berlin 192.168.0.220
+
+<br>12. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
-<br>12. Print system info
+<br>13. Print system info
 
 	jdss-api-tools.exe info 192.168.0.220
 
