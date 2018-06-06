@@ -20,6 +20,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-05  add network info
 2018-05-06  add pools info
 2018-05-28  add set_time
+2018-06-06  fix spelling
 
 """
     
