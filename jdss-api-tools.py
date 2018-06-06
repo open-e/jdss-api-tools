@@ -557,9 +557,9 @@ def print_pools_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
 
-    fields_lenght={}
+    fields_length={}
     for field in fields:
-        fields_lenght[field]=0
+        fields_length[field]=0
     for pool in pools:
         for i,field in enumerate(fields):
             value = '-'
@@ -569,16 +569,16 @@ def print_pools_details(header,fields):
                 pool[field] =  str(pool[field]).replace("u'","").replace("{","").replace("}","").replace("'","")
             if field in pool.keys():
                 value = str(pool[field])
-            current_max_field_lenght = max(len(header[i]), len(value)) 
-            if current_max_field_lenght > fields_lenght[field]:
-                fields_lenght[field] = current_max_field_lenght
+            current_max_field_length = max(len(header[i]), len(value)) 
+            if current_max_field_length > fields_length[field]:
+                fields_length[field] = current_max_field_length
 
     ## add field seperator
-    for key in fields_lenght.keys():
-            fields_lenght[key] +=  3
+    for key in fields_length.keys():
+            fields_length[key] +=  3
 
-    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_lenght[field]) for field in fields]) + '}'
-    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_lenght[field]) for field in fields]) + '}'
+    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
     print()
     if len(pools):
@@ -604,9 +604,9 @@ def print_interfaces_details(header,fields):
     interfaces = get('/network/interfaces')
     interfaces.sort(key=lambda k : k['name'])
 
-    fields_lenght={}
+    fields_length={}
     for field in fields:
-        fields_lenght[field]=0
+        fields_length[field]=0
     for interface in interfaces:
         for i,field in enumerate(fields):
             value = '-'
@@ -615,16 +615,16 @@ def print_interfaces_details(header,fields):
                     interface[field] /= 1000
             if field in interface.keys():
                 value = str(interface[field])
-            current_max_field_lenght = max(len(header[i]), len(value)) 
-            if current_max_field_lenght > fields_lenght[field]:
-                fields_lenght[field] = current_max_field_lenght
+            current_max_field_length = max(len(header[i]), len(value)) 
+            if current_max_field_length > fields_length[field]:
+                fields_length[field] = current_max_field_length
 
     ## add field seperator
-    for key in fields_lenght.keys():
-            fields_lenght[key] +=  3
+    for key in fields_length.keys():
+            fields_length[key] +=  3
 
-    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_lenght[field]) for field in fields]) + '}'
-    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_lenght[field]) for field in fields]) + '}'
+    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
     print()
     print( header_format_template.format( *(header)))
