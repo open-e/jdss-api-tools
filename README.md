@@ -30,25 +30,35 @@ EXAMPLES:
 
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
-<br>3. Delete Clone of iSCSI volume zvol00 from Pool-0.
+<br>3. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+	The example is using password 12345 and default port.
+
+  jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+
+<br>4. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+  The example is using password 12345 and default port.
+
+	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+
+<br>5. Delete Clone of iSCSI volume zvol00 from Pool-0.
 
 	jdss-api-tools.exe delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
-<br>4. Delete Clone of NAS volume vol00 from Pool-0.
+<br>6. Delete Clone of NAS volume vol00 from Pool-0.
 
 	jdss-api-tools.exe delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
-<br>5. Create pool on single node or cluster with single JBOD:
+<br>7. Create pool on single node or cluster with single JBOD:
 	Pool-0 with 2 * raidz1(3 disks) total 6 disks
 
 	jdss-api-tools.exe create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
-<br>6. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
+<br>8. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
 	Pool-0 with 2 * mirrors(4 disks) total 8 disks
 
 	jdss-api-tools.exe create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
-<br>7. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+<br>9. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
 	Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
 	In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
 	Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
@@ -56,32 +66,32 @@ EXAMPLES:
 
 	jdss-api-tools.exe create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
 
-<br>8. Shutdown three JovianDSS servers using default port but non default password
+<br>10. Shutdown three JovianDSS servers using default port but non default password
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 	or with IP range syntax ".."
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
-<br>9. Reboot single DSS server
+<br>11. Reboot single DSS server
 
 	jdss-api-tools.exe reboot 192.168.0.220
 
-<br>10. Set Host name to "node220", Server name to "server220" and server description to "jdss220".
+<br>12. Set Host name to "node220", Server name to "server220" and server description to "jdss220".
 
 	jdss-api-tools.exe set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
-<br>11. Set Timezone and with NTP-time with default NTP servers.
+<br>13. Set Timezone and with NTP-time with default NTP servers.
 
 	jdss-api-tools.exe set_time --timezone=America/New_York 192.168.0.220
 	jdss-api-tools.exe set_time --timezone=America/Chicago 192.168.0.220
 	jdss-api-tools.exe set_time --timezone=America/Los_Angeles 192.168.0.220
 	jdss-api-tools.exe set_time --timezone=Europe/Berlin 192.168.0.220
 
-<br>12. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0
+<br>14. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
-<br>13. Print system info
+<br>15. Print system info
 
 	jdss-api-tools.exe info 192.168.0.220
 
