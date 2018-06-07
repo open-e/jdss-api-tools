@@ -33,7 +33,7 @@ EXAMPLES:
 <br>3. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 	The example is using password 12345 and default port.
 
-  jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 <br>4. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
   The example is using password 12345 and default port.

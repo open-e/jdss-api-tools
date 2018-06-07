@@ -22,7 +22,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-28  add set_time
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
-
 """
     
 from __future__ import print_function
