@@ -22,6 +22,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-28  add set_time
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
+
 """
     
 from __future__ import print_function
@@ -106,38 +107,38 @@ def get_args():
       %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
- 3. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+ 3. Delete clone of iSCSI volume zvol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+
+ 4. Delete clone of NAS volume vol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+
+
+ 5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
 
 
- 4. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+ 6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
 
 
- 5. Create pool on single node or cluster with single JBOD:
+ 7. Create pool on single node or cluster with single JBOD:
      Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
 
- 6. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
+ 8. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
      Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
-
-
- 7. Delete clone of iSCSI volume zvol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
-
-
- 8. Delete clone of NAS volume vol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
  9. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
