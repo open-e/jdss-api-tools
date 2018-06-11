@@ -927,7 +927,7 @@ def create_clone(vol_type, ignore_error=None):
             data = dict(name=clone_name, snapshot=auto_snap_name)
         try:
             api.driver.post(endpoint, data)
-            print_with_timestamp('Clone of {}/{} has been successfully created.'.format(pool_name,volume_name))
+            print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,auto_snap_name))
         except:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
@@ -1046,10 +1046,10 @@ def attach_target(ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
                     auto_target_name,clone_name,node))
         
-        print_with_timestamp('Clone of {}/{}/{} has been successfully attached to target.'.format(
-            pool_name,volume_name,snapshot_name))
+        print_with_timestamp('Clone: {} has been successfully attached to target.'.format(
+            clone_name))
         print("\n\tTarget:\t{}".format(auto_target_name))
-        print("\tClone:\t{}/{}\n".format(pool_name,clone_name))
+        print("\tClone:\t{}\n".format(clone_name))
             
 
 def create_share_for_auto_clone(ignore_error=None):
