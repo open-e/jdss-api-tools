@@ -736,7 +736,7 @@ def info():
         dns = get('/network/dns')['servers']
         default_gateway = get('/network/default-gateway')['interface']
 
-        key_name={"strg":"Storage Extension Key",
+        key_name={"strg":"Storage extension key",
                   "ha_rd":"Advanced HA Metro Cluster",
                   "ha_aa":"Standard HA Cluster"}
 
@@ -745,7 +745,7 @@ def info():
         for lic_key in extensions.keys():
             licence_type = key_name[ extensions[lic_key]['type']]
             licence_storage =  extensions[lic_key]['value']
-            licence_storage = '' if licence_storage in 'None' else ' {}TB'.format(licence_storage)
+            licence_storage = '' if licence_storage in 'None' else ' {} TB'.format(licence_storage)
             licence_description = '{:>30}:'.format( licence_type + licence_storage) 
             print_out_licence_keys.append('{}\t{}'.format( licence_description , lic_key ))
         print_out_licence_keys.sort(reverse=True)
