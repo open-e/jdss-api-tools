@@ -22,6 +22,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-28  add set_time
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
+2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
+
 """
     
 from __future__ import print_function
@@ -106,50 +108,62 @@ def get_args():
       %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
- 3. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+ 3. Delete clone of iSCSI volume zvol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+
+
+ 4. Delete clone of NAS volume vol00 from Pool-0.
+
+      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+
+
+ 5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
 
 
- 4. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+ 6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
 
 
- 5. Create pool on single node or cluster with single JBOD:
+ 7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
+     The example is using password 12345 and default port.
+
+      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+
+
+ 8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
+     The example is using password 12345 and default port.
+
+      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+
+
+ 9. Create pool on single node or cluster with single JBOD:
      Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
 
- 6. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
-     Pool-0 with 2 * mirrors(4 disks) total 8 disks 
+ 10. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
+      Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
 
- 7. Delete clone of iSCSI volume zvol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
-
-
- 8. Delete clone of NAS volume vol00 from Pool-0.
-
-      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
-
-
- 9. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
-     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
-     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
-     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-     Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
+ 11. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+      Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
+      In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
+      Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
+      Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
       %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
 
 
- 10. Shutdown three JovianDSS servers using default port but non default password.
+ 12. Shutdown three JovianDSS servers using default port but non default password.
 
       %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
@@ -158,17 +172,17 @@ def get_args():
       %(prog)s --pswd password shutdown 192.168.0.220..222
 
 
- 11. Reboot single JovianDSS server.
+ 13. Reboot single JovianDSS server.
 
       %(prog)s reboot 192.168.0.220
 
 
- 12. Set host name to "node220", server name to "server220" and server description to "jdss220".
+ 14. Set host name to "node220", server name to "server220" and server description to "jdss220".
 
       %(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
 
- 13. Set timezone and with NTP-time with default NTP servers.
+ 15. Set timezone and with NTP-time with default NTP servers.
 
       %(prog)s set_time --timezone=America/New_York 192.168.0.220
       %(prog)s set_time --timezone=America/Chicago 192.168.0.220
@@ -176,13 +190,13 @@ def get_args():
       %(prog)s set_time --timezone=Europe/Berlin 192.168.0.220
 
 
- 14. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
+ 16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
       Missing netmask option will set default 255.255.255.0 
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
 
- 15. Print system info 
+ 17. Print system info 
 
       %(prog)s info 192.168.0.220
     ''')
@@ -190,8 +204,8 @@ def get_args():
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'set_host', 'set_time', 'network',
-                 'info', 'shutdown', 'reboot'],
+        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
+                 'set_host', 'set_time', 'network', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -722,7 +736,7 @@ def info():
         dns = get('/network/dns')['servers']
         default_gateway = get('/network/default-gateway')['interface']
 
-        key_name={"strg":"Storage Extension Key",
+        key_name={"strg":"Storage extension key",
                   "ha_rd":"Advanced HA Metro Cluster",
                   "ha_aa":"Standard HA Cluster"}
 
@@ -731,7 +745,7 @@ def info():
         for lic_key in extensions.keys():
             licence_type = key_name[ extensions[lic_key]['type']]
             licence_storage =  extensions[lic_key]['value']
-            licence_storage = '' if licence_storage in 'None' else ' {}TB'.format(licence_storage)
+            licence_storage = '' if licence_storage in 'None' else ' {} TB'.format(licence_storage)
             licence_description = '{:>30}:'.format( licence_type + licence_storage) 
             print_out_licence_keys.append('{}\t{}'.format( licence_description , lic_key ))
         print_out_licence_keys.sort(reverse=True)
@@ -913,7 +927,7 @@ def create_clone(vol_type, ignore_error=None):
             data = dict(name=clone_name, snapshot=auto_snap_name)
         try:
             api.driver.post(endpoint, data)
-            print_with_timestamp('Clone of {}/{} has been successfully created.'.format(pool_name,volume_name))
+            print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,auto_snap_name))
         except:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
@@ -974,6 +988,37 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
 
 
+def delete_clone_existing_snapshot(vol_type, ignore_error=None):
+    for node in nodes:
+        api = interface(node)
+        # Delete existing clone and share of NAS vol
+        if vol_type == 'dataset':
+            clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
+            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{VOL_CLONE_NAME}'.format(
+                       POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, VOL_CLONE_NAME=vol_clone_name)
+            data = dict(name=clone_name)
+            try:
+                api.driver.delete(endpoint,data)
+                print_with_timestamp('Share and clone of {}/{}/{} have been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+                print()
+            except:
+                print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
+                print()
+        # Delete existing clone of SAN zvol
+        if vol_type == 'volume':
+            clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
+            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
+                   POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, CLONE_NAME=clone_name)
+            data = dict(name=clone_name)
+            try:
+                api.driver.delete(endpoint,data)
+                print_with_timestamp('Clone of {}/{}/{} has been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+                print()
+            except:
+                print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
+                print()
+
+
 def create_target(ignore_error=None):
     for node in nodes:
         api = interface(node)
@@ -1001,10 +1046,10 @@ def attach_target(ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
                     auto_target_name,clone_name,node))
         
-        print_with_timestamp('Clone of {}/{}/{} has been successfully attached to target.'.format(
-            pool_name,volume_name,snapshot_name))
+        print_with_timestamp('Clone: {} has been successfully attached to target.'.format(
+            clone_name))
         print("\n\tTarget:\t{}".format(auto_target_name))
-        print("\tClone:\t{}/{}\n".format(pool_name,clone_name))
+        print("\tClone:\t{}\n".format(clone_name))
             
 
 def create_share_for_auto_clone(ignore_error=None):
@@ -1237,6 +1282,7 @@ def main() :
         if c < 3:
             sys_exit_with_timestamp( 'Error: Clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
         vol_type = check_given_volume_name()
+        delete_clone_existing_snapshot( vol_type, ignore_error=True )
         create_existing_backup_clone( vol_type )
 
     elif action == 'delete_clone':
@@ -1245,6 +1291,13 @@ def main() :
             sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
+
+    elif action == 'delete_clone_existing_snapshot':
+        c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
+        vol_type = check_given_volume_name()
+        delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
         if check_given_pool_name(ignore_error=True):
