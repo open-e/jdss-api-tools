@@ -34,8 +34,7 @@ EXAMPLES:
 
  The example is using default password and port and make the share "my_backup_share" unvisible.
 
-   jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
-
+	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
 
 
 <br>3. Delete clone of iSCSI volume zvol00 from Pool-0 (it deletes the snapshot as well).
