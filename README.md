@@ -127,7 +127,7 @@ EXAMPLES:
 	jdss-api-tools.exe info 192.168.0.220
 
 #
-#After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
+After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
 	C:\Python27>Scripts\pyinstaller.exe --onefile jdss-api-tools.py
 #
