@@ -23,6 +23,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
+2018-06-21  add user defined share name for clone and make share unvisible by default
 
 """
     
@@ -46,7 +47,6 @@ action                  = ''
 delay                   = 0
 nodes                   = []
 auto_target_name        = "iqn.auto.api.backup.target"        
-auto_share_name         = "auto_api_backup_share"        
 auto_scsiid             = time.strftime("%Yi%mi%di%Hi%M")  #"1234567890123456"
 auto_snap_name          = "auto_api_backup_snap"
 auto_vol_clone_name     = "_auto_api_vol_clone"
@@ -66,19 +66,21 @@ def interface(node):
     return API.via_rest(node, api_port, api_user, api_password)
 
 def get(endpoint):
-    global node
     api=interface(node)
     return api.driver.get(endpoint)['data']
 
 def put(endpoint,data):
-    global node
     api=interface(node)
     return api.driver.put(endpoint,data)
 
 def post(endpoint,data):
-    global node
     api=interface(node)
     return api.driver.post(endpoint,data)
+
+def delete(endpoint,data):
+    api=interface(node)
+    return api.driver.delete(endpoint,data)
+
 
 def get_args():
 
@@ -102,10 +104,15 @@ def get_args():
 
  2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
      Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the share exports most recent data every run.
-     The example is using default password and port.
+     So, the share exports most recent data every run. The share is unvisible by default.
+     The example is using default password and port and make the share visible with default share name.
 
-      %(prog)s clone --pool=Pool-0 --volume=vol00 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
+
+     The example is using default password and port and make the share "my_backup_share" unvisible.
+     
+      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
+
 
 
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
@@ -205,7 +212,7 @@ def get_args():
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
-                 'set_host', 'set_time', 'network', 'info', 'shutdown', 'reboot'],
+                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -330,6 +337,18 @@ def get_args():
         help='Enter nodes IP(s)'
     )
     parser.add_argument(
+        '--bond_type',
+        metavar='bond_type',
+        default='active-backup',   
+        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup-'
+    )
+    parser.add_argument(
+        '--bond_nics',
+        metavar='nics',
+        default='eth0,eth1',   
+        help='Enter comma separated bond nics. Default =eth0,eth1'
+    )
+    parser.add_argument(
         '--user',
         metavar='user',
         default='admin',
@@ -363,6 +382,19 @@ def get_args():
         help='Disk size tolerance. Treat smaller disks still as equal in size, default=5 GiB'
     )
     parser.add_argument(
+        '--share_name',
+        metavar='name',
+        default='auto_api_backup_share',   
+        help='Enter share name. Default =auto_api_backup_share'
+    )
+    parser.add_argument(
+        '--visible',
+        dest='visible',
+        action='store_true',
+        default=False,
+        help='SMB Share is created as unvisible by default.'
+    )
+    parser.add_argument(
         '--menu',
         dest='menu',
         action='store_true',
@@ -372,42 +404,57 @@ def get_args():
 
     ## ARGS
     args = parser.parse_args()
+    ## convert args Namespace to dictionary
+    args = vars(args)
+    ## '' in command line is validated as "''"
+    ## need to replace it with empty sting
+    for key,value in args.items():
+        if type(value) is str:
+            if value in "''":
+                args[key] = ""
     
     global api_port, api_user, api_password, action, pool_name, volume_name, snapshot_name, delay, nodes, node, menu
+    global auto_share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
-    global nic_name, new_ip_addr, new_mask, new_gw, new_dns
+    global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
-
-    api_port                = args.port
-    api_user                = args.user
-    api_password            = args.pswd
-    action                  = args.cmd
-    pool_name               = args.pool
-    volume_name             = args.volume
-    snapshot_name           = args.snapshot
-    jbod_disks_num          = args.jbod_disks
-    vdev_disks_num          = args.vdev_disks
-    jbods_num               = args.jbods
-    vdevs_num               = args.vdevs
-    vdev_type               = args.vdev
-    disk_size_tolerance     = args.tolerance * GiB 
-    host_name               = args.host
-    server_name             = args.server
-    server_description      = args.description
-    timezone                = args.timezone
-    ntp                     = args.ntp
-    ntp_servers             = args.ntp_servers
     
-    nic_name                = args.nic
-    new_ip_addr             = args.new_ip
-    new_mask                = args.new_mask
-    new_gw                  = args.new_gw
-    new_dns                 = args.new_dns
 
-    delay                   = args.delay
-    nodes                   = args.ip
+    
+    api_port                = args['port']
+    api_user                = args['user']
+    api_password            = args['pswd']
+    action                  = args['cmd']
+    pool_name               = args['pool']
+    volume_name             = args['volume']
+    auto_share_name         = args['share_name']
+    visible                 = args['visible']
+    snapshot_name           = args['snapshot']
+    jbod_disks_num          = args['jbod_disks']
+    vdev_disks_num          = args['vdev_disks']
+    jbods_num               = args['jbods']
+    vdevs_num               = args['vdevs']
+    vdev_type               = args['vdev']
+    disk_size_tolerance     = args['tolerance'] * GiB
+    host_name               = args['host']
+    server_name             = args['server']
+    server_description      = args['description']
+    timezone                = args['timezone']
+    ntp                     = args['ntp']
+    ntp_servers             = args['ntp_servers']
+    
+    nic_name                = args['nic']
+    new_ip_addr             = args['new_ip']
+    new_mask                = args['new_mask']
+    new_gw                  = args['new_gw']
+    new_dns                 = args['new_dns']
+    bond_type               = args['bond_type']
+    bond_nics               = args['bond_nics']
 
-    menu                    = args.menu
+    delay                   = args['delay']
+    nodes                   = args['ip']
+
+    menu                    = args['menu']
 
     if jbods_num > 1: 
         menu = True
@@ -425,8 +472,12 @@ def get_args():
     ## first node
     node    = nodes[0]
             
-    ## validate ip-addr
-    for ip in nodes :
+    ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
+    all_ip_addr = nodes[:]  # copy
+    for ip in new_ip_addr, new_gw, new_dns, new_mask:
+        if ip:
+            all_ip_addr.append(ip)
+    for ip in all_ip_addr :
         if not valid_ip(ip) :
             sys_exit( 'IP address {} is invalid'.format(ip))
 
@@ -436,25 +487,26 @@ def get_args():
         sys_exit( 'Double IP address: {}'.format(', '.join(doubles)))
 
     ## validate port
-    if not 22 <= args.port <= 65535:
+    if not 22 <= api_port <= 65535:
         sys_exit( 'Port {} is out of allowed range 22..65535'.format(port))
 
 
-def new_dns_convert_to_list(new_dns):
-    if new_dns is None:
+
+def convert_comma_separated_to_list(arg):
+    if arg is None:
         return None
-    if new_dns is '':
+    if arg is '':
         return []
     for sep in ',;':
-        if sep in new_dns:
-            new_dns=new_dns.split(sep)
-    if type(new_dns) is str:
-        new_dns=new_dns.split() # no separator, single item new_dns list
-    return new_dns
+        if sep in arg:
+            arg=arg.split(sep)
+    if type(arg) is str:
+        arg=arg.split() # no separator, single item arg listnew_dns
+    return arg
 
 
 def count_provided_args(*args):
-    return map(bool, args).count(True)
+    return len(args) - args.count(None)
 
 
 def time_stamp():
@@ -475,7 +527,7 @@ def sys_exit_with_timestamp(msg):
 
 
 def sys_exit(msg):
-    print(msg)
+    print('\n\t',msg)
     sys.exit(1)
 
 
@@ -502,7 +554,7 @@ def expand_ip_range(ip_range):
 
 
 def wait_for_nodes():
-    global node
+
     for node in nodes :
         repeat = 100
         counter = 0
@@ -531,7 +583,7 @@ def display_delay(msg):
 
 
 def shutdown_nodes():
-    global node
+
     display_delay('Shutdown')
     for node in nodes:
         post('/power/shutdown',dict(force=True))
@@ -539,7 +591,7 @@ def shutdown_nodes():
 
 
 def reboot_nodes() :
-    global node
+
     display_delay('Reboot')
     for node in nodes:
         post('/power/reboot', dict(force=True))
@@ -674,16 +726,74 @@ def print_interfaces_details(header,fields):
             interface_details.append(value)
         print(field_format_template.format(*interface_details))
 
-        
+
+def set_default_gateway():
+    endpoint = '/network/default-gateway'
+    data = dict(interface=nic_name)
+    try:
+        put(endpoint,data)
+    except Exception as e:
+        sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
+
+    endpoint = '/network/default-gateway'
+    dgw_interface = get(endpoint)['interface']
+    if dgw_interface.lower() is 'none':
+        sys_exit_with_timestamp( 'Error setting default gateway')
+    else:
+        print_with_timestamp( 'Default gateway set to: {}'.format(dgw_interface))
+
+
+def set_dns(dns):
+    endpoint = '/network/dns'
+    data = dict(servers=dns)
+    try:
+        put(endpoint,data)
+    except Exception as e:
+        sys_exit_with_timestamp( 'Error: setting DNS. {}'.format())
+    print_with_timestamp( 'DNS set to: {}'.format(', '.join(dns)))
+
+    
+def get_nic_name_of_given_ip_address(ip_address):
+    interfaces = get('/network/interfaces')
+    return next((interface['name'] for interface in interfaces if interface['address'] == ip_address), None)
+
+def get_mac_address_of_given_nic(nic):
+    interfaces = get('/network/interfaces')
+    return next((interface['mac_address'] for interface in interfaces if interface['name'] == nic), None)
+
+
+def get_bond_slaves(bond_name):
+    ''' return list of slaves NICs'''
+    interfaces = get('/network/interfaces')
+    return next((interface['slaves'] for interface in interfaces if interface['name'] == bond_name), None)
+
+
+def get_bond_ip_addr(bond_name):
+    ''' return IP of given bond'''
+    interfaces = get('/network/interfaces')
+    return next((interface['address'] for interface in interfaces if interface['name'] == bond_name), None)
+
+
+def get_bond_gw_ip_addr(bond_name):
+    ''' return IP of given bond'''
+    interfaces = get('/network/interfaces')
+    return next((interface['gateway'] for interface in interfaces if interface['name'] == bond_name), None)
+
+def get_bond_netmask(bond_name):
+    ''' return IP of given bond'''
+    interfaces = get('/network/interfaces')
+    return next((interface['netmask'] for interface in interfaces if interface['name'] == bond_name), None)
+
+       
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
-    global node
+    global node    ## the node IP can be changed
     error = ''
     timeouted = False
     
     if new_ip_addr is None:
         sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
     # list_of_ip
-    dns = new_dns_convert_to_list(new_dns)
+    dns = convert_comma_separated_to_list(new_dns)
     for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
         if ip:
             if not valid_ip(ip):
@@ -691,34 +801,160 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     endpoint = '/network/interfaces/{INTERFACE}'.format(
                    INTERFACE=nic_name)
     data = dict(configuration="static", address=new_ip_addr, netmask=new_mask)
-    if new_gw:
-        data["gateway"]=new_gw
+    if new_gw or new_gw == '':
+        data["gateway"]=new_gw if new_gw else None
     try:
         put(endpoint,data)
     except Exception as e:
         error = str(e)
         # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        timeouted = ("HTTPSConnectionPool" in error) and (node in error) and ("timeout" in error)
+        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
             node = new_ip_addr  # the node ip was changed
         time.sleep(1)
         
-    ## set default gateway
+    ## set default gateway interface
     if new_gw:
-        endpoint = '/network/default-gateway'
-        data = dict(interface=nic_name)
-        put(endpoint,data)
+        set_default_gateway()
+    
     if dns is not None:
-        endpoint = '/network/dns'
-        data = dict(servers=dns)
-        put(endpoint,data)
-    if "HTTPSConnectionPool" in error and node in error and "timeout" in error:
-        sys_exit( 'The accces NIC changed to {}'.format(new_ip_addr))
+        set_dns(dns)
+
+    if "HTTPSConnectionPool" in error and "timeout" in error:
+        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+
+
+def create_bond(bond_type, bond_nics, new_gw, new_dns):
+    global node    ## the node IP can be changed
+    global nic_name
+    error = ''
+    timeouted = False
+    
+    bond_nics = convert_comma_separated_to_list(bond_nics)
+    ip_addr = new_ip_addr if new_ip_addr else node
+    endpoint='/network/interfaces'
+    data = dict(type='bonding',
+                configuration='static',
+                address = ip_addr,
+                netmask = new_mask,
+                slaves= bond_nics,
+                bond_mode = bond_type.lower(),
+                primary_interface = bond_nics[0],
+                bond_primary_reselect='failure')
+    if new_gw or new_gw == '':
+        data["gateway"]=new_gw if new_gw else None
+    try:
+        post(endpoint,data)
+    except Exception as e:
+        error = str(e)
+        # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+        # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
+        if timeouted:
+            node = new_ip_addr  # the node ip was changed
+        time.sleep(1)
+    ## set default gateway interface
+    nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
+    if new_gw:
+        set_default_gateway()
+
+    dns = convert_comma_separated_to_list(new_dns)
+    if dns is not None:
+        set_dns(dns)
+
+    if "HTTPSConnectionPool" in error and "timeout" in error:
+        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+
+
+def delete_bond(bond_name):
+    global node    ## the node IP can be changed
+    #global nic_name
+    node_id_220 = 0
+    orginal_node_id = 1
+    
+    error = ''
+    timeouted = False
+    
+    bond_slaves = get_bond_slaves(bond_name) # list
+    first_nic_name, second_nic_name = sorted(bond_slaves)
+    bond_ip_addr = get_bond_ip_addr(bond_name)
+    bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
+    bond_netmask = get_bond_netmask(bond_name)
+    orginal_node_id = node_id()
+    endpoint = '/network/interfaces/{}'.format(bond_name)
+    try:
+        delete(endpoint,None)
+    except Exception as e:
+        error = str(e)
+        # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+        # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
+        if timeouted:
+            node = new_ip_addr  # the node ip was changed
+        else:
+            sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
+        time.sleep(1)
+    node = '192.168.0.220'  ## default ip set after bond delete
+    try:
+        node_id_220 = node_id()
+    except  Exception as e:
+        error = str(e)
+        # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+        # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
+        if timeouted:
+            sys_exit_with_timestamp( 'Error: Can not access default IP 192.168.0.220')
+            
+    time.sleep(1)
+    if node_id_220 == orginal_node_id:
+        endpoint = '/network/interfaces/{INTERFACE}'.format(
+                       INTERFACE=first_nic_name)
+        data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
+        if bond_gw_ip_addr or bond_gw_ip_addr == '':
+            data["gateway"]= bond_gw_ip_addr if bond_gw_ip_addr else None
+        try:
+            put(endpoint,data)
+        except Exception as e:
+            error = str(e)
+            # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+            # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+            timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
+            if timeouted:
+                node = bond_ip_addr  # the node ip was changed
+            time.sleep(1)
+
+        endpoint = '/network/interfaces/{INTERFACE}'.format(
+                       INTERFACE=second_nic_name)
+        data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
+        try:
+            put(endpoint,data)
+        except Exception as e:
+            error = str(e)
+        
+    ## set default gateway interface
+    if bond_gw_ip_addr:
+        nic_name = first_nic_name
+        set_default_gateway()
+
+            
     
 
+
+
+def node_id():
+    version = get('/product')["header"]
+    serial_number = get('/product')["serial_number"]
+    server_name = get('/product')["server_name"]
+    host_name = get('/product')["host_name"]
+    interfaces = get('/network/interfaces')
+    eth0_mac_address = get_mac_address_of_given_nic('eth0')
+    return version + serial_number + server_name + host_name + eth0_mac_address
+        
+
 def info():
-    global node
+    ''' Time, Version, Serial Number, Licence, Host name, DNS, GW, NICs, Pools
+    '''
     for node in nodes:
         version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
@@ -1058,7 +1294,7 @@ def create_share_for_auto_clone(ignore_error=None):
         endpoint = '/shares'
         data = dict(name=auto_share_name,
                 path='{POOL_NAME}/{CLONE_NAME}'.format(POOL_NAME=pool_name, CLONE_NAME=clone_name),
-                smb=dict(enabled=True))
+                smb=dict(enabled=True, visible=visible))   ### add visible=False
         try:
             api.driver.post(endpoint,data)
         except:
@@ -1321,6 +1557,18 @@ def main() :
         if c not in (1,2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
+
+    elif action == 'create_bond':
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        if c not in (0,1,2,3,4):
+            sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
+        create_bond(bond_type, bond_nics, new_gw, new_dns)
+
+    elif action == 'delete_bond':
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        if c not in (0,1,2):
+            sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
+        delete_bond(nic_name)
 
     elif action == 'info':
         info()

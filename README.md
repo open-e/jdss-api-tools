@@ -26,10 +26,15 @@ EXAMPLES:
 
 <br>2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
     Every time it runs, it will delete the clone created last run and re-create new one.
-    So, the share exports most recent data every run.
-    The example is using default password and port.
+    So, the share exports most recent data every run. The share is unvisible by default.
+    The example is using default password and port and make the share visible with default share name.
 
-	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 192.168.0.220
+	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
+
+	 The example is using default password and port and make the share "my_backup_share" unvisible.
+
+  jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
+
 
 
 <br>3. Delete clone of iSCSI volume zvol00 from Pool-0 (it deletes the snapshot as well).
@@ -47,7 +52,7 @@ EXAMPLES:
 
 	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
 
-	
+
 <br>6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
     The example is using password 12345 and default port.
 
@@ -111,7 +116,7 @@ EXAMPLES:
 	jdss-api-tools.exe set_time --timezone=America/Los_Angeles 192.168.0.220
 	jdss-api-tools.exe set_time --timezone=Europe/Berlin 192.168.0.220
 
-	 
+
 <br>16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0.
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
