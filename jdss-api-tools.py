@@ -203,8 +203,16 @@ def get_args():
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
+ 17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
+     Default =active-backup
+      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80  192.168.0.80
+      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+      %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+      
+ 18. Delete bond.
+      %(prog)s delete_bond --nic=bond0 192.168.0.80
 
- 17. Print system info 
+ 19. Print system info 
 
       %(prog)s info 192.168.0.220
     ''')
@@ -341,7 +349,7 @@ def get_args():
         '--bond_type',
         metavar='bond_type',
         default='active-backup',   
-        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup-'
+        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup'
     )
     parser.add_argument(
         '--bond_nics',
@@ -746,12 +754,16 @@ def set_default_gateway():
     try:
         put(endpoint,data)
     except Exception as e:
-        sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
+        pass
 
     endpoint = '/network/default-gateway'
-    dgw_interface = get(endpoint)['interface']
-    if dgw_interface.lower() is 'none':
-        sys_exit_with_timestamp( 'Error setting default gateway')
+    dgw_interface = None
+    try:
+        dgw_interface = get(endpoint)['interface']
+    except:
+        pass
+    if dgw_interface is None:
+        sys_exit_with_timestamp( 'No default gateway set')
     else:
         print_with_timestamp( 'Default gateway set to: {}'.format(dgw_interface))
 
