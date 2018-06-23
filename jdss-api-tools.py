@@ -24,7 +24,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-21  add user defined share name for clone and make share unvisible by default
-
+2018-06-23  add bond create and delete
 """
     
 from __future__ import print_function
@@ -33,9 +33,9 @@ import time
 import datetime
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
-import logging
 import argparse
 import collections
+#import logging
 
 
 __author__  = 'janusz.bak@open-e.com'
@@ -109,9 +109,10 @@ def get_args():
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
-     The example is using default password and port and make the share "my_backup_share" unvisible.
+     The examples are using default password and port and make the shares unvisible.
      
-      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
 
 
@@ -407,7 +408,7 @@ def get_args():
     ## convert args Namespace to dictionary
     args = vars(args)
     ## '' in command line is validated as "''"
-    ## need to replace it with empty sting
+    ## need to replace it with empty string
     for key,value in args.items():
         if type(value) is str:
             if value in "''":
@@ -419,7 +420,6 @@ def get_args():
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     
-
     
     api_port                = args['port']
     api_user                = args['user']
@@ -456,6 +456,7 @@ def get_args():
 
     menu                    = args['menu']
 
+    ## start menu if multi-jbods
     if jbods_num > 1: 
         menu = True
     
@@ -542,6 +543,18 @@ def valid_ip(address):
     except:
         return False
 
+def increment_3rd_ip_subnet(address):
+    if not valid_ip(address):
+        return None
+    segments = address.split('.')
+    segments[2] = str(int(segments[2])+1)
+    new_ip = '.'.join(segments)
+    if valid_ip(new_ip):
+        return new_ip
+    segments[2] = str(0)
+    new_ip = '.'.join(segments)
+    return new_ip
+    	
 
 def expand_ip_range(ip_range):
 	start=int(ip_range.split("..")[0].split(".")[-1])
@@ -871,17 +884,21 @@ def delete_bond(bond_name):
     global node    ## the node IP can be changed
     #global nic_name
     node_id_220 = 0
-    orginal_node_id = 1
+    orginal_node_id = 1   ## just diffrent init value than node_id_220
     
     error = ''
     timeouted = False
     
-    bond_slaves = get_bond_slaves(bond_name) # list
+    bond_slaves = get_bond_slaves(bond_name) ## list
+    if bond_slaves is  None or len(bond_slaves)<2:
+        sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
+    
     first_nic_name, second_nic_name = sorted(bond_slaves)
     bond_ip_addr = get_bond_ip_addr(bond_name)
     bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
     bond_netmask = get_bond_netmask(bond_name)
     orginal_node_id = node_id()
+
     endpoint = '/network/interfaces/{}'.format(bond_name)
     try:
         delete(endpoint,None)
@@ -895,7 +912,9 @@ def delete_bond(bond_name):
         else:
             sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
         time.sleep(1)
-    node = '192.168.0.220'  ## default ip set after bond delete
+
+    ## default ip set after bond delete
+    node = '192.168.0.220'  
     try:
         node_id_220 = node_id()
     except  Exception as e:
@@ -924,9 +943,11 @@ def delete_bond(bond_name):
                 node = bond_ip_addr  # the node ip was changed
             time.sleep(1)
 
+        ## set node ip address back to bond_ip_addr
+        node = bond_ip_addr
         endpoint = '/network/interfaces/{INTERFACE}'.format(
                        INTERFACE=second_nic_name)
-        data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
+        data = dict(configuration="static", address=increment_3rd_ip_subnet(bond_ip_addr), netmask=bond_netmask)
         try:
             put(endpoint,data)
         except Exception as e:
@@ -936,10 +957,6 @@ def delete_bond(bond_name):
     if bond_gw_ip_addr:
         nic_name = first_nic_name
         set_default_gateway()
-
-            
-    
-
 
 
 def node_id():
