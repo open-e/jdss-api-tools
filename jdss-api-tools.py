@@ -23,7 +23,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
-2018-06-21  add user defined share name for clone and make share unvisible by default
+2018-06-21  add user defined share name for clone and make share invisible by default
 
 """
     
@@ -104,15 +104,14 @@ def get_args():
 
  2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
      Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the share exports most recent data every run. The share is unvisible by default.
+     So, the share exports most recent data every run. The share is invisible by default.
      The example is using default password and port and make the share visible with default share name.
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
-     The example is using default password and port and make the share "my_backup_share" unvisible.
+     The example is using default password and port and make the share "my_backup_share" invisible.
      
       %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
-
 
 
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
@@ -340,13 +339,13 @@ def get_args():
         '--bond_type',
         metavar='bond_type',
         default='active-backup',   
-        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup-'
+        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
         default='eth0,eth1',   
-        help='Enter comma separated bond nics. Default =eth0,eth1'
+        help='Enter comma separated bond NICs. Default=eth0,eth1'
     )
     parser.add_argument(
         '--user',
@@ -385,21 +384,21 @@ def get_args():
         '--share_name',
         metavar='name',
         default='auto_api_backup_share',   
-        help='Enter share name. Default =auto_api_backup_share'
+        help='Enter share name. Default=auto_api_backup_share'
     )
     parser.add_argument(
         '--visible',
         dest='visible',
         action='store_true',
         default=False,
-        help='SMB Share is created as unvisible by default.'
+        help='SMB share is created as invisible by default.'
     )
     parser.add_argument(
         '--menu',
         dest='menu',
         action='store_true',
         default=False,
-        help='Interactive menu. Auto-start with --jbods_num > 1 '
+        help='Interactive menu. Auto-start with --jbods_num > 1'
     )
 
     ## ARGS
@@ -554,7 +553,6 @@ def expand_ip_range(ip_range):
 
 
 def wait_for_nodes():
-
     for node in nodes :
         repeat = 100
         counter = 0
@@ -583,7 +581,6 @@ def display_delay(msg):
 
 
 def shutdown_nodes():
-
     display_delay('Shutdown')
     for node in nodes:
         post('/power/shutdown',dict(force=True))
@@ -591,7 +588,6 @@ def shutdown_nodes():
 
 
 def reboot_nodes() :
-
     display_delay('Reboot')
     for node in nodes:
         post('/power/reboot', dict(force=True))
@@ -599,7 +595,6 @@ def reboot_nodes() :
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
-
     data = dict()
     if host_name:
         data["host_name"] = host_name
@@ -619,7 +614,6 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
-
     data = dict()
     if timezone:
         data["timezone"] = timezone
@@ -937,10 +931,6 @@ def delete_bond(bond_name):
         nic_name = first_nic_name
         set_default_gateway()
 
-            
-    
-
-
 
 def node_id():
     version = get('/product')["header"]
@@ -953,7 +943,7 @@ def node_id():
         
 
 def info():
-    ''' Time, Version, Serial Number, Licence, Host name, DNS, GW, NICs, Pools
+    ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
     '''
     for node in nodes:
         version = get('/product')["header"]
