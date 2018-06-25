@@ -24,6 +24,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-21  add user defined share name for clone and make share invisible by default
+2018-06-23  add bond create and delete
 
 """
     
@@ -33,9 +34,9 @@ import time
 import datetime
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
-import logging
 import argparse
 import collections
+#import logging
 
 
 __author__  = 'janusz.bak@open-e.com'
@@ -109,9 +110,10 @@ def get_args():
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
-     The example is using default password and port and make the share "my_backup_share" invisible.
+     The examples are using default password and port and make the shares invisible.
      
-      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=my_backup_share 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
+      %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
 
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
@@ -197,12 +199,25 @@ def get_args():
 
 
  16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
-      Missing netmask option will set default 255.255.255.0 
+      Missing netmask option will set default 255.255.255.0
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
 
- 17. Print system info 
+ 17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
+      Default=active-backup
+
+      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
+      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+      %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+
+
+ 18. Delete bond.
+
+      %(prog)s delete_bond --nic=bond0 192.168.0.80
+
+
+ 19. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -406,7 +421,7 @@ def get_args():
     ## convert args Namespace to dictionary
     args = vars(args)
     ## '' in command line is validated as "''"
-    ## need to replace it with empty sting
+    ## need to replace it with empty string
     for key,value in args.items():
         if type(value) is str:
             if value in "''":
@@ -417,7 +432,6 @@ def get_args():
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
-    
 
     
     api_port                = args['port']
@@ -455,10 +469,11 @@ def get_args():
 
     menu                    = args['menu']
 
+    ## start menu if multi-JBODs
     if jbods_num > 1: 
         menu = True
     
-    ## expand nodes list if ip range provided in args
+    ## expand nodes list if IP range provided in args
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     expanded_nodes = []
     for ip in nodes:
@@ -540,6 +555,19 @@ def valid_ip(address):
         return len(host_bytes) == len(valid) == 4
     except:
         return False
+
+
+def increment_3rd_ip_subnet(address):
+    if not valid_ip(address):
+        return None
+    segments = address.split('.')
+    segments[2] = str(int(segments[2])+1)
+    new_ip = '.'.join(segments)
+    if valid_ip(new_ip):
+        return new_ip
+    segments[2] = str(0)
+    new_ip = '.'.join(segments)
+    return new_ip
 
 
 def expand_ip_range(ip_range):
@@ -727,12 +755,16 @@ def set_default_gateway():
     try:
         put(endpoint,data)
     except Exception as e:
-        sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
+        pass
 
     endpoint = '/network/default-gateway'
-    dgw_interface = get(endpoint)['interface']
-    if dgw_interface.lower() is 'none':
-        sys_exit_with_timestamp( 'Error setting default gateway')
+    dgw_interface = None
+    try:
+        dgw_interface = get(endpoint)['interface']
+    except:
+        pass
+    if dgw_interface is None:
+        sys_exit_with_timestamp( 'No default gateway set')
     else:
         print_with_timestamp( 'Default gateway set to: {}'.format(dgw_interface))
 
@@ -805,7 +837,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         time.sleep(1)
         
     ## set default gateway interface
@@ -846,7 +878,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         time.sleep(1)
     ## set default gateway interface
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
@@ -865,17 +897,21 @@ def delete_bond(bond_name):
     global node    ## the node IP can be changed
     #global nic_name
     node_id_220 = 0
-    orginal_node_id = 1
+    orginal_node_id = 1   ## just different init value than node_id_220
     
     error = ''
     timeouted = False
     
-    bond_slaves = get_bond_slaves(bond_name) # list
+    bond_slaves = get_bond_slaves(bond_name) ## list
+    if bond_slaves is  None or len(bond_slaves)<2:
+        sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
+
     first_nic_name, second_nic_name = sorted(bond_slaves)
     bond_ip_addr = get_bond_ip_addr(bond_name)
     bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
     bond_netmask = get_bond_netmask(bond_name)
     orginal_node_id = node_id()
+
     endpoint = '/network/interfaces/{}'.format(bond_name)
     try:
         delete(endpoint,None)
@@ -885,11 +921,13 @@ def delete_bond(bond_name):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         else:
             sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
         time.sleep(1)
-    node = '192.168.0.220'  ## default ip set after bond delete
+
+    ## default IP set after bond delete
+    node = '192.168.0.220'
     try:
         node_id_220 = node_id()
     except  Exception as e:
@@ -915,12 +953,14 @@ def delete_bond(bond_name):
             # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
             timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
             if timeouted:
-                node = bond_ip_addr  # the node ip was changed
+                node = bond_ip_addr  # the node IP was changed
             time.sleep(1)
 
+        ## set node IP address back to bond_ip_addr
+        node = bond_ip_addr
         endpoint = '/network/interfaces/{INTERFACE}'.format(
                        INTERFACE=second_nic_name)
-        data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
+        data = dict(configuration="static", address=increment_3rd_ip_subnet(bond_ip_addr), netmask=bond_netmask)
         try:
             put(endpoint,data)
         except Exception as e:
