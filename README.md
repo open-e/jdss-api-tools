@@ -133,8 +133,9 @@ EXAMPLES:
  	jdss-api-tools.exe delete_bond --nic=bond0 192.168.0.80
 
 <br>19.	Bind Cluster. Node-b: 192.168.0.81 bind with node-a: 192.168.0.80
+RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
-	jdss-api-tools.exe bind_cluster --bind_ip_addr=192.168.0.81 --bind_node_password=admin 192.168.0.80
+	jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 <br>20. Print system info.
 
