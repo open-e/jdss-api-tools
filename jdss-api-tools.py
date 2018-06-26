@@ -25,6 +25,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
+2018-06-25  add bind_cluster
 
 """
     
@@ -217,7 +218,12 @@ def get_args():
       %(prog)s delete_bond --nic=bond0 192.168.0.80
 
 
- 19. Print system info.
+ 19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
+
+      %(prog)s bind_cluster --bind_ip_addr=192.168.0.81 --bind_node_password=admin 192.168.0.80
+
+
+ 20. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -226,7 +232,7 @@ def get_args():
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
-                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'info', 'shutdown', 'reboot'],
+                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -409,6 +415,18 @@ def get_args():
         help='SMB share is created as invisible by default.'
     )
     parser.add_argument(
+        '--bind_ip_addr',
+        metavar='addr',
+        default=None,
+        help='Enter cluster bind IP address'
+    )
+    parser.add_argument(
+        '--bind_node_password',
+        metavar='pswd',
+        default='admin',
+        help='Enter bind node password. Default=admin'
+    )
+    parser.add_argument(
         '--menu',
         dest='menu',
         action='store_true',
@@ -432,8 +450,9 @@ def get_args():
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
+    global bind_ip_addr, bind_node_password
 
-    
+
     api_port                = args['port']
     api_user                = args['user']
     api_password            = args['pswd']
@@ -463,6 +482,8 @@ def get_args():
     new_dns                 = args['new_dns']
     bond_type               = args['bond_type']
     bond_nics               = args['bond_nics']
+    bind_ip_addr            = args['bind_ip_addr']
+    bind_node_password      = args['bind_node_password']
 
     delay                   = args['delay']
     nodes                   = args['ip']
@@ -965,7 +986,7 @@ def delete_bond(bond_name):
             put(endpoint,data)
         except Exception as e:
             error = str(e)
-        
+
     ## set default gateway interface
     if bond_gw_ip_addr:
         nic_name = first_nic_name
@@ -980,7 +1001,20 @@ def node_id():
     interfaces = get('/network/interfaces')
     eth0_mac_address = get_mac_address_of_given_nic('eth0')
     return version + serial_number + server_name + host_name + eth0_mac_address
-        
+
+
+def bind_cluster(bind_ip_addr):
+    endpoint = '/cluster/nodes'
+    data = dict(address=bind_ip_addr, password=bind_node_password)
+    try:
+        code = post(endpoint, data)
+    except:
+        pass
+    if code['error'] is None:
+        print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
+    else:
+        sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
+
 
 def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
@@ -1571,34 +1605,40 @@ def main() :
         read_jbods_and_create_pool()
  
     elif action == 'set_host':
-        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host 
+        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host 
+        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (1,2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (0,1,2,3,4):
             sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (0,1,2):
             sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
         delete_bond(nic_name)
+
+    elif action == 'bind_cluster':
+        c = count_provided_args(bind_ip_addr,bind_node_password)   ##
+        if c not in (1,2):
+            sys_exit_with_timestamp( 'Error: Cluster bind expects : --bind_ip_addr --bind_node_password')
+        bind_cluster(bind_ip_addr)
 
     elif action == 'info':
         info()

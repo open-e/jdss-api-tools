@@ -135,7 +135,12 @@ EXAMPLES:
 	jdss-api-tools.exe delete_bond --nic=bond0 192.168.0.80
 
 
-<br>19. Print system info.
+<br>19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
+
+	jdss-api-tools.exe bind_cluster --bind_ip_addr=192.168.0.81 --bind_node_password=admin 192.168.0.80
+
+
+<br>20. Print system info.
 
 	jdss-api-tools.exe info 192.168.0.220
 
