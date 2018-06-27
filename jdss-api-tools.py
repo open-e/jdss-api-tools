@@ -221,7 +221,7 @@ def get_args():
  19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
       RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
-      %(prog)s bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
+      %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
  20. Print system info.
@@ -329,7 +329,7 @@ def get_args():
     )
     parser.add_argument(
         '--new_ip',
-        metavar='addr',
+        metavar='address',
         default=None,
         help='Enter new IP address for selected NIC'
     )
@@ -341,13 +341,13 @@ def get_args():
     )
     parser.add_argument(
         '--new_gw',
-        metavar='addr',
+        metavar='address',
         default=None,
         help='Enter new gateway for selected NIC'
     )
     parser.add_argument(
         '--new_dns',
-        metavar='addr',
+        metavar='address',
         default=None,   # default None, empty str will clear dns
         help='Enter new dns address or comma separated list'
     )
@@ -413,13 +413,13 @@ def get_args():
         dest='visible',
         action='store_true',
         default=False,
-        help='SMB share is created as invisible by default.'
+        help='SMB share is created as invisible by default'
     )
     parser.add_argument(
         '--bind_node_password',
-        metavar='pswd',
+        metavar='password',
         default='admin',
-        help='Enter bind node password. Default=admin'
+        help='Bind node password, default=admin'
     )
     parser.add_argument(
         '--menu',

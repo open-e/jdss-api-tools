@@ -50,25 +50,25 @@ EXAMPLES:
 <br>5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
     The example is using password 12345 and default port.
 
-	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
 <br>6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
     The example is using password 12345 and default port.
 
-	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+	jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
 <br>7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
     The example is using password 12345 and default port.
 
-	jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+	jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
 <br>8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
     The example is using password 12345 and default port.
 
-	jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+	jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
 <br>9. Create pool on single node or cluster with single JBOD:
@@ -138,7 +138,7 @@ EXAMPLES:
 <br>19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
-	jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
+	jdss-api-tools.exe bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
 <br>20. Print system info.
