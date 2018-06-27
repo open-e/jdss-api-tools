@@ -130,25 +130,25 @@ def get_args():
  5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
      The example is using password 12345 and default port.
 
-      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
      The example is using password 12345 and default port.
 
-      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 -pswd 12345
+      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  9. Create pool on single node or cluster with single JBOD:
@@ -206,7 +206,7 @@ def get_args():
 
 
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-      Default=active-backup
+      Default = active-backup
 
       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
@@ -219,8 +219,9 @@ def get_args():
 
 
  19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
+      RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
-      %(prog)s bind_cluster --bind_ip_addr=192.168.0.81 --bind_node_password=admin 192.168.0.80
+      %(prog)s bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
  20. Print system info.
@@ -415,12 +416,6 @@ def get_args():
         help='SMB share is created as invisible by default.'
     )
     parser.add_argument(
-        '--bind_ip_addr',
-        metavar='addr',
-        default=None,
-        help='Enter cluster bind IP address'
-    )
-    parser.add_argument(
         '--bind_node_password',
         metavar='pswd',
         default='admin',
@@ -450,7 +445,7 @@ def get_args():
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
-    global bind_ip_addr, bind_node_password
+    global bind_node_password
 
 
     api_port                = args['port']
@@ -482,7 +477,6 @@ def get_args():
     new_dns                 = args['new_dns']
     bond_type               = args['bond_type']
     bond_nics               = args['bond_nics']
-    bind_ip_addr            = args['bind_ip_addr']
     bind_node_password      = args['bind_node_password']
 
     delay                   = args['delay']
@@ -1006,11 +1000,20 @@ def node_id():
 def bind_cluster(bind_ip_addr):
     endpoint = '/cluster/nodes'
     data = dict(address=bind_ip_addr, password=bind_node_password)
+
+    bind_node_address = '127.0.0.1'
+    try:
+        bind_node_address = get('/cluster/nodes')[0]['address']
+    except:
+        pass
+    if bind_node_address != '127.0.0.1':
+        sys_exit_with_timestamp('Error: cluster bind was already set')
+    code = None
     try:
         code = post(endpoint, data)
     except:
         pass
-    if code['error'] is None:
+    if code and code['error'] is None:
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
@@ -1635,9 +1638,9 @@ def main() :
         delete_bond(nic_name)
 
     elif action == 'bind_cluster':
-        c = count_provided_args(bind_ip_addr,bind_node_password)   ##
-        if c not in (1,2):
-            sys_exit_with_timestamp( 'Error: Cluster bind expects : --bind_ip_addr --bind_node_password')
+        if len(nodes) !=2:
+            sys_exit_with_timestamp( 'Error: bind_cluster command expects exactly 2 IP addresses')
+        bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
 
     elif action == 'info':
