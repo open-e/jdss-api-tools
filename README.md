@@ -26,13 +26,13 @@ EXAMPLES:
 
 <br>2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
     Every time it runs, it will delete the clone created last run and re-create new one.
-    So, the share exports most recent data every run. The share is unvisible by default.
+    So, the share exports most recent data every run. The share is invisible by default.
     The example is using default password and port and make the share visible with default share name.
 
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
 
- The examples are using default password and port and make the shares unvisible.
+ The examples are using default password and port and make the shares invisible.
 
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220

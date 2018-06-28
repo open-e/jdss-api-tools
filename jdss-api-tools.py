@@ -23,7 +23,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-06  fix spelling
 2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
 2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
-2018-06-21  add user defined share name for clone and make share unvisible by default
+2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
 """
@@ -105,12 +105,12 @@ def get_args():
 
  2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
      Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the share exports most recent data every run. The share is unvisible by default.
+     So, the share exports most recent data every run. The share is invisible by default.
      The example is using default password and port and make the share visible with default share name.
 
       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
-     The examples are using default password and port and make the shares unvisible.
+     The examples are using default password and port and make the shares invisible.
      
       %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
       %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
@@ -205,7 +205,7 @@ def get_args():
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-     Default =active-backup
+     Default=active-backup
       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80  192.168.0.80
       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
       %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
@@ -354,13 +354,13 @@ def get_args():
         '--bond_type',
         metavar='bond_type',
         default='active-backup',   
-        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup'
+        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
         default='eth0,eth1',   
-        help='Enter comma separated bond nics. Default =eth0,eth1'
+        help='Enter comma separated bond NICs. Default=eth0,eth1'
     )
     parser.add_argument(
         '--user',
@@ -399,14 +399,14 @@ def get_args():
         '--share_name',
         metavar='name',
         default='auto_api_backup_share',   
-        help='Enter share name. Default =auto_api_backup_share'
+        help='Enter share name. Default=auto_api_backup_share'
     )
     parser.add_argument(
         '--visible',
         dest='visible',
         action='store_true',
         default=False,
-        help='SMB Share is created as unvisible by default.'
+        help='SMB Share is created as invisible by default.'
     )
     parser.add_argument(
         '--bind_node_password',
@@ -419,7 +419,7 @@ def get_args():
         dest='menu',
         action='store_true',
         default=False,
-        help='Interactive menu. Auto-start with --jbods_num > 1 '
+        help='Interactive menu. Auto-start with --jbods_num > 1'
     )
 
     ## ARGS
@@ -1019,7 +1019,7 @@ def bind_cluster(bind_ip_addr):
     
 
 def info():
-    ''' Time, Version, Serial Number, Licence, Host name, DNS, GW, NICs, Pools
+    ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
     '''
     for node in nodes:
         version = get('/product')["header"]
