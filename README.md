@@ -33,6 +33,11 @@ EXAMPLES:
 
     The examples are using default password and port and make the shares invisible.
 
+<<<<<<< HEAD
+=======
+ The examples are using default password and port and make the shares invisible.
+
+>>>>>>> upstream/master
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
 	jdss-api-tools.exe clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
@@ -121,7 +126,9 @@ EXAMPLES:
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
+<br>17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default =active-backup
 
+<<<<<<< HEAD
 <br>17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
 	Default = active-backup.
 
@@ -140,6 +147,20 @@ EXAMPLES:
 
 	jdss-api-tools.exe bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
+=======
+	jdss-api-tools.exe create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80  192.168.0.80
+	jdss-api-tools.exe create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+	jdss-api-tools.exe create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+
+<br>18. Delete bond.
+
+ 	jdss-api-tools.exe delete_bond --nic=bond0 192.168.0.80
+
+<br>19.	Bind Cluster. Node-b: 192.168.0.81 bind with node-a: 192.168.0.80
+RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
+
+	jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
+>>>>>>> upstream/master
 
 <br>20. Print system info.
 
