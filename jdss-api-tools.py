@@ -26,6 +26,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
+
 """
     
 from __future__ import print_function
@@ -116,7 +117,6 @@ def get_args():
       %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
 
-
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
 
       %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
@@ -200,24 +200,31 @@ def get_args():
 
 
  16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
-      Missing netmask option will set default 255.255.255.0 
+      Missing netmask option will set default 255.255.255.0
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
+
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-     Default=active-backup
-      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80  192.168.0.80
+      Default = active-backup
+
+      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
       %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
-      
+
+
  18. Delete bond.
+
       %(prog)s delete_bond --nic=bond0 192.168.0.80
 
- 19. Bind Cluster. Node-b: 192.168.0.81 bind with node-a: 192.168.0.80
-     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
-      %(prog)s bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
- 20. Print system info 
+ 19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
+      RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
+
+      %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
+
+
+ 20. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -322,7 +329,7 @@ def get_args():
     )
     parser.add_argument(
         '--new_ip',
-        metavar='addr',
+        metavar='address',
         default=None,
         help='Enter new IP address for selected NIC'
     )
@@ -334,13 +341,13 @@ def get_args():
     )
     parser.add_argument(
         '--new_gw',
-        metavar='addr',
+        metavar='address',
         default=None,
         help='Enter new gateway for selected NIC'
     )
     parser.add_argument(
         '--new_dns',
-        metavar='addr',
+        metavar='address',
         default=None,   # default None, empty str will clear dns
         help='Enter new dns address or comma separated list'
     )
@@ -406,13 +413,13 @@ def get_args():
         dest='visible',
         action='store_true',
         default=False,
-        help='SMB Share is created as invisible by default.'
+        help='SMB share is created as invisible by default'
     )
     parser.add_argument(
         '--bind_node_password',
-        metavar='pswd',
+        metavar='password',
         default='admin',
-        help='Enter bind node password. Default=admin'
+        help='Bind node password, default=admin'
     )
     parser.add_argument(
         '--menu',
@@ -439,8 +446,8 @@ def get_args():
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global bind_node_password
-    
-    
+
+
     api_port                = args['port']
     api_user                = args['user']
     api_password            = args['pswd']
@@ -470,19 +477,18 @@ def get_args():
     new_dns                 = args['new_dns']
     bond_type               = args['bond_type']
     bond_nics               = args['bond_nics']
-
-    bind_node_password      = args['bind_node_password'] 
+    bind_node_password      = args['bind_node_password']
 
     delay                   = args['delay']
     nodes                   = args['ip']
 
     menu                    = args['menu']
 
-    ## start menu if multi-jbods
+    ## start menu if multi-JBODs
     if jbods_num > 1: 
         menu = True
     
-    ## expand nodes list if ip range provided in args
+    ## expand nodes list if IP range provided in args
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     expanded_nodes = []
     for ip in nodes:
@@ -565,6 +571,7 @@ def valid_ip(address):
     except:
         return False
 
+
 def increment_3rd_ip_subnet(address):
     if not valid_ip(address):
         return None
@@ -576,7 +583,7 @@ def increment_3rd_ip_subnet(address):
     segments[2] = str(0)
     new_ip = '.'.join(segments)
     return new_ip
-    	
+
 
 def expand_ip_range(ip_range):
 	start=int(ip_range.split("..")[0].split(".")[-1])
@@ -589,7 +596,6 @@ def expand_ip_range(ip_range):
 
 
 def wait_for_nodes():
-
     for node in nodes :
         repeat = 100
         counter = 0
@@ -618,7 +624,6 @@ def display_delay(msg):
 
 
 def shutdown_nodes():
-
     display_delay('Shutdown')
     for node in nodes:
         post('/power/shutdown',dict(force=True))
@@ -626,7 +631,6 @@ def shutdown_nodes():
 
 
 def reboot_nodes() :
-
     display_delay('Reboot')
     for node in nodes:
         post('/power/reboot', dict(force=True))
@@ -634,7 +638,6 @@ def reboot_nodes() :
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
-
     data = dict()
     if host_name:
         data["host_name"] = host_name
@@ -654,7 +657,6 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
-
     data = dict()
     if timezone:
         data["timezone"] = timezone
@@ -850,7 +852,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         time.sleep(1)
         
     ## set default gateway interface
@@ -891,7 +893,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         time.sleep(1)
     ## set default gateway interface
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
@@ -910,7 +912,7 @@ def delete_bond(bond_name):
     global node    ## the node IP can be changed
     #global nic_name
     node_id_220 = 0
-    orginal_node_id = 1   ## just diffrent init value than node_id_220
+    orginal_node_id = 1   ## just different init value than node_id_220
     
     error = ''
     timeouted = False
@@ -918,7 +920,7 @@ def delete_bond(bond_name):
     bond_slaves = get_bond_slaves(bond_name) ## list
     if bond_slaves is  None or len(bond_slaves)<2:
         sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
-    
+
     first_nic_name, second_nic_name = sorted(bond_slaves)
     bond_ip_addr = get_bond_ip_addr(bond_name)
     bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
@@ -934,13 +936,13 @@ def delete_bond(bond_name):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node ip was changed
+            node = new_ip_addr  # the node IP was changed
         else:
             sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
         time.sleep(1)
 
-    ## default ip set after bond delete
-    node = '192.168.0.220'  
+    ## default IP set after bond delete
+    node = '192.168.0.220'
     try:
         node_id_220 = node_id()
     except  Exception as e:
@@ -966,10 +968,10 @@ def delete_bond(bond_name):
             # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
             timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
             if timeouted:
-                node = bond_ip_addr  # the node ip was changed
+                node = bond_ip_addr  # the node IP was changed
             time.sleep(1)
 
-        ## set node ip address back to bond_ip_addr
+        ## set node IP address back to bond_ip_addr
         node = bond_ip_addr
         endpoint = '/network/interfaces/{INTERFACE}'.format(
                        INTERFACE=second_nic_name)
@@ -978,7 +980,7 @@ def delete_bond(bond_name):
             put(endpoint,data)
         except Exception as e:
             error = str(e)
-        
+
     ## set default gateway interface
     if bond_gw_ip_addr:
         nic_name = first_nic_name
@@ -1005,8 +1007,7 @@ def bind_cluster(bind_ip_addr):
     except:
         pass
     if bind_node_address != '127.0.0.1':
-        sys_exit_with_timestamp('Error: cluster bind was set allready')
-
+        sys_exit_with_timestamp('Error: cluster bind was already set')
     code = None
     try:
         code = post(endpoint, data)
@@ -1016,7 +1017,7 @@ def bind_cluster(bind_ip_addr):
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
-    
+
 
 def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
@@ -1607,41 +1608,40 @@ def main() :
         read_jbods_and_create_pool()
  
     elif action == 'set_host':
-        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host 
+        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host 
+        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (1,2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (0,1,2,3,4):
             sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host 
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
         if c not in (0,1,2):
             sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
         delete_bond(nic_name)
 
     elif action == 'bind_cluster':
         if len(nodes) !=2:
-            sys_exit_with_timestamp( 'Error: bind_cluster command expects exackly 2 IP addresses')
+            sys_exit_with_timestamp( 'Error: bind_cluster command expects exactly 2 IP addresses')
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
-
 
     elif action == 'info':
         info()
