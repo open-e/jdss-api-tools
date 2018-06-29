@@ -26,10 +26,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 """
     
 from __future__ import print_function
@@ -118,10 +115,6 @@ def get_args():
      
       %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
       %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
-<<<<<<< HEAD
-=======
-
->>>>>>> upstream/master
 
 
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
@@ -211,20 +204,7 @@ def get_args():
 
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
- 17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-     Default=active-backup
-      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80  192.168.0.80
-      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
-      %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
-      
- 18. Delete bond.
-      %(prog)s delete_bond --nic=bond0 192.168.0.80
 
- 19. Bind Cluster. Node-b: 192.168.0.81 bind with node-a: 192.168.0.80
-     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
-      %(prog)s bind_cluster --user admin --pswd password --bind_node_password=admin 192.168.0.80 192.168.0.81
-
-<<<<<<< HEAD
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
       Default = active-backup
 
@@ -245,9 +225,6 @@ def get_args():
 
 
  20. Print system info.
-=======
- 20. Print system info 
->>>>>>> upstream/master
 
       %(prog)s info 192.168.0.220
     ''')
@@ -436,7 +413,6 @@ def get_args():
         dest='visible',
         action='store_true',
         default=False,
-<<<<<<< HEAD
         help='SMB share is created as invisible by default'
     )
     parser.add_argument(
@@ -444,15 +420,6 @@ def get_args():
         metavar='password',
         default='admin',
         help='Bind node password, default=admin'
-=======
-        help='SMB Share is created as invisible by default.'
-    )
-    parser.add_argument(
-        '--bind_node_password',
-        metavar='pswd',
-        default='admin',
-        help='Enter bind node password. Default=admin'
->>>>>>> upstream/master
     )
     parser.add_argument(
         '--menu',
@@ -479,13 +446,8 @@ def get_args():
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global bind_node_password
-<<<<<<< HEAD
 
 
-=======
-    
-    
->>>>>>> upstream/master
     api_port                = args['port']
     api_user                = args['user']
     api_password            = args['pswd']
@@ -517,18 +479,12 @@ def get_args():
     bond_nics               = args['bond_nics']
     bind_node_password      = args['bind_node_password']
 
-    bind_node_password      = args['bind_node_password'] 
-
     delay                   = args['delay']
     nodes                   = args['ip']
 
     menu                    = args['menu']
 
-<<<<<<< HEAD
     ## start menu if multi-JBODs
-=======
-    ## start menu if multi-jbods
->>>>>>> upstream/master
     if jbods_num > 1: 
         menu = True
     
@@ -615,18 +571,6 @@ def valid_ip(address):
     except:
         return False
 
-def increment_3rd_ip_subnet(address):
-    if not valid_ip(address):
-        return None
-    segments = address.split('.')
-    segments[2] = str(int(segments[2])+1)
-    new_ip = '.'.join(segments)
-    if valid_ip(new_ip):
-        return new_ip
-    segments[2] = str(0)
-    new_ip = '.'.join(segments)
-    return new_ip
-    	
 
 def increment_3rd_ip_subnet(address):
     if not valid_ip(address):
@@ -968,11 +912,7 @@ def delete_bond(bond_name):
     global node    ## the node IP can be changed
     #global nic_name
     node_id_220 = 0
-<<<<<<< HEAD
     orginal_node_id = 1   ## just different init value than node_id_220
-=======
-    orginal_node_id = 1   ## just diffrent init value than node_id_220
->>>>>>> upstream/master
     
     error = ''
     timeouted = False
@@ -980,11 +920,7 @@ def delete_bond(bond_name):
     bond_slaves = get_bond_slaves(bond_name) ## list
     if bond_slaves is  None or len(bond_slaves)<2:
         sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> upstream/master
     first_nic_name, second_nic_name = sorted(bond_slaves)
     bond_ip_addr = get_bond_ip_addr(bond_name)
     bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
@@ -1005,13 +941,8 @@ def delete_bond(bond_name):
             sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
         time.sleep(1)
 
-<<<<<<< HEAD
     ## default IP set after bond delete
     node = '192.168.0.220'
-=======
-    ## default ip set after bond delete
-    node = '192.168.0.220'  
->>>>>>> upstream/master
     try:
         node_id_220 = node_id()
     except  Exception as e:
@@ -1040,11 +971,7 @@ def delete_bond(bond_name):
                 node = bond_ip_addr  # the node IP was changed
             time.sleep(1)
 
-<<<<<<< HEAD
         ## set node IP address back to bond_ip_addr
-=======
-        ## set node ip address back to bond_ip_addr
->>>>>>> upstream/master
         node = bond_ip_addr
         endpoint = '/network/interfaces/{INTERFACE}'.format(
                        INTERFACE=second_nic_name)
@@ -1080,12 +1007,7 @@ def bind_cluster(bind_ip_addr):
     except:
         pass
     if bind_node_address != '127.0.0.1':
-<<<<<<< HEAD
         sys_exit_with_timestamp('Error: cluster bind was already set')
-=======
-        sys_exit_with_timestamp('Error: cluster bind was set allready')
-
->>>>>>> upstream/master
     code = None
     try:
         code = post(endpoint, data)
@@ -1095,11 +1017,7 @@ def bind_cluster(bind_ip_addr):
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> upstream/master
 
 def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
@@ -1721,18 +1639,10 @@ def main() :
 
     elif action == 'bind_cluster':
         if len(nodes) !=2:
-<<<<<<< HEAD
             sys_exit_with_timestamp( 'Error: bind_cluster command expects exactly 2 IP addresses')
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
 
-=======
-            sys_exit_with_timestamp( 'Error: bind_cluster command expects exackly 2 IP addresses')
-        bind_ip_addr = nodes[1]
-        bind_cluster(bind_ip_addr)
-
-
->>>>>>> upstream/master
     elif action == 'info':
         info()
 
