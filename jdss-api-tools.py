@@ -37,6 +37,7 @@ from jovianapi import API
 from jovianapi.resource.pool import PoolModel
 import argparse
 import collections
+import ipcalc
 #import logging
 
 
@@ -224,7 +225,16 @@ def get_args():
       %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
- 20. Print system info.
+ 20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
+      RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+
+      %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+
+      Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
+
+      %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+
+ 21. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -233,7 +243,8 @@ def get_args():
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
-                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'info', 'shutdown', 'reboot'],
+                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
+                 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -616,6 +627,9 @@ def wait_for_nodes():
             if counter == repeat:   ## Connection timed out
                 exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
+        if action == 'set_ping_nodes':  ## with set_ping_nodes: only the first IP is node IP, next are new ping nodes
+            break
+
 
 def display_delay(msg):
     for sec in range(delay, 0, -1) :
@@ -809,21 +823,61 @@ def get_bond_slaves(bond_name):
     return next((interface['slaves'] for interface in interfaces if interface['name'] == bond_name), None)
 
 
-def get_bond_ip_addr(bond_name):
+def get_interface_ip_addr(interface_name):
     ''' return IP of given bond'''
     interfaces = get('/network/interfaces')
-    return next((interface['address'] for interface in interfaces if interface['name'] == bond_name), None)
+    return next((interface['address'] for interface in interfaces if interface['name'] == interface_name), None)
 
 
-def get_bond_gw_ip_addr(bond_name):
+def get_interface_gw_ip_addr(interface_name):
     ''' return IP of given bond'''
     interfaces = get('/network/interfaces')
-    return next((interface['gateway'] for interface in interfaces if interface['name'] == bond_name), None)
+    return next((interface['gateway'] for interface in interfaces if interface['name'] == interface_name), None)
 
-def get_bond_netmask(bond_name):
+
+def get_interface_netmask(interface_name):
     ''' return IP of given bond'''
     interfaces = get('/network/interfaces')
-    return next((interface['netmask'] for interface in interfaces if interface['name'] == bond_name), None)
+    return next((interface['netmask'] for interface in interfaces if interface['name'] == interface_name), None)
+
+
+def get_ring_interface_of_first_node():
+    return get('/cluster/rings')[0]['interfaces'][0]['interface']
+
+
+def get_ping_nodes():
+    e = None
+    ping_nodes=[]
+    endpoint = '/cluster/ping-nodes'
+    try:
+        ping_nodes = [ping_node['address'] for ping_node in get(endpoint)]
+    except Exception as e:
+        print_with_timestamp('Error getting ping nodes. {}'.format(e[0]))
+    return None if e else ping_nodes
+
+
+def set_ping_nodes():
+    current_ping_nodes = get_ping_nodes()
+    if current_ping_nodes is None:
+        sys_exit_with_timestamp( 'Cannot set ping nodes on {}'.format(node))
+    endpoint = '/cluster/ping-nodes'
+    e = None
+    ping_nodes = nodes[1:]
+    for ping_node in ping_nodes:
+        if ping_node in current_ping_nodes:
+            print_with_timestamp('Error. Ping node {} allready set.'.format(ping_node))
+            continue
+        ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
+        if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
+            sys_exit_with_timestamp( 'Error. Given ping_node IP address {} in not in ring subnet'.format(ping_node))
+        try:
+            data = dict(address=ping_node)
+            post('/cluster/ping-nodes',data)
+        except Exception as e:
+            pass
+            ## sys_exit_with_timestamp( 'Error setting ping node: {}. {}'.format(ping_node, e)) : bug in current up25: exception on  success
+        if ping_node in get_ping_nodes():
+            print_with_timestamp('New ping node {} set.'.format(ping_node))
 
        
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
@@ -922,9 +976,9 @@ def delete_bond(bond_name):
         sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
 
     first_nic_name, second_nic_name = sorted(bond_slaves)
-    bond_ip_addr = get_bond_ip_addr(bond_name)
-    bond_gw_ip_addr = get_bond_gw_ip_addr(bond_name)
-    bond_netmask = get_bond_netmask(bond_name)
+    bond_ip_addr = get_interface_ip_addr(bond_name)
+    bond_gw_ip_addr = get_interface_gw_ip_addr(bond_name)
+    bond_netmask = get_interface_netmask(bond_name)
     orginal_node_id = node_id()
 
     endpoint = '/network/interfaces/{}'.format(bond_name)
@@ -1642,6 +1696,11 @@ def main() :
             sys_exit_with_timestamp( 'Error: bind_cluster command expects exactly 2 IP addresses')
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
+
+    elif action == 'set_ping_nodes':
+        if len(nodes) < 2:
+            sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 2 IP addresses')
+        set_ping_nodes()
 
     elif action == 'info':
         info()
