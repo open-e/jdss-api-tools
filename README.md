@@ -146,7 +146,7 @@ EXAMPLES:
 
        jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-    Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
+  Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
 
        jdss-api-tools.exe  set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
