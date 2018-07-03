@@ -234,7 +234,7 @@ def get_args():
 
       %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-      Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
+      Same, but with defaults user = admin, password = admin and netmask = 255.255.255.0
 
       %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
@@ -911,11 +911,11 @@ def set_ping_nodes():
     ping_nodes = nodes[1:]
     for ping_node in ping_nodes:
         if ping_node in current_ping_nodes:
-            print_with_timestamp('Error. Ping node {} allready set.'.format(ping_node))
+            print_with_timestamp('Error. Ping node {} already set.'.format(ping_node))
             continue
         ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
         if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
-            sys_exit_with_timestamp( 'Error. Given ping_node IP address {} in not in ring subnet'.format(ping_node))
+            sys_exit_with_timestamp( 'Error. Given ping node IP address {} in not in ring subnet'.format(ping_node))
         try:
             data = dict(address=ping_node)
             post('/cluster/ping-nodes',data)
@@ -1051,7 +1051,7 @@ def delete_bond(bond_name):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            sys_exit_with_timestamp( 'Error: Can not access default IP 192.168.0.220')
+            sys_exit_with_timestamp( 'Error: Cannot access default IP 192.168.0.220')
             
     time.sleep(1)
     if node_id_220 == orginal_node_id:
