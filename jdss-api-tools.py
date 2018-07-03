@@ -871,9 +871,10 @@ def get_cluster_node_id(node):
 def set_mirror_path():
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
+    # first cluster node must be same as node from args
     if cluster_nodes_addresses[0] != node:
         cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
-        cluster_nodes_addresses[1], cluster_nodes_addresses[0]      # swap as first cluster node must be same as node from args
+        cluster_nodes_addresses[1], cluster_nodes_addresses[0]      
     _mirror_nics = convert_comma_separated_to_list(mirror_nics)
     for i, cluster_node_address in enumerate(cluster_nodes_addresses):
         node_id = get_cluster_node_id(cluster_node_address)
