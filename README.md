@@ -161,7 +161,12 @@ EXAMPLES:
 
 			jdss-api-tools.py set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
 
-<br>22. Print system info.
+<br>22. Start HA-cluster. Please enter first node IP address only.
+
+			jdss-api-tools.exe start_cluster  192.168.0.82
+
+
+<br>23. Print system info.
 
 	jdss-api-tools.exe info 192.168.0.220
 

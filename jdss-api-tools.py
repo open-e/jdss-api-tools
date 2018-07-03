@@ -29,6 +29,7 @@ missing Python modules install with pip e.g. : C:\Python27\Scripts>pip install i
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
 2018-07-03  add HA-cluster mirror path
+2018-07-03  add start-cluster 
 
 """
     
@@ -243,8 +244,11 @@ def get_args():
       
       %(prog)s set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
 
+ 22. Start HA-cluster. Please enter first node IP address only.
+      
+      %(prog)s start_cluster  192.168.0.82
 
- 22. Print system info.
+ 23. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -254,7 +258,7 @@ def get_args():
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
                  'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
-                 'set_mirror_path', 'info', 'shutdown', 'reboot'],
+                 'set_mirror_path', 'start_cluster', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -924,6 +928,32 @@ def set_ping_nodes():
             ## sys_exit_with_timestamp( 'Error setting ping node: {}. {}'.format(ping_node, e)) : bug in current up25: exception on  success
         if ping_node in get_ping_nodes():
             print_with_timestamp('New ping node {} set.'.format(ping_node))
+
+
+def start_cluster():
+    cluster_nodes_addresses = get_cluster_nodes_addresses()
+    if cluster_nodes_addresses.pop() in '127.0.0.1' :
+        sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
+    status = get('/cluster/nodes')
+    started = status[0]['status'] == status[1]['status'] == 'online'
+    if started :
+        sys_exit_with_timestamp( 'Cluster on {} is started already.'.format(node))
+
+    data=dict(mode='cluster')
+    try:
+	post('/cluster/start-cluster',data)
+    except Exception as e:
+        msg = str(e[0])
+    if 'timeout' in msg:
+        print_with_timestamp('Cluster service starting...')
+        time.sleep(30)
+    status = get('/cluster/nodes')
+    started = status[0]['status'] == status[1]['status'] == 'online'
+    if started:
+        print_with_timestamp('Cluster service started sucessfully')
+    else:
+        sys_exit_with_timestamp( 'Cluster service start failed.')
+
 
        
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
@@ -1755,6 +1785,9 @@ def main() :
         if c not in (1,):
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects  --mirror_nics')
         set_mirror_path()
+
+    elif action == 'start_cluster':
+        start_cluster()
 
     elif action == 'info':
         info()
