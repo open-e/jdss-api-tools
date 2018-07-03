@@ -13,7 +13,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 missing Python modules install with pip e.g. : C:\Python27\Scripts>pip install ipcalc
 
-
 2018-02-07  initial release
 2018-03-06  add create pool
 2018-03-18  add delete_clone option (it deletes the snapshot as well) (kris@dddistribution.be)
@@ -48,7 +47,7 @@ import ipcalc
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
 
-# Script global variables - to be updated in parse_args():
+## Script global variables - to be updated in parse_args():
 line_sep                = '='*62
 action                  = ''
 delay                   = 0

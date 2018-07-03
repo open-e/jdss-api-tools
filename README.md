@@ -95,7 +95,9 @@ EXAMPLES:
 <br>12. Shutdown three JovianDSS servers using default port but non default password.
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
+
 	or with IP range syntax ".."
+
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
 
@@ -142,11 +144,15 @@ EXAMPLES:
 
 
 <br>20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
-       RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+
+    jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+
 
 	jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
-  Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
+    jdss-api-tools.exe set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
 	jdss-api-tools.exe  set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
