@@ -6,9 +6,12 @@ C:\Python27\Scripts\pyinstaller.exe --onefile jdss-api-tools.py
 And try it:
 C:\Python27\dist\jdss-api-tools.exe -h
 
+
 NOTE:
 In case of error "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+
+missing Python modules install with pip e.g. : C:\Python27\Scripts>pip install ipcalc
 
 
 2018-02-07  initial release
@@ -26,6 +29,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
+2018-07-03  add HA-cluster mirror path
 
 """
     
@@ -234,7 +238,14 @@ def get_args():
 
       %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
- 21. Print system info.
+
+ 21. Set HA-cluster mirror path. Please enter comma separated nics,
+     the first nic must be from the same node as the specified access IP. 
+      
+      %(prog)s set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
+
+
+ 22. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -244,7 +255,7 @@ def get_args():
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
                  'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
-                 'info', 'shutdown', 'reboot'],
+                 'set_mirror_path', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -381,6 +392,12 @@ def get_args():
         help='Enter comma separated bond NICs. Default=eth0,eth1'
     )
     parser.add_argument(
+        '--mirror_nics',
+        metavar='nics',
+        default=None,   
+        help='Enter comma separated mirror path NICs.'
+    )
+    parser.add_argument(
         '--user',
         metavar='user',
         default='admin',
@@ -454,7 +471,7 @@ def get_args():
     global api_port, api_user, api_password, action, pool_name, volume_name, snapshot_name, delay, nodes, node, menu
     global auto_share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
-    global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics
+    global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global bind_node_password
 
@@ -489,7 +506,8 @@ def get_args():
     bond_type               = args['bond_type']
     bond_nics               = args['bond_nics']
     bind_node_password      = args['bind_node_password']
-
+    mirror_nics             = args['mirror_nics']
+    
     delay                   = args['delay']
     nodes                   = args['ip']
 
@@ -843,6 +861,34 @@ def get_interface_netmask(interface_name):
 
 def get_ring_interface_of_first_node():
     return get('/cluster/rings')[0]['interfaces'][0]['interface']
+
+def get_cluster_nodes_addresses():
+    return [cluster_node['address']for cluster_node in get('/cluster/nodes')]
+
+def get_cluster_node_id(node):
+	return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
+
+
+def set_mirror_path():
+    interfaces_items = []
+    cluster_nodes_addresses = get_cluster_nodes_addresses()
+    if cluster_nodes_addresses[0] != node:
+        cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
+        cluster_nodes_addresses[1], cluster_nodes_addresses[0]      # swap as first cluster node must be same as node from args
+    _mirror_nics = convert_comma_separated_to_list(mirror_nics)
+    for i, cluster_node_address in enumerate(cluster_nodes_addresses):
+        node_id = get_cluster_node_id(cluster_node_address)
+        interfaces_items.append(dict(interface=_mirror_nics[i], node_id=node_id))
+    data = dict(interfaces=interfaces_items)
+    return_code = {}
+    try:
+        return_code = post('/cluster/remote-disks/paths',data)
+    except Exception as e:
+        time.sleep(5)
+    if return_code and _mirror_nics == [item['_interface']for item in return_code['data']['_members']]:
+        print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(_mirror_nics)))
+    else:
+        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(_mirror_nics),str(e[0])))
 
 
 def get_ping_nodes():
@@ -1701,6 +1747,14 @@ def main() :
         if len(nodes) < 2:
             sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 2 IP addresses')
         set_ping_nodes()
+
+    elif action == 'set_mirror_path':
+        if len(nodes) !=1:
+            sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP addresses')
+        c = count_provided_args(mirror_nics)  
+        if c not in (1,):
+            sys_exit_with_timestamp( 'Error: set_mirror_path command expects  --mirror_nics')
+        set_mirror_path()
 
     elif action == 'info':
         info()

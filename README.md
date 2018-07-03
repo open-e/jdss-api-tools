@@ -144,13 +144,18 @@ EXAMPLES:
 <br>20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
        RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
 
-       jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+	jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
   Same, but with defaults user =admin, password = admin and netmask = 255.255.255.0
 
-       jdss-api-tools.exe  set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+	jdss-api-tools.exe  set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-<br>21. Print system info.
+<br>21. Set HA-cluster mirror path. Please enter comma separated nics,
+			 the first nic must be from the same node as the specified access IP.
+
+			jdss-api-tools.py set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
+
+<br>22. Print system info.
 
 	jdss-api-tools.exe info 192.168.0.220
 
