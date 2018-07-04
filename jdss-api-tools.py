@@ -2,16 +2,18 @@
 jdss-api-tools send REST API commands to JovianDSS servers
 
 In order to create single exe file run:
-C:\Python27\Scripts\pyinstaller.exe --onefile jdss-api-tools.py
-And try it:
-C:\Python27\dist\jdss-api-tools.exe -h
+C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
 
+And try it:
+C:\Python27>dist\jdss-api-tools.exe -h
+
+Missing Python modules need to be installed with pip, e.g.:
+C:\Python27\Scripts>pip install ipcalc
 
 NOTE:
 In case of error "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 
-missing Python modules install with pip e.g. : C:\Python27\Scripts>pip install ipcalc
 
 2018-02-07  initial release
 2018-03-06  add create pool
@@ -234,19 +236,20 @@ def get_args():
 
       %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-      Same, but with defaults user = admin, password = admin and netmask = 255.255.255.0
+      Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
       %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
 
- 21. Set HA-cluster mirror path. Please enter comma separated nics,
-     the first nic must be from the same node as the specified access IP. 
-      
-      %(prog)s set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
+ 21. Set HA-cluster mirror path. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+
+      %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
+
 
  22. Start HA-cluster. Please enter first node IP address only.
-      
-      %(prog)s start_cluster  192.168.0.82
+
+      %(prog)s start_cluster 192.168.0.82
+
 
  23. Print system info.
 
@@ -510,7 +513,7 @@ def get_args():
     bond_nics               = args['bond_nics']
     bind_node_password      = args['bind_node_password']
     mirror_nics             = args['mirror_nics']
-    
+
     delay                   = args['delay']
     nodes                   = args['ip']
 
@@ -534,7 +537,7 @@ def get_args():
     node    = nodes[0]
             
     ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
-    all_ip_addr = nodes[:]  # copy
+    all_ip_addr = nodes[:]  ## copy
     for ip in new_ip_addr, new_gw, new_dns, new_mask:
         if ip:
             all_ip_addr.append(ip)
@@ -562,7 +565,7 @@ def convert_comma_separated_to_list(arg):
         if sep in arg:
             arg=arg.split(sep)
     if type(arg) is str:
-        arg=arg.split() # no separator, single item arg listnew_dns
+        arg=arg.split() ## no separator, single item arg listnew_dns
     return arg
 
 
@@ -865,8 +868,10 @@ def get_interface_netmask(interface_name):
 def get_ring_interface_of_first_node():
     return get('/cluster/rings')[0]['interfaces'][0]['interface']
 
+
 def get_cluster_nodes_addresses():
     return [cluster_node['address']for cluster_node in get('/cluster/nodes')]
+
 
 def get_cluster_node_id(node):
 	return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
@@ -875,10 +880,10 @@ def get_cluster_node_id(node):
 def set_mirror_path():
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
-    # first cluster node must be same as node from args
+    ## first cluster node must be same as node from args
     if cluster_nodes_addresses[0] != node:
         cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
-        cluster_nodes_addresses[1], cluster_nodes_addresses[0]      
+        cluster_nodes_addresses[1], cluster_nodes_addresses[0]
     _mirror_nics = convert_comma_separated_to_list(mirror_nics)
     for i, cluster_node_address in enumerate(cluster_nodes_addresses):
         node_id = get_cluster_node_id(cluster_node_address)
@@ -915,17 +920,17 @@ def set_ping_nodes():
     ping_nodes = nodes[1:]
     for ping_node in ping_nodes:
         if ping_node in current_ping_nodes:
-            print_with_timestamp('Error. Ping node {} already set.'.format(ping_node))
+            print_with_timestamp('Error: Ping node {} already set.'.format(ping_node))
             continue
         ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
         if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
-            sys_exit_with_timestamp( 'Error. Given ping node IP address {} in not in ring subnet'.format(ping_node))
+            sys_exit_with_timestamp( 'Error: Given ping node IP address {} in not in ring subnet'.format(ping_node))
         try:
             data = dict(address=ping_node)
             post('/cluster/ping-nodes',data)
         except Exception as e:
             pass
-            ## sys_exit_with_timestamp( 'Error setting ping node: {}. {}'.format(ping_node, e)) : bug in current up25: exception on  success
+            ## sys_exit_with_timestamp( 'Error setting ping node: {}. {}'.format(ping_node, e)) : bug in current up25: exception on success
         if ping_node in get_ping_nodes():
             print_with_timestamp('New ping node {} set.'.format(ping_node))
 
@@ -938,7 +943,7 @@ def start_cluster():
     status = get('/cluster/nodes')
     started = status[0]['status'] == status[1]['status'] == 'online'
     if started :
-        sys_exit_with_timestamp( 'Cluster on {} is started already.'.format(node))
+        sys_exit_with_timestamp( 'Cluster on {} is already started.'.format(node))
 
     data=dict(mode='cluster')
     try:
@@ -951,12 +956,11 @@ def start_cluster():
     status = get('/cluster/nodes')
     started = status[0]['status'] == status[1]['status'] == 'online'
     if started:
-        print_with_timestamp('Cluster service started sucessfully')
+        print_with_timestamp('Cluster service started successfully.')
     else:
         sys_exit_with_timestamp( 'Cluster service start failed.')
 
 
-       
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node    ## the node IP can be changed
     error = ''
@@ -983,7 +987,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node IP was changed
+            node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
         
     ## set default gateway interface
@@ -1024,7 +1028,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  # the node IP was changed
+            node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
     ## set default gateway interface
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
@@ -1319,13 +1323,13 @@ def create_pool(pool_name,vdev_type,jbods):
 def create_snapshot(vol_type,ignore_error=None):
     for node in nodes:
         api = interface(node)
-        # Create snapshot of NAS vol
+        ## Create snapshot of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots'.format(
                    POOL_NAME=pool_name, DATASET_NAME=volume_name)
             ## Auto-Snapshot-Name
             data = dict(name=auto_snap_name)            
-        # Create snapshot of SAN zvol
+        ## Create snapshot of SAN zvol
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots'.format(
                    POOL_NAME=pool_name, VOLUME_NAME=volume_name)
@@ -1345,14 +1349,14 @@ def create_clone(vol_type, ignore_error=None):
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
         api = interface(node)
-        # Create clone of NAS vol = dataset
+        ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
                 POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
             ## vol
             clone_name = volume_name + time_stamp_clone_syntax() + auto_vol_clone_name
             data = dict(name=clone_name)
-        # Create clone of SAN zvol = volume
+        ## Create clone of SAN zvol = volume
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
                 POOL_NAME=pool_name, VOLUME_NAME=volume_name)
@@ -1370,7 +1374,7 @@ def create_clone(vol_type, ignore_error=None):
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
     for node in nodes:
         api = interface(node)
-        # Delete snapshot. It auto-delete clone and share of NAS vol
+        ## Delete snapshot. It auto-delete clone and share of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
                        POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
@@ -1381,7 +1385,7 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
             except:
                 print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name,node))
                 print()
-        # Delete snapshot and clone of SAN zvol (using recursively options)
+        ## Delete snapshot and clone of SAN zvol (using recursively options)
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
                    POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
@@ -1400,14 +1404,14 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
         api = interface(node)
-        # Create clone of NAS vol = dataset
+        ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
                 POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
             ## vol
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             data = dict(name=clone_name, snapshot=snapshot_name)
-        # Create clone of SAN zvol = volume
+        ## Create clone of SAN zvol = volume
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
                 POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
@@ -1425,7 +1429,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
     for node in nodes:
         api = interface(node)
-        # Delete existing clone and share of NAS vol
+        ## Delete existing clone and share of NAS vol
         if vol_type == 'dataset':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{VOL_CLONE_NAME}'.format(
@@ -1438,7 +1442,7 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
             except:
                 print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
                 print()
-        # Delete existing clone of SAN zvol
+        ## Delete existing clone of SAN zvol
         if vol_type == 'volume':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
@@ -1674,12 +1678,12 @@ def read_jbods_and_create_pool(choice='0'):
                             pool_name,vdevs_num,vdev_type,vdev_disks_num,required_disks_num,available_disks)
                     else:
                         if jbods_num == 1 and not metro:
-                            # transpose single JBOD for JBODs [number_of_disks_in_vdev * number_of_vdevs]
+                            ## transpose single JBOD for JBODs [number_of_disks_in_vdev * number_of_vdevs]
                             jbods_id_only = zip(*[iter(jbods_id_only[0])] * vdevs_num )
                             jbods_id_only = jbods_id_only[: vdev_disks_num]
                             pool = create_pool(pool_name,vdev_type, jbods_id_only)
                         else:
-                            # limit to given vdevs_num
+                            ## limit to given vdevs_num
                             jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only] 
                             pool = create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
@@ -1781,10 +1785,10 @@ def main() :
 
     elif action == 'set_mirror_path':
         if len(nodes) !=1:
-            sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP addresses')
-        c = count_provided_args(mirror_nics)  
+            sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP address')
+        c = count_provided_args(mirror_nics)
         if c not in (1,):
-            sys_exit_with_timestamp( 'Error: set_mirror_path command expects  --mirror_nics')
+            sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
         set_mirror_path()
 
     elif action == 'start_cluster':

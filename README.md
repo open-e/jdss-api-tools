@@ -148,22 +148,19 @@ EXAMPLES:
 
     jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-
-	jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
     Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
     jdss-api-tools.exe set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-	jdss-api-tools.exe  set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-<br>21. Set HA-cluster mirror path. Please enter comma separated nics,
-			 the first nic must be from the same node as the specified access IP.
+<br>21. Set HA-cluster mirror path. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
-			jdss-api-tools.py set_mirror_path --mirror_nics=eth4,eth4  192.168.0.82
+    jdss-api-tools.exe set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
+
 
 <br>22. Start HA-cluster. Please enter first node IP address only.
 
-			jdss-api-tools.exe start_cluster  192.168.0.82
+    jdss-api-tools.exe start_cluster 192.168.0.82
 
 
 <br>23. Print system info.
@@ -173,11 +170,16 @@ EXAMPLES:
 #
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
-	C:\Python27>Scripts\pyinstaller.exe --onefile jdss-api-tools.py
+	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
 #
 And try it:
 
 	C:\Python27>dist\jdss-api-tools.exe -h
+#
+Missing Python modules need to be installed with pip, e.g.:
+
+	C:\Python27\Scripts>pip install ipcalc
+
 
 NOTE:
 In case of error: "msvcr100.dll missing...",
