@@ -931,6 +931,7 @@ def set_ping_nodes():
 
 
 def start_cluster():
+    error = ''
     cluster_nodes_addresses = get_cluster_nodes_addresses()
     if cluster_nodes_addresses.pop() in '127.0.0.1' :
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
@@ -943,8 +944,8 @@ def start_cluster():
     try:
 	post('/cluster/start-cluster',data)
     except Exception as e:
-        msg = str(e[0])
-    if 'timeout' in msg:
+        error = str(e[0])
+    if 'timeout' in error:
         print_with_timestamp('Cluster service starting...')
         time.sleep(30)
     status = get('/cluster/nodes')
