@@ -163,7 +163,11 @@ EXAMPLES:
     jdss-api-tools.exe start_cluster 192.168.0.82
 
 
-<br>23. Print system info.
+<br>23. Move(failover) given pool
+
+		jdss-api-tools.exe move --pool=Pool-0 192.168.0.82
+
+<br>24. Print system info.
 
 	jdss-api-tools.exe info 192.168.0.220
 

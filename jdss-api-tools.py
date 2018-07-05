@@ -31,7 +31,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
 2018-07-03  add HA-cluster mirror path
-2018-07-03  add start-cluster 
+2018-07-03  add start-cluster
+2018-07-05  add move (failover)
+
 
 """
     
@@ -251,7 +253,11 @@ def get_args():
       %(prog)s start_cluster 192.168.0.82
 
 
- 23. Print system info.
+ 23. Start HA-cluster. Please enter first node IP address only.
+
+      %(prog)s move --pool=Pool-0 192.168.0.82
+
+ 24. Print system info.
 
       %(prog)s info 192.168.0.220
     ''')
@@ -261,7 +267,7 @@ def get_args():
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
                  'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
-                 'set_mirror_path', 'start_cluster', 'info', 'shutdown', 'reboot'],
+                 'set_mirror_path', 'start_cluster', 'move', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -959,6 +965,45 @@ def start_cluster():
         print_with_timestamp('Cluster service started successfully.')
     else:
         sys_exit_with_timestamp( 'Cluster service start failed.')
+
+
+def move():
+    error = ''
+    global node
+    nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
+    active_node = ''
+    new_active_node = ''
+    for i,node in enumerate(nodes):
+        pools = get('/pools')
+        pools.sort(key=lambda k : k['name'])
+        pool_names = [pool['name'] for pool in pools ]
+        if pool_name in pool_names:
+            active_node = node
+            new_active_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
+            print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, new_active_node))
+            data=dict(node_id= get_cluster_node_id(new_active_node)) 
+            endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
+            try:
+                post(endpoint,data)
+            except Exception as e:
+                error = str(e[0])
+                sys_exit_with_timestamp( 'Cannot move the pool {}. Error: {}'.format(pool_name, error))
+    time.sleep(30)
+    new_active_node = ''
+    for i in range(150):
+        for node in nodes:
+            pools = get('/pools')
+            pool_names = [pool['name'] for pool in pools ]
+            if pool_name in pool_names:
+                new_active_node = node
+        if new_active_node:
+            break
+        time.sleep(5)
+    if active_node and new_active_node and active_node != new_active_node:
+        print_with_timestamp('{}  is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
+    else:
+        sys_exit_with_timestamp( 'Error: cannot move pool {}'.format(pool_name))
+
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
@@ -1793,6 +1838,12 @@ def main() :
 
     elif action == 'start_cluster':
         start_cluster()
+
+    elif action == 'move':
+        c = count_provided_args(pool_name)
+        if c != 1:
+            sys_exit_with_timestamp( 'Error: move command expects pool name: --pool=pool-name')
+        move()
 
     elif action == 'info':
         info()
