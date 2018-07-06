@@ -971,11 +971,15 @@ def start_cluster():
 def move():
     error = ''
     global node
+    global nodes
+    command_line_node = node
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     active_node = ''
     passive_node = ''
     new_active_node = ''
     for i,node in enumerate(nodes):
+        if node not in command_line_node:
+            wait_for_nodes()
         pools = get('/pools')
         pools.sort(key=lambda k : k['name'])
         pool_names = [pool['name'] for pool in pools ]
