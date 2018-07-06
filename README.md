@@ -163,7 +163,8 @@ EXAMPLES:
     jdss-api-tools.exe start_cluster 192.168.0.82
 
 
-<br>23. Move(failover) given pool
+<br>23. Start HA-cluster. Please enter first node IP address only.
+The current active node of given pool will be found and pool will be moved to passive node.
 
 		jdss-api-tools.exe move --pool=Pool-0 192.168.0.82
 

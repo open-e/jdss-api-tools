@@ -254,6 +254,7 @@ def get_args():
 
 
  23. Start HA-cluster. Please enter first node IP address only.
+     The current active node of given pool will be found and pool will be moved to passive node.
 
       %(prog)s move --pool=Pool-0 192.168.0.82
 
@@ -972,6 +973,7 @@ def move():
     global node
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     active_node = ''
+    passive_node = ''
     new_active_node = ''
     for i,node in enumerate(nodes):
         pools = get('/pools')
@@ -979,30 +981,36 @@ def move():
         pool_names = [pool['name'] for pool in pools ]
         if pool_name in pool_names:
             active_node = node
-            new_active_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
-            print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, new_active_node))
-            data=dict(node_id= get_cluster_node_id(new_active_node)) 
+            passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
+            print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
+            data=dict(node_id= get_cluster_node_id(passive_node)) 
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             try:
                 post(endpoint,data)
             except Exception as e:
                 error = str(e[0])
                 sys_exit_with_timestamp( 'Cannot move the pool {}. Error: {}'.format(pool_name, error))
-    time.sleep(30)
+    print_with_timestamp('Moving in progress...')
+    ## wait for pool import
+    time.sleep(15)
     new_active_node = ''
     for i in range(150):
         for node in nodes:
-            pools = get('/pools')
+            try:
+                pools = get('/pools')
+            except Exception as e:
+                error = str(e[0])
             pool_names = [pool['name'] for pool in pools ]
             if pool_name in pool_names:
                 new_active_node = node
         if new_active_node:
             break
+        print_with_timestamp('Moving in progress...')
         time.sleep(5)
-    if active_node and new_active_node and active_node != new_active_node:
+    if new_active_node == passive_node: ## after move(failover) pasive node is active  
         print_with_timestamp('{}  is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
-        sys_exit_with_timestamp( 'Error: cannot move pool {}'.format(pool_name))
+        sys_exit_with_timestamp( 'Error: cannot move pool {}. {}'.format(pool_name, error))
 
 
 
