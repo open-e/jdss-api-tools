@@ -31,9 +31,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
 2018-07-03  add HA-cluster mirror path
-2018-07-03  add start-cluster
+2018-07-03  add start-cluster 
 2018-07-05  add move (failover)
-
 
 """
     
@@ -253,10 +252,11 @@ def get_args():
       %(prog)s start_cluster 192.168.0.82
 
 
- 23. Start HA-cluster. Please enter first node IP address only.
+ 23. Move (failover) given pool.
      The current active node of given pool will be found and pool will be moved to passive node.
 
       %(prog)s move --pool=Pool-0 192.168.0.82
+
 
  24. Print system info.
 
@@ -987,13 +987,13 @@ def move():
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
-            data=dict(node_id= get_cluster_node_id(passive_node)) 
+            data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             try:
                 post(endpoint,data)
             except Exception as e:
                 error = str(e[0])
-                sys_exit_with_timestamp( 'Cannot move the pool {}. Error: {}'.format(pool_name, error))
+                sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
     print_with_timestamp('Moving in progress...')
     ## wait for pool import
     time.sleep(15)
@@ -1011,11 +1011,10 @@ def move():
             break
         print_with_timestamp('Moving in progress...')
         time.sleep(5)
-    if new_active_node == passive_node: ## after move(failover) pasive node is active  
+    if new_active_node == passive_node: ## after move (failover) passive node is active
         print_with_timestamp('{}  is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
-        sys_exit_with_timestamp( 'Error: cannot move pool {}. {}'.format(pool_name, error))
-
+        sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
