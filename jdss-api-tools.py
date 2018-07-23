@@ -31,7 +31,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
 2018-07-03  add HA-cluster mirror path
-2018-07-03  add start-cluster 
+2018-07-03  add start-cluster
 2018-07-05  add move (failover)
 
 """
@@ -949,7 +949,7 @@ def start_cluster():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
     status = get('/cluster/nodes')
     started = status[0]['status'] == status[1]['status'] == 'online'
-    if started :
+    if started:
         sys_exit_with_timestamp( 'Cluster on {} is already started.'.format(node))
 
     data=dict(mode='cluster')
