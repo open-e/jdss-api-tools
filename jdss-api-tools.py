@@ -33,6 +33,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-03  add HA-cluster mirror path
 2018-07-03  add start-cluster
 2018-07-05  add move (failover)
+2018-07-24  add missing msg for ip addr change
 
 """
     
@@ -1026,6 +1027,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
     # list_of_ip
     dns = convert_comma_separated_to_list(new_dns)
+    # validate all IPs, exit if not valid found
     for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
         if ip:
             if not valid_ip(ip):
@@ -1045,17 +1047,23 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         if timeouted:
             node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
-        
+
+    ## set default gateway interface        
+    if "HTTPSConnectionPool" in error and "timeout" in error:
+        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+    else:
+        if get_interface_ip_addr(nic_name) == new_ip_addr :
+            print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
+        else:
+            print_with_timestamp('ERROR: New IP address {} set to {} FAILED'.format(new_ip_addr,nic_name))
+
     ## set default gateway interface
     if new_gw:
         set_default_gateway()
     
     if dns is not None:
         set_dns(dns)
-
-    if "HTTPSConnectionPool" in error and "timeout" in error:
-        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
-
+    
 
 def create_bond(bond_type, bond_nics, new_gw, new_dns):
     global node    ## the node IP can be changed
