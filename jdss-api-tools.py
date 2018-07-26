@@ -1027,7 +1027,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
     # list_of_ip
     dns = convert_comma_separated_to_list(new_dns)
-    # validate all IPs, exit if not valid found
+    # validate all IPs, exit if no valid IP found
     for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
         if ip:
             if not valid_ip(ip):
@@ -1048,11 +1048,11 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
             node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
 
-    ## set default gateway interface        
+    ## set default gateway interface
     if "HTTPSConnectionPool" in error and "timeout" in error:
         sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
     else:
-        if get_interface_ip_addr(nic_name) == new_ip_addr :
+        if get_interface_ip_addr(nic_name) == new_ip_addr:
             print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
         else:
             print_with_timestamp('ERROR: New IP address {} set to {} FAILED'.format(new_ip_addr,nic_name))
