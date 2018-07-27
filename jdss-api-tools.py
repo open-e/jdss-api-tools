@@ -35,7 +35,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-05  add move (failover)
 2018-07-24  add missing msg for ip addr change
 2018-07-27  network improvments and fixes
-
 """
     
 from __future__ import print_function
