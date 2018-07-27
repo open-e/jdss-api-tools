@@ -1099,11 +1099,15 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
             node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
 
+<<<<<<< HEAD
     ##  
+=======
+    ## set default gateway interface
+>>>>>>> 3a344bee5997637f2529307791a51021cb7b633e
     if "HTTPSConnectionPool" in error and "timeout" in error:
         print_with_timestamp( 'The acccess NIC {} changed to {}'.format(nic_name, new_ip_addr))
     else:
-        if get_interface_ip_addr(nic_name) == new_ip_addr :
+        if get_interface_ip_addr(nic_name) == new_ip_addr:
             print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
         else:
             print_with_timestamp('ERROR: New IP address {} set to {} FAILED'.format(new_ip_addr,nic_name))

@@ -99,3 +99,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+jdss-api-tools.py
+jdss-api-tools.exe
