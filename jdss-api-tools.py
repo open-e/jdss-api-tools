@@ -34,6 +34,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-03  add start-cluster
 2018-07-05  add move (failover)
 2018-07-24  add missing msg for ip addr change
+2018-07-27  network improvments and fixes
 
 """
     
@@ -72,25 +73,54 @@ target_name_prefix= "iqn.%s-%s:jdss.target" % (time.strftime("%Y"),time.strftime
 ## ZVOL NAME
 zvol_name_prefix = 'zvol00'
 
-
-def interface(node):
+def interface():
+    wait_for_node()
     return API.via_rest(node, api_port, api_user, api_password)
 
 def get(endpoint):
-    api=interface(node)
+    api=interface()
     return api.driver.get(endpoint)['data']
 
 def put(endpoint,data):
-    api=interface(node)
+    api=interface()
     return api.driver.put(endpoint,data)
 
 def post(endpoint,data):
-    api=interface(node)
+    api=interface()
     return api.driver.post(endpoint,data)
 
 def delete(endpoint,data):
-    api=interface(node)
+    api=interface()
     return api.driver.delete(endpoint,data)
+
+def wait_for_node():
+    repeat = 100
+    counter = 0
+    while True:
+        try:
+            api = API.via_rest(node, api_port, api_user, api_password)
+            endpoint = '/conn_test'
+            api.driver.get(endpoint)['data']  ## GET
+        except Exception as e:
+            error = str(e[0])
+            if counter % 3:
+                print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
+            else:
+                print_with_timestamp(
+                    'Please enable REST API on {} in GUI: System Settings -> Administration -> REST access, or check access credentials.'.format(node))
+        else:
+            try:
+                if print_timestamp_msg[node]:
+                    print_with_timestamp('Node {} is running.'.format(node))
+                    print_timestamp_msg[node] = False
+                
+            except Exception as e:
+                pass
+            break
+        counter += 1
+        time.sleep(4)
+        if counter == repeat:   ## Connection timed out
+            exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
 
 def get_args():
@@ -210,8 +240,14 @@ def get_args():
 
  16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
       Missing netmask option will set default 255.255.255.0
-
+      
       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
+
+      Setting new DNS only:
+      %(prog)s network --new_dns=192.168.0.1 192.168.0.220
+
+      Setting new gateway only. The default gateway will be set automatically.
+      %(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
 
 
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
@@ -488,6 +524,7 @@ def get_args():
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global bind_node_password
+    global print_timestamp_msg
 
 
     api_port                = args['port']
@@ -509,7 +546,7 @@ def get_args():
     server_name             = args['server']
     server_description      = args['description']
     timezone                = args['timezone']
-    ntp                     = args['ntp']
+    ntp                     = args['ntp'].upper() ## ON |OFF
     ntp_servers             = args['ntp_servers']
     
     nic_name                = args['nic']
@@ -526,6 +563,9 @@ def get_args():
     nodes                   = args['ip']
 
     menu                    = args['menu']
+
+    print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
+
 
     ## start menu if multi-JBODs
     if jbods_num > 1: 
@@ -595,6 +635,7 @@ def print_with_timestamp(msg):
 
 def sys_exit_with_timestamp(msg):
     print_with_timestamp(msg)
+    print()
     sys.exit(1)
 
 
@@ -638,31 +679,6 @@ def expand_ip_range(ip_range):
 	return ip_list
 
 
-def wait_for_nodes():
-    for node in nodes :
-        repeat = 100
-        counter = 0
-        while True:
-            try:
-                get('/conn_test')
-            except:
-                if counter % 3:
-                    print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
-                else:
-                    print_with_timestamp(
-                        'Please enable REST API on {} in GUI: System Settings -> Administration -> REST access, or check access credentials.'.format(node))
-            else:
-                print_with_timestamp( 'Node {} is running.'.format(node))
-                break
-            counter += 1
-            time.sleep(4)
-            if counter == repeat:   ## Connection timed out
-                exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
-
-        if action == 'set_ping_nodes':  ## with set_ping_nodes: only the first IP is node IP, next are new ping nodes
-            break
-
-
 def display_delay(msg):
     for sec in range(delay, 0, -1) :
         print( '{} in {:>2} seconds \r'.format(msg,sec))
@@ -703,21 +719,30 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
+    error = ''
     data = dict()
     if timezone:
         data["timezone"] = timezone
-    if ntp.upper() == "OFF":
+    if ntp == "OFF":
         data["daemon"] = False    
-    else:
+    if ntp == "ON":
         data["daemon"] = True     
     if ntp_servers:
         data["servers"] = ntp_servers.split(",")
 
-    put('/time',data)
+    ## exit if DNS is missing
+    dns = get_dns()
+    if (ntp == 'ON') and (dns is None):
+        sys_exit_with_timestamp('Cannot set NTP. Missing DNS setting on node: {}.'.format(node))
+    try:
+        put('/time',data)
+    except Exception as e:
+        error = str(e[0])
+        sys_exit_with_timestamp('Cannot set NTP. Error: {}.'.format())
 
     if timezone:
         print_with_timestamp( 'Set timezone: {}'.format(timezone))
-    if ntp:
+    if ntp is 'ON':
         print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))        
     if ntp_servers:
         print_with_timestamp( 'Set NTP servers: {}'.format(ntp_servers))
@@ -836,9 +861,27 @@ def set_dns(dns):
     try:
         put(endpoint,data)
     except Exception as e:
-        sys_exit_with_timestamp( 'Error: setting DNS. {}'.format())
+        error = str(e[0])
+        sys_exit_with_timestamp( 'Error: setting DNS. {}'.format(error))
     print_with_timestamp( 'DNS set to: {}'.format(', '.join(dns)))
 
+
+def get_dns():
+    dns = None
+    endpoint = '/network/dns'
+    try:
+        dns = get(endpoint)
+    except Exception as e:
+        error = str(e[0])
+        print_with_timestamp( 'Error: getting DNS. {}'.format(error))
+    if dns is None:
+        return None
+    if len(dns['servers']) == 0:
+        return None
+    else:
+        return dns['servers']
+   
+        
     
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
@@ -980,7 +1023,7 @@ def move():
     new_active_node = ''
     for i,node in enumerate(nodes):
         if node not in command_line_node:
-            wait_for_nodes()
+            wait_for_node()
         pools = get('/pools')
         pools.sort(key=lambda k : k['name'])
         pool_names = [pool['name'] for pool in pools ]
@@ -1023,11 +1066,9 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     error = ''
     timeouted = False
     
-    if new_ip_addr is None:
-        sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
     # list_of_ip
     dns = convert_comma_separated_to_list(new_dns)
-    # validate all IPs, exit if not valid found
+    # validate all IPs, exit if no valid IP found
     for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
         if ip:
             if not valid_ip(ip):
@@ -1037,6 +1078,16 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     data = dict(configuration="static", address=new_ip_addr, netmask=new_mask)
     if new_gw or new_gw == '':
         data["gateway"]=new_gw if new_gw else None
+
+    ## if new_ip_addr is missing, set gw & dns and return
+    if new_ip_addr is None:
+        if new_gw:
+            set_default_gateway()
+        if dns is not None:
+            set_dns(dns)
+        return
+        #sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
+
     try:
         put(endpoint,data)
     except Exception as e:
@@ -1048,9 +1099,9 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
             node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
 
-    ## set default gateway interface        
+    ##  
     if "HTTPSConnectionPool" in error and "timeout" in error:
-        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+        print_with_timestamp( 'The acccess NIC {} changed to {}'.format(nic_name, new_ip_addr))
     else:
         if get_interface_ip_addr(nic_name) == new_ip_addr :
             print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
@@ -1092,7 +1143,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
-            node = new_ip_addr  ## the node IP was changed
+            node = ip_addr  ## the node IP was changed (ip_addr set above & not new_ip_addr)
         time.sleep(1)
     ## set default gateway interface
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
@@ -1104,7 +1155,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         set_dns(dns)
 
     if "HTTPSConnectionPool" in error and "timeout" in error:
-        sys_exit_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+        print_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
 
 
 def delete_bond(bond_name):
@@ -1221,6 +1272,8 @@ def bind_cluster(bind_ip_addr):
 def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
     '''
+    global node
+    
     for node in nodes:
         version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
@@ -1769,7 +1822,6 @@ def read_jbods_and_create_pool(choice='0'):
 def main() :
 
     get_args()
-    wait_for_nodes()
 
     if action == 'clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
@@ -1880,3 +1932,5 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
+    print()
+    

@@ -123,6 +123,12 @@ EXAMPLES:
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
+	Setting new DNS only:
+	jdss-api-tools.exe network --new_dns=192.168.0.1 192.168.0.220
+
+	Setting new gateway only. The default gateway will be set automatically.
+	jdss-api-tools.exe network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
+
 
 <br>17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
 	Default = active-backup.
