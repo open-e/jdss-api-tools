@@ -96,7 +96,7 @@ EXAMPLES:
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
-	or with IP range syntax ".."
+   or with IP range syntax ".."
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
