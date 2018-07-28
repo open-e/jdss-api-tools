@@ -34,7 +34,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-03  add start-cluster
 2018-07-05  add move (failover)
 2018-07-24  add missing msg for ip addr change
-2018-07-27  network improvments and fixes
+2018-07-27  network improvements and fixes
 """
     
 from __future__ import print_function
@@ -112,7 +112,7 @@ def wait_for_node():
                 if print_timestamp_msg[node]:
                     print_with_timestamp('Node {} is running.'.format(node))
                     print_timestamp_msg[node] = False
-                
+
             except Exception as e:
                 pass
             break
@@ -120,7 +120,6 @@ def wait_for_node():
         time.sleep(4)
         if counter == repeat:   ## Connection timed out
             exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
-
 
 def get_args():
 
@@ -139,7 +138,7 @@ def get_args():
      If given volume is NAS dataset, the created clone will be exported via network share
      as shown in the next example.
 
-      %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+       %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
 
  2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
@@ -147,58 +146,58 @@ def get_args():
      So, the share exports most recent data every run. The share is invisible by default.
      The example is using default password and port and make the share visible with default share name.
 
-      %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
+       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
      The examples are using default password and port and make the shares invisible.
      
-      %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
-      %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
+       %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
+       %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
 
  3. Delete clone of iSCSI volume zvol00 from Pool-0.
 
-      %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+       %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
 
  4. Delete clone of NAS volume vol00 from Pool-0.
 
-      %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+       %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
  5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+       %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
      The example is using password 12345 and default port.
 
-      %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+       %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
      The example is using password 12345 and default port.
 
-      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+       %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
      The example is using password 12345 and default port.
 
-      %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+       %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
  9. Create pool on single node or cluster with single JBOD:
      Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
-      %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
+       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
 
  10. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
       Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
-      %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
+       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
 
  11. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
@@ -207,96 +206,98 @@ def get_args():
       Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
       Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
-      %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
+       %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
 
 
  12. Shutdown three JovianDSS servers using default port but non default password.
 
-      %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
+       %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
-     or with IP range syntax ".."
+      or with IP range syntax ".."
 
-      %(prog)s --pswd password shutdown 192.168.0.220..222
+       %(prog)s --pswd password shutdown 192.168.0.220..222
 
 
  13. Reboot single JovianDSS server.
 
-      %(prog)s reboot 192.168.0.220
+       %(prog)s reboot 192.168.0.220
 
 
  14. Set host name to "node220", server name to "server220" and server description to "jdss220".
 
-      %(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
+       %(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
 
  15. Set timezone and with NTP-time with default NTP servers.
 
-      %(prog)s set_time --timezone=America/New_York 192.168.0.220
-      %(prog)s set_time --timezone=America/Chicago 192.168.0.220
-      %(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220
-      %(prog)s set_time --timezone=Europe/Berlin 192.168.0.220
+       %(prog)s set_time --timezone=America/New_York 192.168.0.220
+       %(prog)s set_time --timezone=America/Chicago 192.168.0.220
+       %(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220
+       %(prog)s set_time --timezone=Europe/Berlin 192.168.0.220
 
 
  16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
       Missing netmask option will set default 255.255.255.0
-      
-      %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
-      Setting new DNS only:
-      %(prog)s network --new_dns=192.168.0.1 192.168.0.220
+       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
+
+      Setting new DNS only.
+
+       %(prog)s network --new_dns=192.168.0.1 192.168.0.220
 
       Setting new gateway only. The default gateway will be set automatically.
-      %(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
+
+       %(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
 
 
  17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
       Default = active-backup
 
-      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
-      %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
-      %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
+       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+       %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
 
 
  18. Delete bond.
 
-      %(prog)s delete_bond --nic=bond0 192.168.0.80
+       %(prog)s delete_bond --nic=bond0 192.168.0.80
 
 
  19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
       RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
-      %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
+       %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
  20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
       RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
 
-      %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+       %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
       Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
-      %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+       %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
 
  21. Set HA-cluster mirror path. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
-      %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
+       %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
 
 
  22. Start HA-cluster. Please enter first node IP address only.
 
-      %(prog)s start_cluster 192.168.0.82
+       %(prog)s start_cluster 192.168.0.82
 
 
  23. Move (failover) given pool.
-     The current active node of given pool will be found and pool will be moved to passive node.
+      The current active node of given pool will be found and pool will be moved to passive node.
 
-      %(prog)s move --pool=Pool-0 192.168.0.82
+       %(prog)s move --pool=Pool-0 192.168.0.82
 
 
  24. Print system info.
 
-      %(prog)s info 192.168.0.220
+       %(prog)s info 192.168.0.220
     ''')
 
     parser.add_argument(
@@ -545,7 +546,7 @@ def get_args():
     server_name             = args['server']
     server_description      = args['description']
     timezone                = args['timezone']
-    ntp                     = args['ntp'].upper() ## ON |OFF
+    ntp                     = args['ntp'].upper() ## ON | OFF
     ntp_servers             = args['ntp_servers']
     
     nic_name                = args['nic']
@@ -723,9 +724,9 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     if timezone:
         data["timezone"] = timezone
     if ntp == "OFF":
-        data["daemon"] = False    
+        data["daemon"] = False
     if ntp == "ON":
-        data["daemon"] = True     
+        data["daemon"] = True
     if ntp_servers:
         data["servers"] = ntp_servers.split(",")
 
@@ -742,7 +743,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     if timezone:
         print_with_timestamp( 'Set timezone: {}'.format(timezone))
     if ntp is 'ON':
-        print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))        
+        print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))
     if ntp_servers:
         print_with_timestamp( 'Set NTP servers: {}'.format(ntp_servers))
 
@@ -778,7 +779,7 @@ def print_pools_details(header,fields):
     if len(pools):
         print( header_format_template.format( *(header)))
     else:
-        print('\tNo imported/active pools found ')
+        print('\tNo imported/active pools found')
 
     for pool in pools:
         pool_details = []
@@ -881,7 +882,6 @@ def get_dns():
         return dns['servers']
    
         
-    
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
     return next((interface['name'] for interface in interfaces if interface['address'] == ip_address), None)
@@ -1078,7 +1078,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     if new_gw or new_gw == '':
         data["gateway"]=new_gw if new_gw else None
 
-    ## if new_ip_addr is missing, set gw & dns and return
+    ## if new_ip_addr is missing, set gateway & DNS and return
     if new_ip_addr is None:
         if new_gw:
             set_default_gateway()
@@ -1098,11 +1098,10 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
             node = new_ip_addr  ## the node IP was changed
         time.sleep(1)
 
-    ##  
     if "HTTPSConnectionPool" in error and "timeout" in error:
         print_with_timestamp( 'The acccess NIC {} changed to {}'.format(nic_name, new_ip_addr))
     else:
-        if get_interface_ip_addr(nic_name) == new_ip_addr :
+        if get_interface_ip_addr(nic_name) == new_ip_addr:
             print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
         else:
             print_with_timestamp('ERROR: New IP address {} set to {} FAILED'.format(new_ip_addr,nic_name))
@@ -1154,7 +1153,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         set_dns(dns)
 
     if "HTTPSConnectionPool" in error and "timeout" in error:
-        print_with_timestamp( 'The acccess NIC changed to {}'.format(new_ip_addr))
+        print_with_timestamp( 'The acccess NIC {} changed to {}'.format(new_ip_addr))
 
 
 def delete_bond(bond_name):
@@ -1272,7 +1271,7 @@ def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
     '''
     global node
-    
+
     for node in nodes:
         version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
@@ -1667,7 +1666,7 @@ def split_for_metro_cluster(jbods,vdev_disks=2):
     ## disk[3] => disk.origin
     ## split into 2 JBODs for 2-way mirror (1 local and 1 remote)
     jbods_2way_mirrors = [ [ disk for disk in jbod if disk[3] == place ] for jbod in jbods if jbod for place in ("local","remote") ] 
-    if vdev_disks == 2 :
+    if vdev_disks == 2:
         return jbods_2way_mirrors
     else:
         ## split into 4 JBODs for 4-way mirror (2 local and 2 remote)
@@ -1679,7 +1678,7 @@ def split_for_metro_cluster(jbods,vdev_disks=2):
 
 def remove_disks(jbods):
     available_disks = count_available_disks(jbods)
-    if available_disks :
+    if available_disks:
         jbods_disks_size = [ [disk[0] for disk in jbod]  for jbod in jbods ]
         all_disks_size = merge_sublists( jbods_disks_size ) ## convert lists of JBODs to single disks list
         average_disk_size = float(sum(all_disks_size)) / len(all_disks_size)  ## 
@@ -1699,13 +1698,13 @@ def user_choice():
 
     while 1:
         try :
-            choice = raw_input('\tEnter your choice : ').upper()
+            choice = raw_input('\tEnter your choice: ').upper()
             if choice in '':
                 return "L"  ## treat pressed enter as "L"
             if choice in '0123456789LCQ':
                 return choice
             else:
-                print("\tInvalid choice")
+                print('\tInvalid choice')
         except:
             sys_exit('Interrupted             ')
 
@@ -1932,4 +1931,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    
