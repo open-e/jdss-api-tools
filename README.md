@@ -96,7 +96,7 @@ EXAMPLES:
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
-	or with IP range syntax ".."
+   or with IP range syntax ".."
 
 	jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
@@ -123,6 +123,14 @@ EXAMPLES:
 
 	jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
+   Setting new DNS only:
+   
+	jdss-api-tools.exe network --new_dns=192.168.0.1 192.168.0.220
+
+   Setting new gateway only. The default gateway will be set automatically.
+   
+	jdss-api-tools.exe network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
+
 
 <br>17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
 	Default = active-backup.
@@ -148,7 +156,7 @@ EXAMPLES:
 
     jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
+   Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
     jdss-api-tools.exe set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
