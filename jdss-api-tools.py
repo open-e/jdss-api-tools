@@ -686,6 +686,7 @@ def display_delay(msg):
 
 
 def shutdown_nodes():
+    global node
     display_delay('Shutdown')
     for node in nodes:
         post('/power/shutdown',dict(force=True))
@@ -693,6 +694,7 @@ def shutdown_nodes():
 
 
 def reboot_nodes() :
+    global node
     display_delay('Reboot')
     for node in nodes:
         post('/power/reboot', dict(force=True))
@@ -1358,7 +1360,8 @@ def check_given_pool_name(ignore_error=None):
     ''' If given pool_name exist:
             return True
         If given pool_name does not exist:
-            exit with ERROR     ''' 
+            exit with ERROR     '''
+    global node
     for node in nodes:
         api = interface(node)
         try:
@@ -1375,7 +1378,8 @@ def check_given_volume_name(ignore_error=None):
             dataset (NAS-vol)
             volume (SAN-zvol)
         If given volume_name does not exist:
-            sys.exit with ERROR     ''' 
+            sys.exit with ERROR     '''
+    global node
     for node in nodes:
         api = interface(node)
         pool = api.storage.pools[pool_name]
@@ -1436,6 +1440,7 @@ def create_pool(pool_name,vdev_type,jbods):
 
 
 def create_snapshot(vol_type,ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         ## Create snapshot of NAS vol
@@ -1460,6 +1465,7 @@ def create_snapshot(vol_type,ignore_error=None):
 
 
 def create_clone(vol_type, ignore_error=None):
+    global node
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
@@ -1487,6 +1493,7 @@ def create_clone(vol_type, ignore_error=None):
 
 
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         ## Delete snapshot. It auto-delete clone and share of NAS vol
@@ -1515,6 +1522,7 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
 
 
 def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
+    global node
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
@@ -1542,6 +1550,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
 
 
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         ## Delete existing clone and share of NAS vol
@@ -1573,6 +1582,7 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
 
 
 def create_target(ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
@@ -1587,6 +1597,7 @@ def create_target(ignore_error=None):
     
 
 def attach_target(ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
@@ -1606,6 +1617,7 @@ def attach_target(ignore_error=None):
             
 
 def create_share_for_auto_clone(ignore_error=None):
+    global node
     for node in nodes:
         api = interface(node)
         endpoint = '/shares'
