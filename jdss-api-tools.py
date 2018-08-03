@@ -1338,7 +1338,7 @@ def info():
         
 
 def get_pool_details(node, pool_name):
-    api = interface(node)
+    api = interface()
     pools= api.storage.driver.list_pools()["data"]
     data_groups_vdevs = [
         vdev["name"] for pool in pools if pool["name"] in pool_name
@@ -1363,7 +1363,7 @@ def check_given_pool_name(ignore_error=None):
             exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         try:
             api.storage.pools[pool_name]
         except:
@@ -1381,7 +1381,7 @@ def check_given_volume_name(ignore_error=None):
             sys.exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         pool = api.storage.pools[pool_name]
         for vol in pool.datasets:
             if vol.name == volume_name:
@@ -1419,7 +1419,7 @@ def read_jbod(n):
     global metro
     metro = False
     
-    api = interface(node)
+    api = interface()
     unused_disks = api.storage.disks.unused
     for disk in unused_disks:
         if disk.origin in "iscsi":
@@ -1430,7 +1430,7 @@ def read_jbod(n):
 
 
 def create_pool(pool_name,vdev_type,jbods):
-    api = interface(node)
+    api = interface()
     vdev_type = vdev_type.replace('single','')
     print("\n\tCreating pool. Please wait...")
     pool = api.storage.pools.create(
@@ -1442,7 +1442,7 @@ def create_pool(pool_name,vdev_type,jbods):
 def create_snapshot(vol_type,ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Create snapshot of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots'.format(
@@ -1469,7 +1469,7 @@ def create_clone(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface(node)
+        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
@@ -1495,7 +1495,7 @@ def create_clone(vol_type, ignore_error=None):
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Delete snapshot. It auto-delete clone and share of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
@@ -1526,7 +1526,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface(node)
+        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
@@ -1552,7 +1552,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Delete existing clone and share of NAS vol
         if vol_type == 'dataset':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
@@ -1584,7 +1584,7 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
 def create_target(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
                    POOL_NAME=pool_name)
         ## Auto-Target-Name
@@ -1599,7 +1599,7 @@ def create_target(ignore_error=None):
 def attach_target(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
                    POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
         data = dict(name=clone_name)       
@@ -1619,7 +1619,7 @@ def attach_target(ignore_error=None):
 def create_share_for_auto_clone(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         endpoint = '/shares'
         data = dict(name=auto_share_name,
                 path='{POOL_NAME}/{CLONE_NAME}'.format(POOL_NAME=pool_name, CLONE_NAME=clone_name),
@@ -1822,7 +1822,7 @@ def read_jbods_and_create_pool(choice='0'):
             break
 
     ## display pools details 
-    api = interface(node)
+    api = interface()
     pools = [pool.name for pool in api.storage.pools]
     print("\n")
     for pool in sorted(pools):
