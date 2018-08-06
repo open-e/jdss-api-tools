@@ -120,8 +120,9 @@ def delete(endpoint,data):
     api=interface()
     return api.driver.delete(endpoint,data)
 
+
 '''
-to-do
+##to-do
 def delete(endpoint,data):
     global error
     result = None
