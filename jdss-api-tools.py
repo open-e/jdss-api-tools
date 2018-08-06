@@ -76,9 +76,11 @@ def interface():
     wait_for_node()
     return API.via_rest(node, api_port, api_user, api_password)
 
+
 #def get(endpoint):
 #    api=interface()
 #    return api.driver.get(endpoint)['data']
+
 
 def get(endpoint):
     global error
@@ -117,6 +119,7 @@ def delete(endpoint,data):
     api=interface()
     return api.driver.delete(endpoint,data)
 
+
 '''
 to-do
 def delete(endpoint,data):
@@ -151,7 +154,6 @@ def wait_for_node():
                 if print_timestamp_msg[node]:
                     print_with_timestamp('Node {} is running.'.format(node))
                     print_timestamp_msg[node] = False
-
             except Exception as e:
                 pass
             break
@@ -159,6 +161,7 @@ def wait_for_node():
         time.sleep(4)
         if counter == repeat:   ## Connection timed out
             exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+
 
 def get_args():
 
@@ -642,7 +645,6 @@ def get_args():
         sys_exit( 'Port {} is out of allowed range 22..65535'.format(port))
 
 
-
 def convert_comma_separated_to_list(arg):
     if arg is None:
         return None
@@ -835,7 +837,6 @@ def print_pools_details(header,fields):
 
 
 def print_interfaces_details(header,fields):
-
     interfaces = get('/network/interfaces')
     interfaces.sort(key=lambda k : k['name'])
 
@@ -922,13 +923,16 @@ def get_dns():
     else:
         return dns['servers']
 
+
 def get_pools_names():
     pools = get('/pools')
     return [pool['name'] for pool in pools]
-        
+
+
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
     return next((interface['name'] for interface in interfaces if interface['address'] == ip_address), None)
+
 
 def get_mac_address_of_given_nic(nic):
     interfaces = get('/network/interfaces')
@@ -1032,7 +1036,7 @@ def set_ping_nodes():
 
 def start_cluster():
     started = False
-    
+
     cluster_nodes_addresses = get_cluster_nodes_addresses()
     if cluster_nodes_addresses.pop() in '127.0.0.1' :
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
@@ -1124,7 +1128,7 @@ def move():
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node    ## the node IP can be changed
     timeouted = False
-    
+
     # list_of_ip
     dns = convert_comma_separated_to_list(new_dns)
     # validate all IPs, exit if no valid IP found
@@ -1220,9 +1224,9 @@ def delete_bond(bond_name):
     #global nic_name
     node_id_220 = 0
     orginal_node_id = 1   ## just different init value than node_id_220
-    
+
     timeouted = False
-    
+
     bond_slaves = get_bond_slaves(bond_name) ## list
     if bond_slaves is  None or len(bond_slaves)<2:
         sys_exit_with_timestamp( 'Error : {} not found'.format(bond_name))
@@ -1490,7 +1494,7 @@ def read_jbod(n):
 def create_pool(pool_name,vdev_type,jbods):
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
-        
+
     api = interface()
     vdev_type = vdev_type.replace('single','')
     print_with_timestamp("Creating pool. Please wait...")
@@ -1664,7 +1668,7 @@ def create_target(ignore_error=None):
         if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
-    
+
 
 def attach_target(ignore_error=None):
     global node
@@ -1933,7 +1937,7 @@ def main() :
 
     elif action == 'create_pool':
         read_jbods_and_create_pool()
- 
+
     elif action == 'set_host':
         c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
