@@ -82,7 +82,8 @@ def interface():
 
 def get(endpoint):
     global error
-    result = error = None
+    result = None
+    error = ''
     api=interface()
     try:
         result = api.driver.get(endpoint)['data']
@@ -93,7 +94,8 @@ def get(endpoint):
 
 def put(endpoint,data):
     global error
-    result = error = None
+    result = None
+    error = ''
     api=interface()
     try:
         result = api.driver.put(endpoint,data)
@@ -104,7 +106,8 @@ def put(endpoint,data):
 
 def post(endpoint,data):
     global error
-    result = error = None
+    result = None
+    error = ''
     api=interface()
     try:
         result = api.driver.post(endpoint,data)
@@ -121,7 +124,8 @@ def delete(endpoint,data):
 to-do
 def delete(endpoint,data):
     global error
-    result = error = None
+    result = None
+    error = ''
     api=interface()
     try:
         result = api.driver.delete(endpoint,data)
@@ -1071,7 +1075,7 @@ def start_cluster():
 
 
 def move():
-    error = ''
+
     global node
     global nodes
     command_line_node = node
@@ -1177,7 +1181,6 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
 def create_bond(bond_type, bond_nics, new_gw, new_dns):
     global node    ## the node IP can be changed
     global nic_name
-    error = ''
     timeouted = False
     
     bond_nics = convert_comma_separated_to_list(bond_nics)
