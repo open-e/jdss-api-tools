@@ -76,21 +76,60 @@ def interface():
     wait_for_node()
     return API.via_rest(node, api_port, api_user, api_password)
 
+#def get(endpoint):
+#    api=interface()
+#    return api.driver.get(endpoint)['data']
+
 def get(endpoint):
+    global error
+    result = error = None
     api=interface()
-    return api.driver.get(endpoint)['data']
+    try:
+        result = api.driver.get(endpoint)['data']
+    except Exception as e:
+        error = str(e[0])
+    return result
+
 
 def put(endpoint,data):
+    global error
+    result = error = None
     api=interface()
-    return api.driver.put(endpoint,data)
+    try:
+        result = api.driver.put(endpoint,data)
+    except Exception as e:
+        error = str(e[0])
+    return result
+
 
 def post(endpoint,data):
+    global error
+    result = error = None
     api=interface()
-    return api.driver.post(endpoint,data)
+    try:
+        result = api.driver.post(endpoint,data)
+    except Exception as e:
+        error = str(e[0])
+    return result
+
 
 def delete(endpoint,data):
     api=interface()
     return api.driver.delete(endpoint,data)
+
+'''
+to-do
+def delete(endpoint,data):
+    global error
+    result = error = None
+    api=interface()
+    try:
+        result = api.driver.delete(endpoint,data)
+    except Exception as e:
+        error = str(e[0])
+    return result
+'''
+
 
 def wait_for_node():
     repeat = 100
@@ -721,7 +760,6 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
-    error = ''
     data = dict()
     if timezone:
         data["timezone"] = timezone
@@ -736,10 +774,11 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     dns = get_dns()
     if (ntp == 'ON') and (dns is None):
         sys_exit_with_timestamp('Cannot set NTP. Missing DNS setting on node: {}.'.format(node))
-    try:
-        put('/time',data)
-    except Exception as e:
-        error = str(e[0])
+
+    ## PUT
+    put('/time',data)
+
+    if error:
         sys_exit_with_timestamp('Cannot set NTP. Error: {}.'.format())
 
     if timezone:
@@ -840,17 +879,16 @@ def print_interfaces_details(header,fields):
 def set_default_gateway():
     endpoint = '/network/default-gateway'
     data = dict(interface=nic_name)
-    try:
-        put(endpoint,data)
-    except Exception as e:
-        pass
+
+    ## PUT
+    put(endpoint,data)
 
     endpoint = '/network/default-gateway'
     dgw_interface = None
-    try:
-        dgw_interface = get(endpoint)['interface']
-    except:
-        pass
+
+    ## GET
+    dgw_interface = get(endpoint)['interface']
+
     if dgw_interface is None:
         sys_exit_with_timestamp( 'No default gateway set')
     else:
@@ -860,21 +898,22 @@ def set_default_gateway():
 def set_dns(dns):
     endpoint = '/network/dns'
     data = dict(servers=dns)
-    try:
-        put(endpoint,data)
-    except Exception as e:
-        error = str(e[0])
+
+    ## PUT
+    put(endpoint,data)
+
+    if error:
         sys_exit_with_timestamp( 'Error: setting DNS. {}'.format(error))
+
     print_with_timestamp( 'DNS set to: {}'.format(', '.join(dns)))
 
 
 def get_dns():
     dns = None
     endpoint = '/network/dns'
-    try:
-        dns = get(endpoint)
-    except Exception as e:
-        error = str(e[0])
+    ## GET
+    dns = get(endpoint)
+    if error:
         print_with_timestamp( 'Error: getting DNS. {}'.format(error))
     if dns is None:
         return None
@@ -882,7 +921,10 @@ def get_dns():
         return None
     else:
         return dns['servers']
-   
+
+def get_pools_names():
+    pools = get('/pools')
+    return [pool['name'] for pool in pools]
         
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
@@ -942,25 +984,27 @@ def set_mirror_path():
         interfaces_items.append(dict(interface=_mirror_nics[i], node_id=node_id))
     data = dict(interfaces=interfaces_items)
     return_code = {}
-    try:
-        return_code = post('/cluster/remote-disks/paths',data)
-    except Exception as e:
+
+    ## POST
+    return_code = post('/cluster/remote-disks/paths',data)
+
+    for _ in range(5):
         time.sleep(5)
-    if return_code and _mirror_nics == [item['_interface']for item in return_code['data']['_members']]:
-        print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(_mirror_nics)))
+        if return_code and _mirror_nics == [item['_interface']for item in return_code['data']['_members']]:
+            print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(_mirror_nics)))
+            break
     else:
-        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(_mirror_nics),str(e[0])))
+        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(_mirror_nics),error))
 
 
 def get_ping_nodes():
-    e = None
     ping_nodes=[]
     endpoint = '/cluster/ping-nodes'
-    try:
-        ping_nodes = [ping_node['address'] for ping_node in get(endpoint)]
-    except Exception as e:
-        print_with_timestamp('Error getting ping nodes. {}'.format(e[0]))
-    return None if e else ping_nodes
+    ## GET
+    ping_nodes = [ping_node['address'] for ping_node in get(endpoint)]
+    if error:
+        print_with_timestamp('Error getting ping nodes. {}'.format(error))
+    return None if error else ping_nodes
 
 
 def set_ping_nodes():
@@ -977,40 +1021,53 @@ def set_ping_nodes():
         ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
         if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
             sys_exit_with_timestamp( 'Error: Given ping node IP address {} in not in ring subnet'.format(ping_node))
-        try:
-            data = dict(address=ping_node)
-            post('/cluster/ping-nodes',data)
-        except Exception as e:
-            pass
-            ## sys_exit_with_timestamp( 'Error setting ping node: {}. {}'.format(ping_node, e)) : bug in current up25: exception on success
+        data = dict(address=ping_node)
+
+        ## POST
+        post('/cluster/ping-nodes',data)
+
         if ping_node in get_ping_nodes():
             print_with_timestamp('New ping node {} set.'.format(ping_node))
 
 
 def start_cluster():
-    error = ''
+    started = False
+    
     cluster_nodes_addresses = get_cluster_nodes_addresses()
     if cluster_nodes_addresses.pop() in '127.0.0.1' :
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
+
+    ## GET
     status = get('/cluster/nodes')
+
     started = status[0]['status'] == status[1]['status'] == 'online'
     if started:
         sys_exit_with_timestamp( 'Cluster on {} is already started.'.format(node))
 
     data=dict(mode='cluster')
-    try:
-	post('/cluster/start-cluster',data)
-    except Exception as e:
-        error = str(e[0])
-    if 'timeout' in error:
-        print_with_timestamp('Cluster service starting...')
-        time.sleep(30)
-    status = get('/cluster/nodes')
-    started = status[0]['status'] == status[1]['status'] == 'online'
-    if started:
-        print_with_timestamp('Cluster service started successfully.')
+
+    ## POST
+    post('/cluster/start-cluster',data)
+    if 'timeout' not in error:
+        sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error))
+
+    print_with_timestamp('Cluster service starting...')
+    time.sleep(30)
+
+    ## GET
+    for _ in range(5):
+        time.sleep(5)
+        try:
+            status = get('/cluster/nodes')
+            started = status[0]['status'] == status[1]['status'] == 'online'
+        except:
+            continue
+        if started:
+            time.sleep(5)
+            print_with_timestamp('Cluster service started successfully.')
+            break
     else:
-        sys_exit_with_timestamp( 'Cluster service start failed.')
+        sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error if error else ''))
 
 
 def move():
@@ -1025,7 +1082,10 @@ def move():
     for i,node in enumerate(nodes):
         if node not in command_line_node:
             wait_for_node()
+
+        ## GET
         pools = get('/pools')
+
         pools.sort(key=lambda k : k['name'])
         pool_names = [pool['name'] for pool in pools ]
         if pool_name in pool_names:
@@ -1034,10 +1094,9 @@ def move():
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
-            try:
-                post(endpoint,data)
-            except Exception as e:
-                error = str(e[0])
+            ## POST
+            post(endpoint,data)
+            if error:
                 sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
     print_with_timestamp('Moving in progress...')
     ## wait for pool import
@@ -1045,10 +1104,10 @@ def move():
     new_active_node = ''
     for i in range(150):
         for node in nodes:
-            try:
-                pools = get('/pools')
-            except Exception as e:
-                error = str(e[0])
+
+            ## GET
+            pools = get('/pools')
+
             pool_names = [pool['name'] for pool in pools ]
             if pool_name in pool_names:
                 new_active_node = node
@@ -1064,7 +1123,6 @@ def move():
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node    ## the node IP can be changed
-    error = ''
     timeouted = False
     
     # list_of_ip
@@ -1089,10 +1147,10 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         return
         #sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
 
-    try:
-        put(endpoint,data)
-    except Exception as e:
-        error = str(e)
+    ## PUT
+    put(endpoint,data)
+
+    if error:
         # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
@@ -1135,10 +1193,9 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
                 bond_primary_reselect='failure')
     if new_gw or new_gw == '':
         data["gateway"]=new_gw if new_gw else None
-    try:
-        post(endpoint,data)
-    except Exception as e:
-        error = str(e)
+    ## POST
+    post(endpoint,data)
+    if error:
         # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
         # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
@@ -1164,7 +1221,6 @@ def delete_bond(bond_name):
     node_id_220 = 0
     orginal_node_id = 1   ## just different init value than node_id_220
     
-    error = ''
     timeouted = False
     
     bond_slaves = get_bond_slaves(bond_name) ## list
@@ -1210,10 +1266,11 @@ def delete_bond(bond_name):
         data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
         if bond_gw_ip_addr or bond_gw_ip_addr == '':
             data["gateway"]= bond_gw_ip_addr if bond_gw_ip_addr else None
-        try:
-            put(endpoint,data)
-        except Exception as e:
-            error = str(e)
+
+        ## PUT
+        put(endpoint,data)
+
+        if error:
             # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
             # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
             timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
@@ -1226,10 +1283,9 @@ def delete_bond(bond_name):
         endpoint = '/network/interfaces/{INTERFACE}'.format(
                        INTERFACE=second_nic_name)
         data = dict(configuration="static", address=increment_3rd_ip_subnet(bond_ip_addr), netmask=bond_netmask)
-        try:
-            put(endpoint,data)
-        except Exception as e:
-            error = str(e)
+
+        ## PUT
+        put(endpoint,data)
 
     ## set default gateway interface
     if bond_gw_ip_addr:
@@ -1238,6 +1294,7 @@ def delete_bond(bond_name):
 
 
 def node_id():
+    ## GET
     version = get('/product')["header"]
     serial_number = get('/product')["serial_number"]
     server_name = get('/product')["server_name"]
@@ -1252,17 +1309,17 @@ def bind_cluster(bind_ip_addr):
     data = dict(address=bind_ip_addr, password=bind_node_password)
 
     bind_node_address = '127.0.0.1'
-    try:
-        bind_node_address = get('/cluster/nodes')[0]['address']
-    except:
-        pass
+
+    ## GET
+    bind_node_address = get('/cluster/nodes')[0]['address']
+
     if bind_node_address != '127.0.0.1':
         sys_exit_with_timestamp('Error: cluster bind was already set')
     code = None
-    try:
-        code = post(endpoint, data)
-    except:
-        pass
+
+    ## POST
+    code = post(endpoint, data)
+
     if code and code['error'] is None:
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
@@ -1275,6 +1332,7 @@ def info():
     global node
 
     for node in nodes:
+        ## GET
         version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
         serial_number = '{} TRIAL'.format(serial_number) if serial_number.startswith('T') else serial_number
@@ -1338,7 +1396,7 @@ def info():
         
 
 def get_pool_details(node, pool_name):
-    api = interface(node)
+    api = interface()
     pools= api.storage.driver.list_pools()["data"]
     data_groups_vdevs = [
         vdev["name"] for pool in pools if pool["name"] in pool_name
@@ -1363,7 +1421,7 @@ def check_given_pool_name(ignore_error=None):
             exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         try:
             api.storage.pools[pool_name]
         except:
@@ -1381,7 +1439,7 @@ def check_given_volume_name(ignore_error=None):
             sys.exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         pool = api.storage.pools[pool_name]
         for vol in pool.datasets:
             if vol.name == volume_name:
@@ -1419,7 +1477,7 @@ def read_jbod(n):
     global metro
     metro = False
     
-    api = interface(node)
+    api = interface()
     unused_disks = api.storage.disks.unused
     for disk in unused_disks:
         if disk.origin in "iscsi":
@@ -1430,19 +1488,29 @@ def read_jbod(n):
 
 
 def create_pool(pool_name,vdev_type,jbods):
-    api = interface(node)
+    if pool_name in get_pools_names():
+        sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
+        
+    api = interface()
     vdev_type = vdev_type.replace('single','')
-    print("\n\tCreating pool. Please wait...")
-    pool = api.storage.pools.create(
-        name = pool_name,
-        vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip(*jbods)) ) ## zip disks over JBODs  
+    print_with_timestamp("Creating pool. Please wait...")
+
+    ## CREATE
+    try:
+        pool = api.storage.pools.create(
+            name = pool_name,
+            vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip(*jbods)) ) ## zip disks over JBODs
+    except Exception as e:
+        error = str(e[0])
+        sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
+
     return pool
 
 
 def create_snapshot(vol_type,ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Create snapshot of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots'.format(
@@ -1456,10 +1524,10 @@ def create_snapshot(vol_type,ignore_error=None):
             ## Auto-Snapshot-Name
             data = dict(snapshot_name=auto_snap_name)   
 
-        try:
-            api.driver.post(endpoint, data)
-            print_with_timestamp('Snapshot of {}/{} has been successfully created.'.format(pool_name,volume_name))
-        except:
+        ## POST
+        post(endpoint, data)
+        print_with_timestamp('Snapshot of {}/{} has been successfully created.'.format(pool_name,volume_name))
+        if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))    
 
@@ -1469,7 +1537,7 @@ def create_clone(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface(node)
+        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
@@ -1484,10 +1552,11 @@ def create_clone(vol_type, ignore_error=None):
             ## zvol
             clone_name = volume_name + time_stamp_clone_syntax() + auto_zvol_clone_name
             data = dict(name=clone_name, snapshot=auto_snap_name)
-        try:
-            api.driver.post(endpoint, data)
-            print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,auto_snap_name))
-        except:
+
+        ## POST
+        post(endpoint, data)
+        print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,auto_snap_name))
+        if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
 
@@ -1495,7 +1564,7 @@ def create_clone(vol_type, ignore_error=None):
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Delete snapshot. It auto-delete clone and share of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
@@ -1526,7 +1595,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface(node)
+        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
@@ -1541,10 +1610,11 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
             ## zvol
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             data = dict(name=clone_name, snapshot=snapshot_name)
-        try:
-            api.driver.post(endpoint,data)
-            print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,snapshot_name))
-        except:
+
+        ## POST
+        post(endpoint,data)
+        print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,snapshot_name))
+        if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
 
@@ -1552,7 +1622,7 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
+        api = interface()
         ## Delete existing clone and share of NAS vol
         if vol_type == 'dataset':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
@@ -1584,14 +1654,14 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
 def create_target(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
                    POOL_NAME=pool_name)
         ## Auto-Target-Name
         data = dict(name=auto_target_name)       
-        try:
-            target_object = api.driver.post(endpoint, data)
-        except:
+
+        ## POST
+        target_object = post(endpoint, data)
+        if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
     
@@ -1599,13 +1669,12 @@ def create_target(ignore_error=None):
 def attach_target(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
                    POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
         data = dict(name=clone_name)       
-        try:
-            api.driver.post(endpoint,data)
-        except:
+        ## POST
+        post(endpoint,data)
+        if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
                     auto_target_name,clone_name,node))
@@ -1619,14 +1688,13 @@ def attach_target(ignore_error=None):
 def create_share_for_auto_clone(ignore_error=None):
     global node
     for node in nodes:
-        api = interface(node)
         endpoint = '/shares'
         data = dict(name=auto_share_name,
                 path='{POOL_NAME}/{CLONE_NAME}'.format(POOL_NAME=pool_name, CLONE_NAME=clone_name),
                 smb=dict(enabled=True, visible=visible))   ### add visible=False
-        try:
-            api.driver.post(endpoint,data)
-        except:
+        ## POST
+        post(endpoint,data)
+        if error:
             sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(auto_share_name,node))
 
         print_with_timestamp('Share for {}/{} has been successfully created.'.format(
@@ -1822,7 +1890,7 @@ def read_jbods_and_create_pool(choice='0'):
             break
 
     ## display pools details 
-    api = interface(node)
+    api = interface()
     pools = [pool.name for pool in api.storage.pools]
     print("\n")
     for pool in sorted(pools):
@@ -1864,8 +1932,6 @@ def main() :
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
-        if check_given_pool_name(ignore_error=True):
-            sys_exit_with_timestamp( 'Error: Pool {} already exist.'.format(pool_name))
         read_jbods_and_create_pool()
  
     elif action == 'set_host':
