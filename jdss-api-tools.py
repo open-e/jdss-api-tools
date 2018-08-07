@@ -1076,7 +1076,6 @@ def start_cluster():
 
 
 def move():
-
     global node
     global nodes
     command_line_node = node
