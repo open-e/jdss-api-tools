@@ -35,6 +35,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-05  add move (failover)
 2018-07-24  add missing msg for ip addr change
 2018-07-27  network improvements and fixes
+2018-08-08  add create_vip
+
 """
     
 from __future__ import print_function
@@ -328,18 +330,28 @@ def get_args():
        %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
 
 
- 22. Start HA-cluster. Please enter first node IP address only.
+
+ 22. Create VIP (Virtual IP) examples. 
+
+       %(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100  --vip_mask=255.255.0.0 192.168.0.80
+       %(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2      --vip_ip=192.168.31.100  192.168.0.80
+
+    If cluster is configured both vip_nics must be provided.
+    With single node (no cluster) only first vip_nic specified will be used.
+    The second nic (if specified) will be ignored. Default vip_mask=255.255.255.0
+
+ 23. Start HA-cluster. Please enter first node IP address only.
 
        %(prog)s start_cluster 192.168.0.82
 
 
- 23. Move (failover) given pool.
+ 24. Move (failover) given pool.
       The current active node of given pool will be found and pool will be moved to passive node.
 
        %(prog)s move --pool=Pool-0 192.168.0.82
 
 
- 24. Print system info.
+ 25. Print system info.
 
        %(prog)s info 192.168.0.220
     ''')
@@ -349,7 +361,7 @@ def get_args():
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
                  'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
-                 'set_mirror_path', 'start_cluster', 'move', 'info', 'shutdown', 'reboot'],
+                 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'shutdown', 'reboot'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
@@ -492,6 +504,30 @@ def get_args():
         help='Enter comma separated mirror path NICs.'
     )
     parser.add_argument(
+        '--vip_name',
+        metavar='name',
+        default=None,   
+        help='Enter new VIP name (alias).'
+    )
+    parser.add_argument(
+        '--vip_nics',
+        metavar='nics',
+        default=None,   
+        help='Enter comma separated both cluster nodes NICs, or single NIC for single node. '
+    )
+    parser.add_argument(
+        '--vip_ip',
+        metavar='address',
+        default=None,   
+        help='Enter new VIP address. '
+    )
+    parser.add_argument(
+        '--vip_mask',
+        metavar='mask',
+        default='255.255.255.0',
+        help='Enter VIP subnet mask'
+    )
+    parser.add_argument(
         '--user',
         metavar='user',
         default='admin',
@@ -567,6 +603,7 @@ def get_args():
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
+    global vip_name, vip_nics, vip_ip, vip_mask
     global bind_node_password
     global print_timestamp_msg
 
@@ -602,6 +639,11 @@ def get_args():
     bond_nics               = args['bond_nics']
     bind_node_password      = args['bind_node_password']
     mirror_nics             = args['mirror_nics']
+
+    vip_name                = args['vip_name']
+    vip_nics                = args['vip_nics']
+    vip_ip                  = args['vip_ip']
+    vip_mask                = args['vip_mask']
 
     delay                   = args['delay']
     nodes                   = args['ip']
@@ -927,6 +969,7 @@ def get_dns():
     else:
         return dns['servers']
 
+
 def get_pools_names():
     pools = get('/pools')
     return [pool['name'] for pool in pools]
@@ -976,6 +1019,59 @@ def get_cluster_node_id(node):
 	return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
 
 
+def get_vips():
+    endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
+    ## GET
+    result =  get(endpoint)
+    return (result[0]['address'], result[0]['interface'], result[0]['remote_interface'][0]['interface'])
+
+def cluster_bind_set():
+    endpoint = '/cluster/nodes'
+    bind_node_address = '127.0.0.1'
+    ## GET
+    bind_node_address = get('/cluster/nodes')[0]['address']
+    return False if bind_node_address in '127.0.0.1' else True
+
+
+
+def create_vip():
+    if not pool_name:
+        sys_exit_with_timestamp( 'Error: Pool name missing.')
+
+    nics = convert_comma_separated_to_list(vip_nics)
+    if len(nics)==1:
+        nics.append(nics[0])
+    if len(nics)==2:
+        nic_a, nic_b = nics
+    else:
+        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two nics t')
+    cluster_ip_addresses = get_cluster_nodes_addresses()
+    cluster = False if len(cluster_ip_addresses) == 1 else True
+    node_b_address = cluster_ip_addresses
+    node_b_address.remove(node)
+    endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
+    if cluster:
+        ## cluster
+        data = dict(name=vip_name,
+                    address = vip_ip,
+                    netmask = vip_mask,
+                    interface = nic_a,
+                    remote_interface = [ dict( node_id = get_cluster_node_id(node_b_address),
+                                               interface = nic_b)])
+    else:
+        ## single node
+        data = dict(name=vip_name,
+                    address = vip_ip,
+                    netmask = vip_mask,
+                    interface = nic_a)
+    ## POST
+    post(endpoint,data)
+    if error:
+        sys_exit_with_timestamp( 'Error setting VIP: {} with: {} on: {}. {}'.format(vip_ip, ','.join(nics), pool_name, error ))
+    else:
+        print_with_timestamp( 'New VIP: {} set, with: {} on: {}.'.format(vip_ip, ','.join(nics), pool_name ))
+
+    
 def set_mirror_path():
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
@@ -1945,25 +2041,25 @@ def main() :
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)   ## if all provided (not None), c must be equal 3 set_host
+        c = count_provided_args(timezone, ntp, ntp_servers)   
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
-        if c not in (1,2,3,4,5):
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)  
+        if c not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
-        if c not in (0,1,2,3,4):
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
+        if c not in (2,3,4):
             sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   ## if all provided (not None), c must be equal 5 set_host
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
         if c not in (0,1,2):
             sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
         delete_bond(nic_name)
@@ -1987,6 +2083,15 @@ def main() :
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
         set_mirror_path()
 
+    elif action == 'create_vip':
+        if len(nodes) !=1:
+            sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
+        c = count_provided_args(pool_name, vip_name, vip_nics, vip_ip, vip_mask)
+        if c not in (4,5):
+            sys_exit_with_timestamp( 'Error: create_vip command expects --pool --vip_name --vip_nics --vip_ip and --vip_mask')
+        create_vip()
+
+ 
     elif action == 'start_cluster':
         start_cluster()
 

@@ -166,18 +166,28 @@ EXAMPLES:
      jdss-api-tools.exe set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
 
 
-<br>22. Start HA-cluster. Please enter first node IP address only.
+<br>22.Create VIP (Virtual IP) examples.
+
+		 jdss-api-tools.exe create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100  --vip_mask=255.255.0.0 192.168.0.80
+		 jdss-api-tools.exe create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2      --vip_ip=192.168.31.100  192.168.0.80
+
+	If cluster is configured both vip_nics must be provided.
+	With single node (no cluster) only first vip_nic specified will be used.
+	The second NIC (if specified) will be ignored. Default vip_mask=255.255.255.0
+
+
+<br>23. Start HA-cluster. Please enter first node IP address only.
 
      jdss-api-tools.exe start_cluster 192.168.0.82
 
 
-<br>23. Move (failover) given pool.
+<br>24. Move (failover) given pool.
     The current active node of given pool will be found and pool will be moved to passive node.
 
      jdss-api-tools.exe move --pool=Pool-0 192.168.0.82
 
 
-<br>24. Print system info.
+<br>25. Print system info.
 
      jdss-api-tools.exe info 192.168.0.220
 
