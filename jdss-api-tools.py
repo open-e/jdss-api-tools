@@ -1203,20 +1203,23 @@ def move():
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
-    for i in range(150):
+    for _ in range(5):
         for node in nodes:
-
             ## GET
             pools = get('/pools')
-
+            if not pools:
+                continue
             pool_names = [pool['name'] for pool in pools ]
             if pool_name in pool_names:
                 new_active_node = node
+            if new_active_node:
+                break
         if new_active_node:
             break
         print_with_timestamp('Moving in progress...')
         time.sleep(5)
     if new_active_node == passive_node: ## after move (failover) passive node is active
+        time.sleep(15)
         print_with_timestamp('{}  is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
         sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
