@@ -168,7 +168,7 @@ The second NIC (if specified) will be ignored. Default vip_mask=255.255.255.0
 
     jdss-api-tools.exe info 192.168.0.220
 
-#########################################
+#########################################<br>
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
     C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
