@@ -43,13 +43,11 @@ from __future__ import print_function
 import sys
 import time
 import datetime
-from jovianapi import API
-from jovianapi.resource.pool import PoolModel
 import argparse
 import collections
 import ipcalc
-#import logging
-
+from jovianapi import API
+from jovianapi.resource.pool import PoolModel
 
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
@@ -57,6 +55,7 @@ __version__ = 1.0
 ## Script global variables - to be updated in parse_args():
 line_sep                = '='*62
 action                  = ''
+action_message          = ''
 delay                   = 0
 nodes                   = []
 auto_target_name        = "iqn.auto.api.backup.target"        
@@ -156,7 +155,10 @@ def wait_for_node():
         else:
             try:
                 if print_timestamp_msg[node]:
-                    print_with_timestamp('Node {} is running.'.format(node))
+                    if action_message:
+                        print_with_timestamp(action_message)
+                    else:
+                        print_with_timestamp('Node {} is running.'.format(node))
                     print_timestamp_msg[node] = False
 
             except Exception as e:
@@ -788,6 +790,9 @@ def reboot_nodes() :
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
+    global action_message
+    action_message = 'Sending Host,Server Name Setting request to: {}'.format(node)
+
     data = dict()
     if host_name:
         data["host_name"] = host_name
@@ -807,6 +812,9 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
+    global action_message
+    action_message = 'Sending Time Settings request to: {}'.format(node)
+
     data = dict()
     if timezone:
         data["timezone"] = timezone
@@ -924,6 +932,9 @@ def print_interfaces_details(header,fields):
 
 
 def set_default_gateway():
+    global action_message
+    action_message = 'Sending Default Gateway set request to: {}'.format(node)
+
     endpoint = '/network/default-gateway'
     data = dict(interface=nic_name)
 
@@ -943,6 +954,9 @@ def set_default_gateway():
 
 
 def set_dns(dns):
+    global action_message
+    action_message = 'Sending DNS set request to: {}'.format(node)
+
     endpoint = '/network/dns'
     data = dict(servers=dns)
 
@@ -1026,6 +1040,10 @@ def get_vips():
     return (result[0]['address'], result[0]['interface'], result[0]['remote_interface'][0]['interface'])
 
 def cluster_bind_set():
+    """
+    True if set
+    False if not set
+    """
     endpoint = '/cluster/nodes'
     bind_node_address = '127.0.0.1'
     ## GET
@@ -1035,6 +1053,9 @@ def cluster_bind_set():
 
 
 def create_vip():
+    global action_message
+    action_message = 'Sending Create VIP request to: {}'.format(node)
+
     if not pool_name:
         sys_exit_with_timestamp( 'Error: Pool name missing.')
 
@@ -1073,6 +1094,9 @@ def create_vip():
 
     
 def set_mirror_path():
+    global action_message
+    action_message = 'Sending Mirror Path Set request to: {}'.format(node)
+
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
     ## first cluster node must be same as node from args
@@ -1109,6 +1133,9 @@ def get_ping_nodes():
 
 
 def set_ping_nodes():
+    global action_message
+    action_message = 'Sending Ping Node Set request to: {}'.format(node)
+
     current_ping_nodes = get_ping_nodes()
     if current_ping_nodes is None:
         sys_exit_with_timestamp( 'Cannot set ping nodes on {}'.format(node))
@@ -1132,6 +1159,9 @@ def set_ping_nodes():
 
 
 def start_cluster():
+    global action_message
+    action_message = 'Sending Cluster Service Start request to: {}'.format(node)
+    
     started = False
     
     cluster_nodes_addresses = get_cluster_nodes_addresses()
@@ -1175,6 +1205,8 @@ def move():
 
     global node
     global nodes
+    global action_message
+    action_message = 'Sending Failover(Move) request to: {}'.format(node)
     command_line_node = node
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     active_node = ''
@@ -1226,7 +1258,10 @@ def move():
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
+    
     global node    ## the node IP can be changed
+    global action_message
+    action_message = 'Sending Network Setting request to: {}'.format(node)
     timeouted = False
     
     # list_of_ip
@@ -1281,6 +1316,9 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
 def create_bond(bond_type, bond_nics, new_gw, new_dns):
     global node    ## the node IP can be changed
     global nic_name
+    global action_message
+    action_message = 'Sending Create Bond request to: {}'.format(node)
+
     timeouted = False
     
     bond_nics = convert_comma_separated_to_list(bond_nics)
@@ -1319,7 +1357,10 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
 
 
 def delete_bond(bond_name):
+    
     global node    ## the node IP can be changed
+    global action_message
+    action_message = 'Sending Delete Bond request to: {}'.format(node)
     #global nic_name
     node_id_220 = 0
     orginal_node_id = 1   ## just different init value than node_id_220
@@ -1408,6 +1449,9 @@ def node_id():
 
 
 def bind_cluster(bind_ip_addr):
+    global action_message
+    action_message = 'Sending Cluster Nodes Bind request to: {}'.format(node)
+
     endpoint = '/cluster/nodes'
     data = dict(address=bind_ip_addr, password=bind_node_password)
 
@@ -1418,12 +1462,12 @@ def bind_cluster(bind_ip_addr):
 
     if bind_node_address != '127.0.0.1':
         sys_exit_with_timestamp('Error: cluster bind was already set')
-    code = None
+    result = None
 
     ## POST
-    code = post(endpoint, data)
+    result = post(endpoint, data)
 
-    if code and code['error'] is None:
+    if result and result['error'] is None:
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
@@ -1591,6 +1635,7 @@ def read_jbod(n):
 
 
 def create_pool(pool_name,vdev_type,jbods):
+
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
         
@@ -1599,6 +1644,7 @@ def create_pool(pool_name,vdev_type,jbods):
     print_with_timestamp("Creating pool. Please wait...")
 
     ## CREATE
+    error = ''
     try:
         pool = api.storage.pools.create(
             name = pool_name,
@@ -1606,6 +1652,14 @@ def create_pool(pool_name,vdev_type,jbods):
     except Exception as e:
         error = str(e[0])
         sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
+
+    #### to-do
+    #if error:
+    #    for _ in range(10):
+    #        if check_given_pool_name(ignore_error=True):
+    #            break
+    #        else:
+    #            time.sleep(5)
 
     return pool
 
@@ -1895,6 +1949,8 @@ def user_choice():
 def read_jbods_and_create_pool(choice='0'):
 
     global  vdevs_num,vdev_type
+    global action_message
+    action_message = 'Sending Create Pool request to: {}'.format(node)
 
     jbods = [[] for i in range(jbods_num)]
     given_jbods_num = jbods_num
