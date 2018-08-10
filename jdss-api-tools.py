@@ -1252,7 +1252,7 @@ def move():
         time.sleep(5)
     if new_active_node == passive_node: ## after move (failover) passive node is active
         time.sleep(15)
-        print_with_timestamp('{}  is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
+        print_with_timestamp('{} is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
         sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
 
@@ -1635,7 +1635,8 @@ def read_jbod(n):
 
 
 def create_pool(pool_name,vdev_type,jbods):
-
+    timeouted = False
+    
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
         
@@ -1651,17 +1652,18 @@ def create_pool(pool_name,vdev_type,jbods):
             vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip(*jbods)) ) ## zip disks over JBODs
     except Exception as e:
         error = str(e[0])
-        sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
+        if 'timeout' not in error:
+            sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
 
-    #### to-do
-    #if error:
-    #    for _ in range(10):
-    #        if check_given_pool_name(ignore_error=True):
-    #            break
-    #        else:
-    #            time.sleep(5)
-
-    return pool
+    for _ in range(10):
+        if check_given_pool_name(ignore_error=True):
+            print_with_timestamp("New storage pool: {} created".format(pool_name))
+            break
+        else:
+            time.sleep(5)
+    else:
+        sys_exit_with_timestamp( 'Error: Cannot create {}.'.format(pool_name))
+        
 
 
 def create_snapshot(vol_type,ignore_error=None):
@@ -2035,11 +2037,11 @@ def read_jbods_and_create_pool(choice='0'):
                             ## transpose single JBOD for JBODs [number_of_disks_in_vdev * number_of_vdevs]
                             jbods_id_only = zip(*[iter(jbods_id_only[0])] * vdevs_num )
                             jbods_id_only = jbods_id_only[: vdev_disks_num]
-                            pool = create_pool(pool_name,vdev_type, jbods_id_only)
+                            create_pool(pool_name,vdev_type, jbods_id_only)
                         else:
                             ## limit to given vdevs_num
                             jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only] 
-                            pool = create_pool(pool_name,vdev_type,jbods_id_only)
+                            create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
             ##
