@@ -36,7 +36,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-24  add missing msg for ip addr change
 2018-07-27  network improvements and fixes
 2018-08-08  add create_vip
-
 """
     
 from __future__ import print_function
@@ -48,6 +47,7 @@ import collections
 import ipcalc
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
+
 
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
@@ -332,15 +332,16 @@ def get_args():
        %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
 
 
-
  22. Create VIP (Virtual IP) examples. 
 
-       %(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100  --vip_mask=255.255.0.0 192.168.0.80
-       %(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2      --vip_ip=192.168.31.100  192.168.0.80
+       %(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100 --vip_mask=255.255.0.0 192.168.0.80
+       %(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2 --vip_ip=192.168.31.100 192.168.0.80
 
-    If cluster is configured both vip_nics must be provided.
-    With single node (no cluster) only first vip_nic specified will be used.
-    The second nic (if specified) will be ignored. Default vip_mask=255.255.255.0
+      If cluster is configured both vip_nics must be provided.
+      With single node (no cluster) only first vip_nic specified will be used.
+      The second vip_nic (if specified) will be ignored.
+      Default vip_mask = 255.255.255.0
+
 
  23. Start HA-cluster. Please enter first node IP address only.
 
@@ -364,7 +365,7 @@ def get_args():
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
                  'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
                  'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'shutdown', 'reboot'],
-        help='Commands:  %(choices)s.'
+        help='Commands:   %(choices)s.'
     )
     parser.add_argument(
         '--pool',
@@ -490,38 +491,38 @@ def get_args():
     parser.add_argument(
         '--bond_type',
         metavar='bond_type',
-        default='active-backup',   
+        default='active-backup',
         help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
-        default='eth0,eth1',   
+        default='eth0,eth1',
         help='Enter comma separated bond NICs. Default=eth0,eth1'
     )
     parser.add_argument(
         '--mirror_nics',
         metavar='nics',
-        default=None,   
-        help='Enter comma separated mirror path NICs.'
+        default=None,
+        help='Enter comma separated mirror path NICs'
     )
     parser.add_argument(
         '--vip_name',
         metavar='name',
-        default=None,   
-        help='Enter new VIP name (alias).'
+        default=None,
+        help='Enter new VIP name (alias)'
     )
     parser.add_argument(
         '--vip_nics',
         metavar='nics',
-        default=None,   
-        help='Enter comma separated both cluster nodes NICs, or single NIC for single node. '
+        default=None,
+        help='Enter comma separated NICs of both cluster nodes, or single NIC for single node'
     )
     parser.add_argument(
         '--vip_ip',
         metavar='address',
-        default=None,   
-        help='Enter new VIP address. '
+        default=None,
+        help='Enter new VIP address'
     )
     parser.add_argument(
         '--vip_mask',
@@ -565,7 +566,7 @@ def get_args():
     parser.add_argument(
         '--share_name',
         metavar='name',
-        default='auto_api_backup_share',   
+        default='auto_api_backup_share',
         help='Enter share name. Default=auto_api_backup_share'
     )
     parser.add_argument(
@@ -791,7 +792,7 @@ def reboot_nodes() :
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
     global action_message
-    action_message = 'Sending Host,Server Name Setting request to: {}'.format(node)
+    action_message = 'Sending Host Server Name set request to: {}'.format(node)
 
     data = dict()
     if host_name:
@@ -813,7 +814,7 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
     global action_message
-    action_message = 'Sending Time Settings request to: {}'.format(node)
+    action_message = 'Sending Time set request to: {}'.format(node)
 
     data = dict()
     if timezone:
@@ -987,10 +988,12 @@ def get_dns():
 def get_pools_names():
     pools = get('/pools')
     return [pool['name'] for pool in pools]
-        
+
+
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
     return next((interface['name'] for interface in interfaces if interface['address'] == ip_address), None)
+
 
 def get_mac_address_of_given_nic(nic):
     interfaces = get('/network/interfaces')
@@ -1039,6 +1042,7 @@ def get_vips():
     result =  get(endpoint)
     return (result[0]['address'], result[0]['interface'], result[0]['remote_interface'][0]['interface'])
 
+
 def cluster_bind_set():
     """
     True if set
@@ -1049,7 +1053,6 @@ def cluster_bind_set():
     ## GET
     bind_node_address = get('/cluster/nodes')[0]['address']
     return False if bind_node_address in '127.0.0.1' else True
-
 
 
 def create_vip():
@@ -1065,7 +1068,7 @@ def create_vip():
     if len(nics)==2:
         nic_a, nic_b = nics
     else:
-        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two nics t')
+        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = False if len(cluster_ip_addresses) == 1 else True
     node_b_address = cluster_ip_addresses
@@ -1092,10 +1095,10 @@ def create_vip():
     else:
         print_with_timestamp( 'New VIP: {} set, with: {} on: {}.'.format(vip_ip, ','.join(nics), pool_name ))
 
-    
+
 def set_mirror_path():
     global action_message
-    action_message = 'Sending Mirror Path Set request to: {}'.format(node)
+    action_message = 'Sending Mirror Path set request to: {}'.format(node)
 
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
@@ -1134,7 +1137,7 @@ def get_ping_nodes():
 
 def set_ping_nodes():
     global action_message
-    action_message = 'Sending Ping Node Set request to: {}'.format(node)
+    action_message = 'Sending Ping Node set request to: {}'.format(node)
 
     current_ping_nodes = get_ping_nodes()
     if current_ping_nodes is None:
@@ -1161,9 +1164,9 @@ def set_ping_nodes():
 def start_cluster():
     global action_message
     action_message = 'Sending Cluster Service Start request to: {}'.format(node)
-    
+
     started = False
-    
+
     cluster_nodes_addresses = get_cluster_nodes_addresses()
     if cluster_nodes_addresses.pop() in '127.0.0.1' :
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
@@ -1202,11 +1205,10 @@ def start_cluster():
 
 
 def move():
-
     global node
     global nodes
     global action_message
-    action_message = 'Sending Failover(Move) request to: {}'.format(node)
+    action_message = 'Sending Failover (Move) request to: {}'.format(node)
     command_line_node = node
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     active_node = ''
@@ -1258,10 +1260,9 @@ def move():
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
-    
     global node    ## the node IP can be changed
     global action_message
-    action_message = 'Sending Network Setting request to: {}'.format(node)
+    action_message = 'Sending Network set request to: {}'.format(node)
     timeouted = False
     
     # list_of_ip
@@ -1357,7 +1358,6 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
 
 
 def delete_bond(bond_name):
-    
     global node    ## the node IP can be changed
     global action_message
     action_message = 'Sending Delete Bond request to: {}'.format(node)
@@ -1663,7 +1663,6 @@ def create_pool(pool_name,vdev_type,jbods):
             time.sleep(5)
     else:
         sys_exit_with_timestamp( 'Error: Cannot create {}.'.format(pool_name))
-        
 
 
 def create_snapshot(vol_type,ignore_error=None):
@@ -1950,7 +1949,7 @@ def user_choice():
 
 def read_jbods_and_create_pool(choice='0'):
 
-    global  vdevs_num,vdev_type
+    global vdevs_num,vdev_type
     global action_message
     action_message = 'Sending Create Pool request to: {}'.format(node)
 
@@ -2005,7 +2004,7 @@ def read_jbods_and_create_pool(choice='0'):
             
             empty_jbod = False
             for i in range(jbods_num):
-                if not jbods[i]:       
+                if not jbods[i]:
                     empty_jbod = True
             ## non-interactive mode, run create after read
             if not menu:
@@ -2027,7 +2026,7 @@ def read_jbods_and_create_pool(choice='0'):
                     msg = 'Disks with different size present. Please press "r" in order to remove smaller disks.'
                 else:
                     jbods_id_only = convert_jbods_to_id_only(jbods)
-                    required_disks_num = vdevs_num * vdev_disks_num 
+                    required_disks_num = vdevs_num * vdev_disks_num
                     available_disks = count_available_disks(jbods_id_only)
                     if available_disks < required_disks_num:
                         msg ='Error: {}: {}*{}[{} disk] requires {} disks. {} disks available.\n'.format(
@@ -2040,7 +2039,7 @@ def read_jbods_and_create_pool(choice='0'):
                             create_pool(pool_name,vdev_type, jbods_id_only)
                         else:
                             ## limit to given vdevs_num
-                            jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only] 
+                            jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only]
                             create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
@@ -2065,7 +2064,7 @@ def main() :
     if action == 'clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
-            sys_exit_with_timestamp( 'Error: Clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
         create_new_backup_clone( vol_type )
@@ -2073,7 +2072,7 @@ def main() :
     elif action == 'clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: Clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
         create_existing_backup_clone( vol_type )
@@ -2081,14 +2080,14 @@ def main() :
     elif action == 'delete_clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
 
     elif action == 'delete_clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
@@ -2102,27 +2101,27 @@ def main() :
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)   
+        c = count_provided_args(timezone, ntp, ntp_servers)
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)  
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
         if c not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
         if c not in (2,3,4):
-            sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
+            sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
         if c not in (0,1,2):
-            sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
+            sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         delete_bond(nic_name)
 
     elif action == 'bind_cluster':
@@ -2149,10 +2148,9 @@ def main() :
             sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
         c = count_provided_args(pool_name, vip_name, vip_nics, vip_ip, vip_mask)
         if c not in (4,5):
-            sys_exit_with_timestamp( 'Error: create_vip command expects --pool --vip_name --vip_nics --vip_ip and --vip_mask')
+            sys_exit_with_timestamp( 'Error: create_vip command expects --pool, --vip_name, --vip_nics, --vip_ip and --vip_mask')
         create_vip()
 
- 
     elif action == 'start_cluster':
         start_cluster()
 
