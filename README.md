@@ -12,7 +12,7 @@ Show help:
 
 EXAMPLES:
 
-<br>1. Create clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+<br><b>1. Create clone of iSCSI volume</b> zvol00 from Pool-0 and attach to iSCSI target.
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the target exports most recent data every run.
     The example is using default password and port.
@@ -24,7 +24,7 @@ EXAMPLES:
      jdss-api-tools.exe clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
 
-<br>2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
+<br><b>2. Create clone of NAS volume</b> vol00 from Pool-0 and share via new created SMB share.
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
     The example is using default password and port and make the share visible with default share name.
@@ -37,53 +37,53 @@ EXAMPLES:
      jdss-api-tools.exe clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
 
 
-<br>3. Delete clone of iSCSI volume zvol00 from Pool-0 (it deletes the snapshot as well).
+<br><b>3. Delete clone of iSCSI volume</b> zvol00 from Pool-0 (it deletes the snapshot as well).
 
      jdss-api-tools.exe delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
 
 
-<br>4. Delete clone of NAS volume vol00 from Pool-0 (it deletes the snapshot as well).
+<br><b>4. Delete clone of NAS volume</b> vol00 from Pool-0 (it deletes the snapshot as well).
 
      jdss-api-tools.exe delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
 
 
-<br>5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+<br><b>5. Create clone of existing snapshot on iSCSI volume</b> zvol00 from Pool-0 and attach to iSCSI target.
     The example is using password 12345 and default port.
 
      jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
-<br>6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+<br><b>6. Create clone of existing snapshot on NAS volume</b> vol00 from Pool-0 and share via new created SMB share.
     The example is using password 12345 and default port.
 
      jdss-api-tools.exe clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
-<br>7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
+<br><b>7. Delete clone of existing snapshot on iSCSI volume</b> zvol00 from Pool-0.
     The example is using password 12345 and default port.
 
      jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
-<br>8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
+<br><b>8. Delete clone of existing snapshot on NAS volume</b> vol00 from Pool-0.
     The example is using password 12345 and default port.
 
      jdss-api-tools.exe delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
 
 
-<br>9. Create pool on single node or cluster with single JBOD:
+<br><b>9. Create pool on single node or cluster with single JBOD:</b>
 	Pool-0 with 2 * raidz1(3 disks) total 6 disks
 
      jdss-api-tools.exe create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
 
 
-<br>10. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
+<br><b>10. Create pool on Metro Cluster with single JBOD with 4-way mirrors:</b>
 	Pool-0 with 2 * mirrors(4 disks) total 8 disks
 
      jdss-api-tools.exe create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
 
 
-<br>11. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+<br><b>11. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.</b>
 	Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
 	In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
 	Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
@@ -92,7 +92,7 @@ EXAMPLES:
      jdss-api-tools.exe create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
 
 
-<br>12. Shutdown three JovianDSS servers using default port but non default password.
+<br><b>12. Shutdown three JovianDSS servers</b> using default port but non default password.
 
      jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
@@ -101,17 +101,17 @@ EXAMPLES:
      jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
 
-<br>13. Reboot single DSS server.
+<br><b>13. Reboot single DSS server.</b>
 
      jdss-api-tools.exe reboot 192.168.0.220
 
 
-<br>14. Set host name to "node220", server name to "server220" and server description to "jdss220".
+<br><b>14. Set host name</b> to "node220", server name to "server220" and server description to "jdss220".
 
      jdss-api-tools.exe set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
 
 
-<br>15. Set timezone and with NTP-time with default NTP servers.
+<br><b>15. Set timezone and with NTP-time</b> with default NTP servers.
 
      jdss-api-tools.exe set_time --timezone=America/New_York 192.168.0.220
      jdss-api-tools.exe set_time --timezone=America/Chicago 192.168.0.220
@@ -119,7 +119,7 @@ EXAMPLES:
      jdss-api-tools.exe set_time --timezone=Europe/Berlin 192.168.0.220
 
 
-<br>16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway. Missing netmask option will set default 255.255.255.0.
+<br><b>16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.</b> Missing netmask option will set default 255.255.255.0.
 
      jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
@@ -132,7 +132,7 @@ EXAMPLES:
      jdss-api-tools.exe network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
 
 
-<br>17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
+<br><b>17. Create bond examples.</b> Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
 	Default = active-backup.
 
      jdss-api-tools.exe create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
@@ -140,18 +140,18 @@ EXAMPLES:
      jdss-api-tools.exe create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
 
 
-<br>18. Delete bond.
+<br><b>18. Delete bond.</b>
 
      jdss-api-tools.exe delete_bond --nic=bond0 192.168.0.80
 
 
-<br>19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
+<br><b>19. Bind cluster.</b> Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
      jdss-api-tools.exe bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
 
 
-<br>20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
+<br><b>20. Set HA-cluster ping nodes.</b> First IP = access node IP, next IPs are new ping nodes
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
 
      jdss-api-tools.exe set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
@@ -161,12 +161,12 @@ EXAMPLES:
      jdss-api-tools.exe set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
 
 
-<br>21. Set HA-cluster mirror path. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+<br><b>21. Set HA-cluster mirror path.</b> Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
      jdss-api-tools.exe set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
 
 
-<br>22. Create VIP (Virtual IP) examples.
+<br><b>22. Create VIP</b> (Virtual IP) examples.
 
 	If cluster is configured both vip_nics must be provided.
 	With single node (no cluster) only first vip_nic specified will be used.
@@ -178,18 +178,18 @@ EXAMPLES:
 	 jdss-api-tools.exe create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2 --vip_ip=192.168.31.100 192.168.0.80
 
 
-<br>23. Start HA-cluster. Please enter first node IP address only.
+<br><b>23. Start HA-cluster.</b> Please enter first node IP address only.
 
      jdss-api-tools.exe start_cluster 192.168.0.82
 
 
-<br>24. Move (failover) given pool.
+<br><b>24. Move (failover)</b> given pool.
     The current active node of given pool will be found and pool will be moved to passive node.
 
      jdss-api-tools.exe move --pool=Pool-0 192.168.0.82
 
 
-<br>25. <b>Create storage resource</b>. Creates iSCSI target with volume or SMB share with dataset. iSCSI target with volume
+<br><b>25. <b>Create storage resource</b>. Creates iSCSI target with volume or SMB share with dataset. iSCSI target with volume
 
     jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220
 
@@ -218,7 +218,7 @@ if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next 
     jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10  192.168.0.220
     
 
-<br>26. Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
+<br><b>26. Scrub all pools.</b> If the node belongs to cluster, scrub all pools in cluster.
 
     jdss-api-tools.exe scrub 192.168.0.220
 
@@ -232,7 +232,7 @@ if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next 
     jdss-api-tools.exe scrub --action=stop 192.168.0.220
  
 
-<br>27. Print system info.
+<br><b>27. Print system info.</b>
 
      jdss-api-tools.exe info 192.168.0.220
 
