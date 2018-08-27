@@ -36,6 +36,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-24  add missing msg for ip addr change
 2018-07-27  network improvements and fixes
 2018-08-08  add create_vip
+2018-08-27  add create storage resources and scrub and help-in-color
+
 """
     
 from __future__ import print_function
@@ -47,13 +49,15 @@ import collections
 import ipcalc
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
+from colorama import init
+from colorama import Fore, Back, Style
 
 
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
 
 ## Script global variables - to be updated in parse_args():
-line_sep                = '='*62
+line_separator          = '='*62
 action                  = ''
 action_message          = ''
 delay                   = 0
@@ -73,13 +77,11 @@ target_name_prefix= "iqn.%s-%s:jdss.target" % (time.strftime("%Y"),time.strftime
 ## ZVOL NAME
 zvol_name_prefix = 'zvol00'
 
+
 def interface():
     wait_for_node()
     return API.via_rest(node, api_port, api_user, api_password)
 
-#def get(endpoint):
-#    api=interface()
-#    return api.driver.get(endpoint)['data']
 
 def get(endpoint):
     global error
@@ -121,7 +123,6 @@ def delete(endpoint,data):
     api=interface()
     return api.driver.delete(endpoint,data)
 
-
 '''
 ##to-do
 def delete(endpoint,data):
@@ -136,7 +137,6 @@ def delete(endpoint,data):
     return result
 '''
 
-
 def wait_for_node():
     repeat = 100
     counter = 0
@@ -150,16 +150,17 @@ def wait_for_node():
             if counter % 3:
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
             else:
-                print_with_timestamp(
+                if counter >0:
+                    print_with_timestamp(
                     'Please enable REST API on {} in GUI: System Settings -> Administration -> REST access, or check access credentials.'.format(node))
         else:
             try:
-                if print_timestamp_msg[node]:
+                if to_print_timestamp_msg[node]:
                     if action_message:
                         print_with_timestamp(action_message)
                     else:
                         print_with_timestamp('Node {} is running.'.format(node))
-                    print_timestamp_msg[node] = False
+                    to_print_timestamp_msg[node] = False
 
             except Exception as e:
                 pass
@@ -174,208 +175,296 @@ def get_args():
     parser = argparse.ArgumentParser(
         prog='jdss-api-tools',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description='''The %(prog)s remotely execute given command.''',
-        epilog='''EXAMPLES:
+        description='The %(prog)s remotely execute given command.',
+        epilog='''{LG}EXAMPLES:{ENDF}
 
- 1. Create clone of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
-     Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the target exports most recent data every run.
-     The example is using default password and port.
-     Tools automatically recognize the volume type. If given volume is iSCSI volume,
-     the clone of the iSCSI volume will be attached to iSCSI target.
-     If given volume is NAS dataset, the created clone will be exported via network share
-     as shown in the next example.
+ 1. {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
-       %(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+    Every time it runs, it will delete the clone created last run and re-create new one.
+    So, the target exports most recent data every run.
+    The example is using default password and port.
+    Tools automatically recognize the volume type. If given volume is iSCSI volume,
+    the clone of the iSCSI volume will be attached to iSCSI target.
+    If given volume is NAS dataset, the created clone will be exported via network share
+    as shown in the next example.
 
+    {LG}%(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220{ENDF}
 
- 2. Create clone of NAS volume vol00 from Pool-0 and share via new created SMB share.
-     Every time it runs, it will delete the clone created last run and re-create new one.
-     So, the share exports most recent data every run. The share is invisible by default.
-     The example is using default password and port and make the share visible with default share name.
+ 2. {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
-       %(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
+    Every time it runs, it will delete the clone created last run and re-create new one.
+    So, the share exports most recent data every run. The share is invisible by default.
+    The example is using default password and port and make the share visible with default share name.
 
-     The examples are using default password and port and make the shares invisible.
+    {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220{ENDF}
+
+    The examples are using default password and port and make the shares invisible.
      
-       %(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
-       %(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
+    {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220{ENDF}
 
+ 3. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
 
- 3. Delete clone of iSCSI volume zvol00 from Pool-0.
+    {LG}%(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220{ENDF}
 
-       %(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220
+ 4. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
 
+    {LG}%(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220{ENDF}
 
- 4. Delete clone of NAS volume vol00 from Pool-0.
+ 5. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
-       %(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220
+    The example is using password 12345 and default port.
 
+    {LG}%(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
 
- 5. Create clone of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
-     The example is using password 12345 and default port.
+ 6. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
-       %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+    The example is using password 12345 and default port.
 
+    {LG}%(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
 
- 6. Create clone of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
-     The example is using password 12345 and default port.
+ 7. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
-       %(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+    The example is using password 12345 and default port.
 
+    {LG}%(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
 
- 7. Delete clone of existing snapshot on iSCSI volume zvol00 from Pool-0.
-     The example is using password 12345 and default port.
+ 8. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
 
-       %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+    The example is using password 12345 and default port.
 
+    {LG}%(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
 
- 8. Delete clone of existing snapshot on NAS volume vol00 from Pool-0.
-     The example is using password 12345 and default port.
+ 9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
-       %(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345
+    Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
+    {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220{ENDF}
 
- 9. Create pool on single node or cluster with single JBOD:
-     Pool-0 with 2 * raidz1(3 disks) total 6 disks 
+ 10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
-       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220
+    Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
+    {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220{ENDF}
 
- 10. Create pool on Metro Cluster with single JBOD with 4-way mirrors:
-      Pool-0 with 2 * mirrors(4 disks) total 8 disks 
+ 11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
 
-       %(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220
+    Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
+    In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
+    Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
+    Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
+    {LG}%(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220{ENDF}
 
- 11. Create pool with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
-      Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
-      In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
-      Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-      Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
+ 12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
 
-       %(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220
+    {LG}%(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
+    or with IP range syntax ".."
 
- 12. Shutdown three JovianDSS servers using default port but non default password.
+    {LG}%(prog)s --pswd password shutdown 192.168.0.220..222{ENDF}
 
-       %(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
+ 13. {BOLD}Reboot{END} single JovianDSS server.
 
-      or with IP range syntax ".."
+    {LG}%(prog)s reboot 192.168.0.220{ENDF}
 
-       %(prog)s --pswd password shutdown 192.168.0.220..222
+ 14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
+    {LG}%(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220{ENDF}
 
- 13. Reboot single JovianDSS server.
+ 15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
-       %(prog)s reboot 192.168.0.220
+    {LG}%(prog)s set_time --timezone=America/New_York 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone=America/Chicago 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone=Europe/Berlin 192.168.0.220{ENDF}
 
+ 16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
- 14. Set host name to "node220", server name to "server220" and server description to "jdss220".
+    Missing netmask option will set default 255.255.255.0
 
-       %(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220
+    {LG}%(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220{ENDF}
 
+    Setting new DNS only.
 
- 15. Set timezone and with NTP-time with default NTP servers.
+    {LG}%(prog)s network --new_dns=192.168.0.1 192.168.0.220{ENDF}
 
-       %(prog)s set_time --timezone=America/New_York 192.168.0.220
-       %(prog)s set_time --timezone=America/Chicago 192.168.0.220
-       %(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220
-       %(prog)s set_time --timezone=Europe/Berlin 192.168.0.220
+    Setting new gateway only. The default gateway will be set automatically.
 
+    {LG}%(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220{ENDF}
 
- 16. Set new IP settings for eth0 and set gateway-IP and set eth0 as default gateway.
-      Missing netmask option will set default 255.255.255.0
+ 17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
+    Default = active-backup
 
-       %(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
+    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80{ENDF}
 
-      Setting new DNS only.
+ 18. {BOLD}Delete bond{END}.
 
-       %(prog)s network --new_dns=192.168.0.1 192.168.0.220
+    {LG}%(prog)s delete_bond --nic=bond0 192.168.0.80{ENDF}
 
-      Setting new gateway only. The default gateway will be set automatically.
+ 19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80{ENDF}
 
-       %(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
 
+    {LG}%(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81{ENDF}
 
- 17. Create bond examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-      Default = active-backup
+ 20. {BOLD}Set HA-cluster ping nodes{END}. First IP = access node IP, next IPs are new ping nodes
 
-       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80
-       %(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
-       %(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80
+    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
 
+    {LG}%(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242{ENDF}
 
- 18. Delete bond.
+    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
 
-       %(prog)s delete_bond --nic=bond0 192.168.0.80
+    {LG}%(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242{ENDF}
 
+ 21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
- 19. Bind cluster. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
-      RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
+    {LG}%(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82{ENDF}
 
-       %(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81
+ 22. {BOLD}Create VIP (Virtual IP){END} examples. 
 
+    {LG}%(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100  --vip_mask=255.255.0.0 192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2      --vip_ip=192.168.31.100  192.168.0.80{ENDF}
 
- 20. Set HA-cluster ping nodes. First IP = access node IP, next IPs are new ping nodes
-      RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+    If cluster is configured both vip_nics must be provided.
+    With single node (no cluster) only first vip_nic specified will be used.
+    The second nic (if specified) will be ignored. Default vip_mask=255.255.255.0
 
-       %(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+ 23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
-      Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
+    {LG}%(prog)s start_cluster 192.168.0.82{ENDF}
 
-       %(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242
+ 24. {BOLD}Move (failover){END} given pool.
 
+    The current active node of given pool will be found and pool will be moved to passive node.
 
- 21. Set HA-cluster mirror path. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+    {LG}%(prog)s move --pool=Pool-0 192.168.0.82{ENDF}
 
-       %(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82
+ 25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume or SMB share with dataset.
 
+    iSCSI target with volume
 
- 22. Create VIP (Virtual IP) examples. 
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220{ENDF}
 
-       %(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100 --vip_mask=255.255.0.0 192.168.0.80
-       %(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2 --vip_ip=192.168.31.100 192.168.0.80
+    with defaults: size=1TB, provisioning=thin volume=auto target_name=auto
+    if target_name=auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
+    if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
-      If cluster is configured both vip_nics must be provided.
-      With single node (no cluster) only first vip_nic specified will be used.
-      The second vip_nic (if specified) will be ignored.
-      Default vip_mask = 255.255.255.0
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --cluster=ha-00 192.168.0.220{ENDF}
 
+    with missing --cluster=ha-00, it will produce same result as "ha-00" is default cluster name.
 
- 23. Start HA-cluster. Please enter first node IP address only.
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi 192.168.0.220{ENDF}
+       
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --volume=vol000 --share_name=data  192.168.0.220{ENDF}
 
-       %(prog)s start_cluster 192.168.0.82
+    with defaults: volume=auto share_name=auto
 
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb  192.168.0.220{ENDF}
 
- 24. Move (failover) given pool.
-      The current active node of given pool will be found and pool will be moved to passive node.
+    and multi-resource with --quantity option, starting consecutive number from zero (default)
 
-       %(prog)s move --pool=Pool-0 192.168.0.82
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5  192.168.0.220{ENDF}
 
+    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with=10)
+    
+    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10  192.168.0.220{ENDF}
+    
 
- 25. Print system info.
+ 26. {BOLD}Scrub {END}.
+ 
+    Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
-       %(prog)s info 192.168.0.220
-    ''')
+    {LG}%(prog)s scrub 192.168.0.220{ENDF}
 
+    Scrub specified pools only.
+    
+    {LG}%(prog)s scrub --pool=Pool-0 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --pool=Pool-0 --pool=Pool-1 --pool=Pool-2 192.168.0.220{ENDF}
+
+    {LG}%(prog)s scrub --action=stop 192.168.0.220{ENDF}
+    
+    
+
+ 27. {BOLD}Print system info{END}.
+
+    {LG}%(prog)s info 192.168.0.220{ENDF}
+'''.format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
+    ## ENDS->End-Style, ENDF->End-Foreground
+    
     parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'delete_clone', 'delete_clone_existing_snapshot',
-                 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond', 'bind_cluster', 'set_ping_nodes',
-                 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'shutdown', 'reboot'],
-        help='Commands:   %(choices)s.'
+        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'create_storage_resource', 'delete_clone',
+                 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+                 'bind_cluster', 'set_ping_nodes','set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
+                 'shutdown', 'reboot'],
+        help='Commands:  %(choices)s.'
+    )
+    parser.add_argument(
+        'ip',
+        metavar='jdss-ip-addr',
+        nargs='+',
+        help='Enter nodes IP(s). Some commands work with multi nodes. Enter comma separated IP or with .. range of IPs.'
     )
     parser.add_argument(
         '--pool',
         metavar='name',
-        help='Enter pool name'
+        action='append',
+        help='Enter pool name. If command require more pools, enter one more --pool name option.'
     )
     parser.add_argument(
         '--volume',
         metavar='name',
-        help='Enter SAN(zvol) or NAS(vol) volume name'
+        default='auto',
+        help='Enter required volume name. Default=auto, volume name will be auto-generated'
+    )
+    parser.add_argument(
+        '--storage_type',
+        metavar='iscsi|smb|nfs|smb,nfs|fc',
+        choices=['iscsi', 'smb', 'nfs','smb,nfs','fc'],
+        help='Enter iscsi or fc(not implemented yet) or smb or nfs or smb,nfs.'
+    )
+    parser.add_argument(
+        '--size',
+        metavar='size',
+        default='1TB',
+        help='Enter SAN(zvol) size in human readable format i.e. 100GB, 1TB, etc. Default = 1TB.'
+    )
+    parser.add_argument(
+        '--provisioning',
+        metavar='thin|thick',
+        default='thin',
+        help='Enter thick or thin provisioning option. Thin provisioning is default'
+    )
+    parser.add_argument(
+        '--target',
+        metavar='name',
+        default='auto',
+        help='Enter iSCSI target name. If not specified, auto-target-name will be generated '
+    )
+    parser.add_argument(
+        '--quantity',
+        metavar='number',
+        default=1,
+        type=int,
+        help='Enter number of storage-resources to create , default=1'
+    )
+    parser.add_argument(
+        '--start_with',
+        metavar='number',
+        default=0,
+        type=int,
+        help='Enter starting number of the consecutive number. Default=0'
+    )
+    parser.add_argument(
+        '--cluster',
+        metavar='name',
+        default='ha-00',
+        help='Enter the cluster name. The default cluster name = ha-00'
     )
     parser.add_argument(
         '--snapshot',
@@ -479,50 +568,44 @@ def get_args():
     parser.add_argument(
         '--new_dns',
         metavar='address',
-        default=None,   # default None, empty str will clear dns
+        default=None,   # default None, empty string "" will clear dns
         help='Enter new dns address or comma separated list'
-    )
-    parser.add_argument(
-        'ip',
-        metavar='jdss-ip-addr',
-        nargs='+',
-        help='Enter nodes IP(s)'
     )
     parser.add_argument(
         '--bond_type',
         metavar='bond_type',
-        default='active-backup',
+        default='active-backup',   
         help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
-        default='eth0,eth1',
+        default='eth0,eth1',   
         help='Enter comma separated bond NICs. Default=eth0,eth1'
     )
     parser.add_argument(
         '--mirror_nics',
         metavar='nics',
-        default=None,
-        help='Enter comma separated mirror path NICs'
+        default=None,   
+        help='Enter comma separated mirror path NICs.'
     )
     parser.add_argument(
         '--vip_name',
         metavar='name',
-        default=None,
-        help='Enter new VIP name (alias)'
+        default=None,   
+        help='Enter new VIP name (alias).'
     )
     parser.add_argument(
         '--vip_nics',
         metavar='nics',
-        default=None,
-        help='Enter comma separated NICs of both cluster nodes, or single NIC for single node'
+        default=None,   
+        help='Enter comma separated both cluster nodes NICs, or single NIC for single node. '
     )
     parser.add_argument(
         '--vip_ip',
         metavar='address',
-        default=None,
-        help='Enter new VIP address'
+        default=None,   
+        help='Enter new VIP address. '
     )
     parser.add_argument(
         '--vip_mask',
@@ -566,8 +649,8 @@ def get_args():
     parser.add_argument(
         '--share_name',
         metavar='name',
-        default='auto_api_backup_share',
-        help='Enter share name. Default=auto_api_backup_share'
+        default='auto',   
+        help='Enter share name. Default for clone actions=auto_api_backup_share, Default for create NAS-resource=auto'
     )
     parser.add_argument(
         '--visible',
@@ -581,6 +664,13 @@ def get_args():
         metavar='password',
         default='admin',
         help='Bind node password, default=admin'
+    )
+    parser.add_argument(
+        '--scrub_action',
+        metavar='start|stop|status',
+        choices=['start', 'stop', 'status'],
+        default='start',
+        help='Enter scrub action, Default=start.'
     )
     parser.add_argument(
         '--menu',
@@ -601,23 +691,37 @@ def get_args():
             if value in "''":
                 args[key] = ""
     
-    global api_port, api_user, api_password, action, pool_name, volume_name, snapshot_name, delay, nodes, node, menu
-    global auto_share_name, visible
+    global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type, size, sparse, snapshot_name
+    global delay, nodes, node, menu
+    global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
     global bind_node_password
-    global print_timestamp_msg
-
+    global to_print_timestamp_msg
+    global pool_based_consecutive_number_generator
+    global cluster_pool_names
+    global target_name, cluster_name
+    global quantity, start_with
+    global scrub_action
+    
 
     api_port                = args['port']
     api_user                = args['user']
     api_password            = args['pswd']
-    action                  = args['cmd']
+    action                  = args['cmd']     ## the command
     pool_name               = args['pool']
     volume_name             = args['volume']
-    auto_share_name         = args['share_name']
+    storage_type            = args['storage_type']
+    sparse                  = args['provisioning'].upper() ## THICK | THIN, default==THIN
+    size                    = args['size']
+    target_name             = args['target']
+    quantity                = args['quantity']
+    start_with              = args['start_with']
+    cluster_name            = args['cluster']
+
+    share_name              = args['share_name']
     visible                 = args['visible']
     snapshot_name           = args['snapshot']
     jbod_disks_num          = args['jbod_disks']
@@ -630,7 +734,7 @@ def get_args():
     server_name             = args['server']
     server_description      = args['description']
     timezone                = args['timezone']
-    ntp                     = args['ntp'].upper() ## ON | OFF
+    ntp                     = args['ntp'].upper() ## ON | OFF, default=ON
     ntp_servers             = args['ntp_servers']
     
     nic_name                = args['nic']
@@ -651,14 +755,42 @@ def get_args():
     delay                   = args['delay']
     nodes                   = args['ip']
 
+    scrub_action            = args['scrub_action']
     menu                    = args['menu']
 
-    print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
+    to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
 
+    pools_names = pool_name
+    if pool_name:
+        pool_name = pool_name[0]
+        
 
     ## start menu if multi-JBODs
     if jbods_num > 1: 
         menu = True
+
+    ## storage_type         ISCSI, FC, SMB, NFS or SMB,NFS
+    ## storage_volume_type  ISCSI, FC ='volume', SMB, NFS ='dataset'
+    if storage_type:
+        storage_type = storage_type.upper()
+        storage_type = convert_comma_separated_to_list(storage_type)
+        vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
+        storage_volume_type = vt[storage_type[0]]
+        
+    ## THIN=True, THICK=False 
+    if sparse:
+        sparse.upper()
+        s = dict(THIN=True,THICK=False)
+        sparse = s[sparse]
+        
+    ## size: human to bytes (default=1TB)
+    size = size.strip('Bb')    
+    size = str(human2bytes(size))
+
+    ## change default share name from "auto" to "auto_api_backup_share"
+    if 'clone' in action and share_name == 'auto':
+        share_name = 'auto_api_backup_share'
+        
     
     ## expand nodes list if IP range provided in args
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
@@ -693,6 +825,58 @@ def get_args():
 
 
 
+def human2bytes(s):
+    """
+    Author: Giampaolo Rodola' <g.rodola [AT] gmail [DOT] com>
+    License: MIT
+    """
+    SYMBOLS = {
+        'customary'     : ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
+        'customary_ext' : ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
+                           'zetta', 'iotta'),
+        'iec'           : ('Bi', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'),
+        'iec_ext'       : ('byte', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi',
+                           'zebi', 'yobi'),
+    }
+    init = s
+    num = ""
+    while s and s[0:1].isdigit() or s[0:1] == '.':
+        num += s[0]
+        s = s[1:]
+    num = float(num)
+    letter = s.strip()
+    for name, sset in SYMBOLS.items():
+        if letter in sset:
+            break
+    else:
+        if letter == 'k':
+            # treat 'k' as an alias for 'K' as per: http://goo.gl/kTQMs
+            sset = SYMBOLS['customary']
+            letter = letter.upper()
+        else:
+            raise ValueError("can't interpret %r" % init)
+    prefix = {sset[0]:1}
+    for i, s in enumerate(sset[1:]):
+        prefix[s] = 1 << (i+1)*10
+    return int(num * prefix[letter])
+
+
+def consecutive_number_generator():
+    i = start_with
+    while 1:
+        yield i
+        i+=1
+
+
+def initialize_pool_based_consecutive_number_generator():
+    global pool_based_consecutive_number_generator
+    pool_based_consecutive_number_generator = {}  
+    cluster_pool_names = get_cluster_pools_names()
+    for cluster_pool_name in cluster_pool_names:
+        ## add generator for every cluster pool
+        pool_based_consecutive_number_generator[cluster_pool_name] = consecutive_number_generator()
+
+
 def convert_comma_separated_to_list(arg):
     if arg is None:
         return None
@@ -708,6 +892,10 @@ def convert_comma_separated_to_list(arg):
 
 def count_provided_args(*args):
     return len(args) - args.count(None)
+
+
+def seconds_to_string(seconds):
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(float(seconds))) if seconds > 0 else '-'
 
 
 def time_stamp():
@@ -792,7 +980,7 @@ def reboot_nodes() :
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
     global action_message
-    action_message = 'Sending Host Server Name set request to: {}'.format(node)
+    action_message = 'Sending Host,Server Name Setting request to: {}'.format(node)
 
     data = dict()
     if host_name:
@@ -814,7 +1002,7 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
     global action_message
-    action_message = 'Sending Time set request to: {}'.format(node)
+    action_message = 'Sending Time Settings request to: {}'.format(node)
 
     data = dict()
     if timezone:
@@ -859,6 +1047,73 @@ def print_pools_details(header,fields):
                 pool[field] =  round(float(pool[field])/pow(1024,4),2)
             if field in ('iostats'):
                 pool[field] =  str(pool[field]).replace("u'","").replace("{","").replace("}","").replace("'","")
+            if field in pool.keys():
+                value = str(pool[field])
+            current_max_field_length = max(len(header[i]), len(value)) 
+            if current_max_field_length > fields_length[field]:
+                fields_length[field] = current_max_field_length
+
+    ## add field seperator
+    for key in fields_length.keys():
+            fields_length[key] +=  3
+
+    header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+    field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
+
+    print()
+    if len(pools):
+        print( header_format_template.format( *(header)))
+    else:
+        print('\tNo imported/active pools found')
+
+    for pool in pools:
+        pool_details = []
+        for field in fields:
+            value = '-'
+            if field in pool.keys():
+                value = str(pool[field])
+                if value in 'None':
+                    value = '-'
+            pool_details.append(value)
+        print(field_format_template.format(*pool_details))
+
+
+def print_scrub_pools_details(header,fields):
+    global node
+    global pool_name
+    to_print_timestamp_msg[node] = False
+
+    if pools_names:
+        pools_names_to_scrub = pools_names
+        cluster_pools_names = get_cluster_pools_names()
+        for pool_name in pools_names_to_scrub:
+            if pool_name not in cluster_pools_names:
+                sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+    else:
+        pools_names_to_scrub = get_cluster_pools_names()
+    pools_names_to_scrub.sort()
+
+    pools = [] #list of pools scrab details
+    for pool_name in pools_names_to_scrub:
+        node = get_active_cluster_node_address_of_given_pool(pool_name)
+        to_print_timestamp_msg[node] = False
+        endpoint = '/pools/{POOL}'.format(POOL=pool_name)
+        scan_details = get(endpoint)['scan']
+        scan_details['pool'] = pool_name
+        ## init pool dict
+        pool = dict(zip(fields,list('-'*len(fields))))
+        for key in scan_details.keys():
+            value = scan_details[key]
+            value = seconds_to_string(value) if key in ('start_time','end_time') else str(value)
+            pool[key] = value
+        pools.append(pool)
+    
+    fields_length={}
+    for field in fields:
+        fields_length[field]=0
+    for pool in pools:
+        for i,field in enumerate(fields):
+            value = '-'
             if field in pool.keys():
                 value = str(pool[field])
             current_max_field_length = max(len(header[i]), len(value)) 
@@ -984,16 +1239,98 @@ def get_dns():
     else:
         return dns['servers']
 
+def scrub():
+    global node
+    global action_message
+    global pool_name
+    action_message = 'Sending scrub {} request to: {}'.format(scrub_action,node)
+    if pools_names:
+        pools_names_to_scrub = pools_names
+        cluster_pools_names = get_cluster_pools_names()
+        for pool_name in pools_names_to_scrub:
+            if pool_name not in cluster_pools_names:
+                sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+    else:
+        pools_names_to_scrub = get_cluster_pools_names()
+    pools_names_to_scrub.sort()
+    for pool_name in pools_names_to_scrub:
+        to_print_timestamp_msg[node] = False
+        node = get_active_cluster_node_address_of_given_pool(pool_name)
+        to_print_timestamp_msg[node] = True
+        if scrub_action in ('start','stop'):
+            endpoint = '/pools/{POOL}/scrub'.format(POOL=pool_name)
+            action_message = 'Sending scrub request to {} on : {}'.format(pool_name, node)
+            post(endpoint, dict(action=scrub_action))
+
+    ## print scrub pools details
+    header= ('pool','state', 'scrub_start_time', 'end_time', 'rate', 'mins_left','examined', '%', 'total')
+    fields= ('pool','state', 'start_time', 'end_time', 'rate', 'mins_left', 'examined', 'percent', 'total')
+    print_scrub_pools_details(header,fields)
+
+    
 
 def get_pools_names():
     pools = get('/pools')
     return [pool['name'] for pool in pools]
 
 
+def get_cluster_pools_names():
+    global node
+    cluster_pools_names = []
+    cluster_nodes = get_cluster_nodes_addresses()
+    for node in cluster_nodes:
+        pools = get('/pools')
+        cluster_pools_names += [pool['name'] for pool in pools]
+    return cluster_pools_names
+
+
+def get_active_cluster_node_address_of_given_pool(pool_name):
+    global node
+    active_node = ''
+    cluster_nodes = get_cluster_nodes_addresses()
+    for node in cluster_nodes:
+        pools = get('/pools')
+        pool_names = [pool['name'] for pool in pools]
+        if pool_name in pool_names:
+            active_node = node
+            break
+    return active_node
+
+    
+def generate_iscsi_target_and_volume_name(pool_name):
+    host_name = get('/product')["host_name"]
+    consecutive_integer = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_string = "{:0>3}".format(consecutive_integer)
+    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name, consecutive_string)
+    volume_name =                   "zvol{}".format(consecutive_string)
+    return (iscsi_target_name, volume_name)
+
+def generate_share_and_volume_name(pool_name):
+    consecutive_integer = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_string = "{:0>3}".format(consecutive_integer)
+    share_name = "data{}".format(consecutive_string)
+    volume_name =                   "vol{}".format(consecutive_string)
+    return (share_name, volume_name)
+
+
+def get_iscsi_targets_names():
+    targets= get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
+    return [target['name'] for target in targets]
+
+
+def get_nas_volumes_names():
+    nas_volumes = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
+    return [nas_volume['name'] for nas_volume in nas_volumes]
+
+
+def get_san_volumes_names():
+    san_volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
+    return [san_volume['name'] for san_volume in san_volumes]
+
+        
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
     return next((interface['name'] for interface in interfaces if interface['address'] == ip_address), None)
-
 
 def get_mac_address_of_given_nic(nic):
     interfaces = get('/network/interfaces')
@@ -1025,15 +1362,31 @@ def get_interface_netmask(interface_name):
 
 
 def get_ring_interface_of_first_node():
-    return get('/cluster/rings')[0]['interfaces'][0]['interface']
+    if get('/cluster/rings'):
+        return get('/cluster/rings')[0]['interfaces'][0]['interface']
+    else:
+        # get return empty list
+        sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
+        
 
 
 def get_cluster_nodes_addresses():
-    return [cluster_node['address']for cluster_node in get('/cluster/nodes')]
+    global is_cluster
+    is_cluster = False
+    cluster_nodes_addresses = [cluster_node['address']for cluster_node in get('/cluster/nodes')]
+    if len(cluster_nodes_addresses)>1:
+        is_cluster = True
+    else:
+        cluster_nodes_addresses = node.split()  ## the node as single item list
+    return cluster_nodes_addresses 
 
 
 def get_cluster_node_id(node):
-	return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
+    if get('/cluster/nodes')[0]['address'] in '127.0.0.1':
+        ## cluster not cofigured yet
+        sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
+    else:
+        return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
 
 
 def get_vips():
@@ -1041,7 +1394,6 @@ def get_vips():
     ## GET
     result =  get(endpoint)
     return (result[0]['address'], result[0]['interface'], result[0]['remote_interface'][0]['interface'])
-
 
 def cluster_bind_set():
     """
@@ -1068,7 +1420,7 @@ def create_vip():
     if len(nics)==2:
         nic_a, nic_b = nics
     else:
-        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
+        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two nics t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = False if len(cluster_ip_addresses) == 1 else True
     node_b_address = cluster_ip_addresses
@@ -1095,10 +1447,10 @@ def create_vip():
     else:
         print_with_timestamp( 'New VIP: {} set, with: {} on: {}.'.format(vip_ip, ','.join(nics), pool_name ))
 
-
+    
 def set_mirror_path():
     global action_message
-    action_message = 'Sending Mirror Path set request to: {}'.format(node)
+    action_message = 'Sending Mirror Path Set request to: {}'.format(node)
 
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
@@ -1137,7 +1489,7 @@ def get_ping_nodes():
 
 def set_ping_nodes():
     global action_message
-    action_message = 'Sending Ping Node set request to: {}'.format(node)
+    action_message = 'Sending Ping Node Set request to: {}'.format(node)
 
     current_ping_nodes = get_ping_nodes()
     if current_ping_nodes is None:
@@ -1164,11 +1516,11 @@ def set_ping_nodes():
 def start_cluster():
     global action_message
     action_message = 'Sending Cluster Service Start request to: {}'.format(node)
-
+    
     started = False
-
+    
     cluster_nodes_addresses = get_cluster_nodes_addresses()
-    if cluster_nodes_addresses.pop() in '127.0.0.1' :
+    if not cluster_bind_set():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
 
     ## GET
@@ -1205,12 +1557,15 @@ def start_cluster():
 
 
 def move():
+
     global node
     global nodes
     global action_message
-    action_message = 'Sending Failover (Move) request to: {}'.format(node)
+    action_message = 'Sending Failover(Move) request to: {}'.format(node)
     command_line_node = node
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
+    if len(nodes)<2:
+        sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
     active_node = ''
     passive_node = ''
     new_active_node = ''
@@ -1260,9 +1615,10 @@ def move():
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
+    
     global node    ## the node IP can be changed
     global action_message
-    action_message = 'Sending Network set request to: {}'.format(node)
+    action_message = 'Sending Network Setting request to: {}'.format(node)
     timeouted = False
     
     # list_of_ip
@@ -1344,20 +1700,22 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         if timeouted:
             node = ip_addr  ## the node IP was changed (ip_addr set above & not new_ip_addr)
         time.sleep(1)
-    ## set default gateway interface
+    ##
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
+    if 'bond' in nic_name:
+        print_with_timestamp( '{} created with IP: {}'.format(nic_name, new_ip_addr))
+    ## set default gateway interface
     if new_gw:
         set_default_gateway()
 
+    ## set dns
     dns = convert_comma_separated_to_list(new_dns)
     if dns is not None:
         set_dns(dns)
 
-    if "HTTPSConnectionPool" in error and "timeout" in error:
-        print_with_timestamp( 'The acccess NIC {} changed to {}'.format(new_ip_addr))
-
 
 def delete_bond(bond_name):
+    
     global node    ## the node IP can be changed
     global action_message
     action_message = 'Sending Delete Bond request to: {}'.format(node)
@@ -1477,9 +1835,11 @@ def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
     '''
     global node
+    global action_message
 
     for node in nodes:
         ## GET
+        action_message = 'Reading setup details from: {}'.format(node)
         version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
         serial_number = '{} TRIAL'.format(serial_number) if serial_number.startswith('T') else serial_number
@@ -1605,7 +1965,7 @@ def jbods_listing(jbods):
     jbod = []
     if available_disks :
         for j,jbod in enumerate(jbods):
-            print("\tjbod-{}\n\t{}".format(j,line_sep))
+            print("\tjbod-{}\n\t{}".format(j,line_separator))
             if jbod :
                 for d,disk in enumerate(jbod):
                     print("\t{:2d} {}\t{} GB\t{}\t{}".format(
@@ -1663,6 +2023,64 @@ def create_pool(pool_name,vdev_type,jbods):
             time.sleep(5)
     else:
         sys_exit_with_timestamp( 'Error: Cannot create {}.'.format(pool_name))
+        
+
+def create_volume(vol_type):
+    #######################   print('vol_type: ',vol_type,' size: ',size)
+    if vol_type == 'volume':
+        endpoint='/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
+        data=dict(name=volume_name, sparse=sparse, size=size)
+        result=post(endpoint,data)
+    if vol_type == 'dataset':
+        endpoint='/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
+        data=dict(name=volume_name)
+        result=post(endpoint,data)
+
+
+def enable_smb_nfs():
+    for service in storage_type:
+        endpoint = '/services/{SERVICE}'.format(SERVICE=service.lower())
+        enabled = get(endpoint)['enabled']
+        if not enabled:
+            put(endpoint,dict(enabled=True))
+
+    
+def create_storage_resource():
+    global node
+    global volume_name
+    global target_name
+    global auto_target_name ##used by function create_target()
+    global share_name
+    global quantity
+    global action_message
+    action_message = 'Sending Create Storage Resource to: {}'.format(node)
+    initialize_pool_based_consecutive_number_generator()
+    ## pool_based_consecutive_number_generator
+    node = get_active_cluster_node_address_of_given_pool(pool_name)
+    generate_automatic_name = (
+        True if target_name == 'auto' else False) or (
+        True if share_name  == 'auto' else False)
+    
+    while quantity:
+        if generate_automatic_name:
+            if 'ISCSI' in storage_type:
+                target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
+            if 'SMB' in storage_type:
+                share_name,volume_name = generate_share_and_volume_name(pool_name)
+        else:
+            quantity = 1
+        ## volume or dataset
+        create_volume(storage_volume_type) 
+        if 'ISCSI' in storage_type:
+            auto_target_name = target_name
+            ## target
+            create_target()
+            ## attach
+            attach_volume_to_target()
+        if 'SMB' in storage_type or 'NFS' in storage_type:
+            create_share()
+            enable_smb_nfs()
+        quantity -= 1
 
 
 def create_snapshot(vol_type,ignore_error=None):
@@ -1824,7 +2242,26 @@ def create_target(ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
     
 
-def attach_target(ignore_error=None):
+def attach_volume_to_target(ignore_error=None):
+    global node
+    for node in nodes:
+        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
+                   POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
+        data = dict(name=volume_name)       
+        ## POST
+        post(endpoint,data)
+        if error:
+            if ignore_error is None:
+                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
+                    auto_target_name,volume_name,node))
+        
+        print_with_timestamp('Volume: {} has been successfully attached to target.'.format(
+            volume_name))
+        print("\n\tTarget:\t{}".format(auto_target_name))
+        print("\tVolume:\t{}\n".format(volume_name))
+
+
+def attach_clone_to_target(ignore_error=None):
     global node
     for node in nodes:
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
@@ -1847,18 +2284,38 @@ def create_share_for_auto_clone(ignore_error=None):
     global node
     for node in nodes:
         endpoint = '/shares'
-        data = dict(name=auto_share_name,
+        data = dict(name=share_name,
                 path='{POOL_NAME}/{CLONE_NAME}'.format(POOL_NAME=pool_name, CLONE_NAME=clone_name),
                 smb=dict(enabled=True, visible=visible))   ### add visible=False
         ## POST
         post(endpoint,data)
         if error:
-            sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(auto_share_name,node))
+            sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(share_name,node))
 
         print_with_timestamp('Share for {}/{} has been successfully created.'.format(
                 pool_name,clone_name))
-        print("\n\tShare:\t\\\\{}\{}".format(node,auto_share_name))
+        print("\n\tShare:\t\\\\{}\{}".format(node,share_name))
         print("\tClone:\t{}/{}\n".format(pool_name,clone_name))
+
+
+###################################
+def create_share(ignore_error=None):
+    global node
+    for node in nodes:
+        endpoint = '/shares'
+        data = dict(name=share_name,
+                path='{POOL_NAME}/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name),
+                smb=dict(enabled=True if 'SMB' in storage_type else False ),
+                nfs=dict(enabled=True if 'NFS' in storage_type else False ))
+        ## POST
+        post(endpoint,data)
+        if error:
+            sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(share_name,node))
+
+        print_with_timestamp('Share for {}/{} has been successfully created.'.format(
+                pool_name,volume_name))
+        print("\n\tShare:\t\\\\{}\{}".format(node,share_name))
+        print("\tDataset:\t{}/{}\n".format(pool_name,volume_name))
 
 
 def create_new_backup_clone(vol_type):
@@ -1868,7 +2325,7 @@ def create_new_backup_clone(vol_type):
         create_share_for_auto_clone()
     if vol_type == 'volume':
         create_target(ignore_error=True)
-        attach_target()
+        attach_clone_to_target()
 
 
 def create_existing_backup_clone(vol_type):
@@ -1877,11 +2334,14 @@ def create_existing_backup_clone(vol_type):
         create_share_for_auto_clone()
     if vol_type == 'volume':
         create_target(ignore_error=True)
-        attach_target()
+        attach_clone_to_target()
 
 
 def count_available_disks(jbods):
-    return [ bool(d) for jbod in jbods  for d in jbod  ].count(True)
+    if jbods:
+        return [ bool(d) for jbod in jbods  for d in jbod  ].count(True)
+    else:
+        sys_exit_with_timestamp( 'Error: No disks available.')
 
 
 def merge_sublists(list_of_lists):
@@ -1949,7 +2409,7 @@ def user_choice():
 
 def read_jbods_and_create_pool(choice='0'):
 
-    global vdevs_num,vdev_type
+    global  vdevs_num,vdev_type
     global action_message
     action_message = 'Sending Create Pool request to: {}'.format(node)
 
@@ -1967,7 +2427,7 @@ def read_jbods_and_create_pool(choice='0'):
          L\t: List JBODs disks
          C\t: Create pool & quit
          Q\t: Quit
-        {}""".format(line_sep, line_sep, ",".join(map(str,range(given_jbods_num))), line_sep))
+        {}""".format(line_separator, line_separator, ",".join(map(str,range(given_jbods_num))), line_separator))
         print("\tGiven JBODs number: {}".format(given_jbods_num))
         print("\tPool to be created:\t{}: {}*{}[{} disk]".format(pool_name,vdevs_num,vdev_type,vdev_disks_num))
         if msg: print("\n\t{}\n\t".format(msg))
@@ -2004,7 +2464,7 @@ def read_jbods_and_create_pool(choice='0'):
             
             empty_jbod = False
             for i in range(jbods_num):
-                if not jbods[i]:
+                if not jbods[i]:       
                     empty_jbod = True
             ## non-interactive mode, run create after read
             if not menu:
@@ -2026,7 +2486,7 @@ def read_jbods_and_create_pool(choice='0'):
                     msg = 'Disks with different size present. Please press "r" in order to remove smaller disks.'
                 else:
                     jbods_id_only = convert_jbods_to_id_only(jbods)
-                    required_disks_num = vdevs_num * vdev_disks_num
+                    required_disks_num = vdevs_num * vdev_disks_num 
                     available_disks = count_available_disks(jbods_id_only)
                     if available_disks < required_disks_num:
                         msg ='Error: {}: {}*{}[{} disk] requires {} disks. {} disks available.\n'.format(
@@ -2039,7 +2499,7 @@ def read_jbods_and_create_pool(choice='0'):
                             create_pool(pool_name,vdev_type, jbods_id_only)
                         else:
                             ## limit to given vdevs_num
-                            jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only]
+                            jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only] 
                             create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
@@ -2064,7 +2524,7 @@ def main() :
     if action == 'clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
-            sys_exit_with_timestamp( 'Error: clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: Clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
         create_new_backup_clone( vol_type )
@@ -2072,7 +2532,7 @@ def main() :
     elif action == 'clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: Clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
         create_existing_backup_clone( vol_type )
@@ -2080,20 +2540,34 @@ def main() :
     elif action == 'delete_clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments(pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
 
     elif action == 'delete_clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments(pool, volume, snapshot), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
         read_jbods_and_create_pool()
  
+    elif action == 'scrub':
+        scrub()
+
+####################
+    elif action == 'create_storage_resource':
+        c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
+        if c < 5:
+            sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
+        if 'iqn' in target_name:
+            if storage_volume_type != 'volume':
+                sys_exit_with_timestamp( 'Error: inconsisten options.')
+        create_storage_resource()
+
+        
     elif action == 'set_host':
         c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
@@ -2101,27 +2575,27 @@ def main() :
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)
+        c = count_provided_args(timezone, ntp, ntp_servers)   
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
+        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)  
         if c not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
         if c not in (2,3,4):
-            sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
+            sys_exit_with_timestamp( 'Error: Bond create command expects at least 2 of arguments: -bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)   
         if c not in (0,1,2):
-            sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
+            sys_exit_with_timestamp( 'Error: Delete Bond command expects at least 2 of arguments: -bond_type, --bond_nics')
         delete_bond(nic_name)
 
     elif action == 'bind_cluster':
@@ -2148,9 +2622,10 @@ def main() :
             sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
         c = count_provided_args(pool_name, vip_name, vip_nics, vip_ip, vip_mask)
         if c not in (4,5):
-            sys_exit_with_timestamp( 'Error: create_vip command expects --pool, --vip_name, --vip_nics, --vip_ip and --vip_mask')
+            sys_exit_with_timestamp( 'Error: create_vip command expects --pool --vip_name --vip_nics --vip_ip and --vip_mask')
         create_vip()
 
+ 
     elif action == 'start_cluster':
         start_cluster()
 
@@ -2171,7 +2646,8 @@ def main() :
 
 
 if __name__ == '__main__':
-
+    
+    init()
     try:
         main()
     except KeyboardInterrupt:
