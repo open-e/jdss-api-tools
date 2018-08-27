@@ -191,45 +191,45 @@ EXAMPLES:
 
 <br>25. <b>Create storage resource</b>. Creates iSCSI target with volume or SMB share with dataset. iSCSI target with volume
 
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220
 
 with defaults: size=1TB, provisioning=thin volume=auto target_name=auto
 if target_name=auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
 if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --cluster=ha-00 192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --cluster=ha-00 192.168.0.220
 
    with missing --cluster=ha-00, it will produce same result as "ha-00" is default cluster name.
 
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi 192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi 192.168.0.220
        
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --volume=vol000 --share_name=data  192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=smb --volume=vol000 --share_name=data  192.168.0.220
 
    with defaults: volume=auto share_name=auto
 
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb  192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=smb  192.168.0.220
 
    and multi-resource with --quantity option, starting consecutive number from zero (default)
 
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5  192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5  192.168.0.220
 
    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with=10)
     
-    %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10  192.168.0.220
+    jdss-api-tools.exe create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10  192.168.0.220
     
 
 <br>26. Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
-    %(prog)s scrub 192.168.0.220
+    jdss-api-tools.exe scrub 192.168.0.220
 
    Scrub specified pools only.
    
-    %(prog)s scrub --pool=Pool-0 192.168.0.220
-    %(prog)s scrub --pool=Pool-0 --pool=Pool-1 --pool=Pool-2 192.168.0.220
+    jdss-api-tools.exe scrub --pool=Pool-0 192.168.0.220
+    jdss-api-tools.exe scrub --pool=Pool-0 --pool=Pool-1 --pool=Pool-2 192.168.0.220
     
    Stop of runnning scrub on all pools.
    
-    %(prog)s scrub --action=stop 192.168.0.220
+    jdss-api-tools.exe scrub --action=stop 192.168.0.220
  
 
 <br>27. Print system info.
