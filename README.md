@@ -189,7 +189,7 @@ EXAMPLES:
      jdss-api-tools.exe move --pool=Pool-0 192.168.0.82
 
 
-<br>25. <b>Create storage resource<\b>. Creates iSCSI target with volume or SMB share with dataset. iSCSI target with volume
+<br>25. <b>Create storage resource</b>. Creates iSCSI target with volume or SMB share with dataset. iSCSI target with volume
 
     %(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220
 
