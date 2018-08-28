@@ -96,7 +96,7 @@ EXAMPLES:
 
      jdss-api-tools.exe --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222
 
-    or with IP range syntax ".."
+   or with IP range syntax ".."
 
      jdss-api-tools.exe --pswd password shutdown 192.168.0.220..222
 
@@ -123,11 +123,11 @@ EXAMPLES:
 
      jdss-api-tools.exe network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220
 
-    Setting new DNS only.
+   Setting new DNS only.
 
      jdss-api-tools.exe network --new_dns=192.168.0.1 192.168.0.220
 
-    Setting new gateway only. The default gateway will be set automatically.
+   Setting new gateway only. The default gateway will be set automatically.
 
      jdss-api-tools.exe network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220
 
@@ -168,10 +168,10 @@ EXAMPLES:
 
 <br><b>22. Create VIP</b> (Virtual IP) examples.
 
-	If cluster is configured both vip_nics must be provided.
-	With single node (no cluster) only first vip_nic specified will be used.
-	The second vip_nic (if specified) will be ignored.
-	Default vip_mask = 255.255.255.0
+If cluster is configured both vip_nics must be provided.
+With single node (no cluster) only first vip_nic specified will be used.
+The second vip_nic (if specified) will be ignored.
+Default vip_mask = 255.255.255.0
 
 	 jdss-api-tools.exe create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100 --vip_mask=255.255.0.0 192.168.0.80
 
@@ -236,7 +236,7 @@ if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next 
 
      jdss-api-tools.exe info 192.168.0.220
 
-#########################################<br>
+##############################################################################################<br>
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
