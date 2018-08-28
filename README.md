@@ -31,7 +31,7 @@ EXAMPLES:
 
      jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220
 
-    The examples are using default password and port and make the shares invisible.
+   The examples are using default password and port and make the shares invisible.
 
      jdss-api-tools.exe clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220
      jdss-api-tools.exe clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220
