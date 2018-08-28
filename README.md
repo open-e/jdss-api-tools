@@ -236,7 +236,7 @@ if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next 
 
      jdss-api-tools.exe info 192.168.0.220
 
-##############################################################################################<br>
+#############################################################################################<br>
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
