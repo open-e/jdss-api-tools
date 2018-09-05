@@ -472,7 +472,8 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
 
-##################################################################################
+############################################################################################
+
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
@@ -2994,7 +2995,7 @@ def command_processor() :
 def print_README_md_for_GitHub():
     print(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s',' jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
     with open('README.md','w') as f:
-        f.write(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s',' jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
+        f.write(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s','    jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
     
 
 ##  FACTORY DEFAULT BATCH SETUP FILES
