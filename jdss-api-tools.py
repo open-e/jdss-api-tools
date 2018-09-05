@@ -194,12 +194,21 @@ def wait_for_node():
 
 
 def get_args(batch_args_line=None):
+    
+    global parser
 
     parser = argparse.ArgumentParser(
         prog='jdss-api-tools',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description='The %(prog)s remotely execute given command.',
-        epilog='''{LG}EXAMPLES:{ENDF}
+        epilog='''
+{LG}# jdss-api-tools{ENDF}
+
+
+{BOLD}Execute given JovianDSS command for automated setup and to control JovianDSS remotely.{END}
+
+
+{LG}EXAMPLES:{ENDF}
 
  1. {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
@@ -264,13 +273,13 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
- 10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
+10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
     Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
- 11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
 
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
@@ -279,7 +288,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
- 12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
+12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
@@ -287,22 +296,22 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
- 13. {BOLD}Reboot{END} single JovianDSS server.
+13. {BOLD}Reboot{END} single JovianDSS server.
 
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
- 14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
+14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
     {LG}%(prog)s set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220{ENDF}
 
- 15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
+15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
     {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
- 16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
+16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
     Missing netmask option will set default 255.255.255.0
 
@@ -316,24 +325,24 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
- 17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
+17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
     Default   active-backup
 
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
- 18. {BOLD}Delete bond{END}.
+18. {BOLD}Delete bond{END}.
 
     {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
- 19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80{ENDF}
+19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80{ENDF}
 
     RESTapi user   admin, RESTapi password   password, node-b GUI password   admin
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
- 20. {BOLD}Set HA-cluster ping nodes{END}. First IP   access node IP, next IPs are new ping nodes
+20. {BOLD}Set HA-cluster ping nodes{END}. First IP   access node IP, next IPs are new ping nodes
 
     RESTapi user   administrator, RESTapi password   password, netmask   255.255.0.0
 
@@ -343,11 +352,11 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s set_ping_nodes  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
- 21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
     {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
- 22. {BOLD}Create VIP (Virtual IP){END} examples. 
+22. {BOLD}Create VIP (Virtual IP){END} examples. 
 
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2,eth2 --vip_ip 192.168.21.100  --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2      --vip_ip 192.168.31.100  --node 192.168.0.80{ENDF}
@@ -356,17 +365,17 @@ def get_args(batch_args_line=None):
     With single node (no cluster) only first vip_nic specified will be used.
     The second nic (if specified) will be ignored. Default vip_mask 255.255.255.0
 
- 23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
+23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
     {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
- 24. {BOLD}Move (failover){END} given pool.
+24. {BOLD}Move (failover){END} given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node.
 
     {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
- 25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume or SMB share with dataset.
+25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume or SMB share with dataset.
 
     iSCSI target with volume
 
@@ -397,7 +406,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
     
 
- 26. {BOLD}Scrub start|stop{END}.
+26. {BOLD}Scrub start|stop{END}.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -411,7 +420,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s scrub --action stop --node 192.168.0.220{ENDF}
     
 
- 27. {BOLD}Set scrub scheduler{END}.
+27. {BOLD}Set scrub scheduler{END}.
     By default the command search all pools on node ot cluster(if configured) and set default schedule: evey month at 0:15.
     Every pool will set on diffrent month day.
 
@@ -438,7 +447,7 @@ def get_args(batch_args_line=None):
     https://{LG}192.168.0.220{ENDF}:82/api/v3/pools/{LG}Pool-0{ENDF}/scrub/scheduler
 
 
- 28. {BOLD}Genarate factory setup files for batch setup.{END}.
+28. {BOLD}Genarate factory setup files for batch setup.{END}.
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -447,7 +456,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
 
 
- 29. {BOLD}Execute factory setup files for batch setup.{END}.
+29. {BOLD}Execute factory setup files for batch setup.{END}.
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
      Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
@@ -458,12 +467,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
 
 
- 30. {BOLD}Print system info{END}.
+30. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
 
-#########################################
+##################################################################################
 After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
@@ -482,7 +491,6 @@ Missing Python modules need to be installed with pip, e.g.:
 NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-
 '''
 .format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## ENDS->End-Style, ENDF->End-Foreground
@@ -2983,6 +2991,11 @@ def command_processor() :
         reboot_nodes()
     
 
+def print_README_md_for_GitHub():
+    print(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s',' jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
+    with open('README.md','w') as f:
+        f.write(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s',' jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
+    
 
 ##  FACTORY DEFAULT BATCH SETUP FILES
 factory_setup_files_content = dict(
@@ -3162,3 +3175,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
+    print_README_md_for_GitHub()
