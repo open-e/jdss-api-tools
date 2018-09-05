@@ -246,11 +246,13 @@
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220
 
     <b>TIP:</b>
+    
     Quick schedule params check via browser on <b>Pool-0</b> on <b>192.168.0.220</b>:
+    
     https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-28. <b>Genarate factory setup files for batch setup.</b>.
+28. <b>Genarate factory setup files for batch setup.</b>
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -259,7 +261,7 @@
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80 192.168.0.81
 
 
-29. <b>Execute factory setup files for batch setup.</b>.
+29. <b>Execute factory setup files for batch setup.</b>
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
      Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
