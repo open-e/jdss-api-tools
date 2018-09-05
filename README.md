@@ -203,18 +203,24 @@
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220
     
 
-26. <b>Scrub start|stop</b>.
+26. <b>Scrub</b> start|stop|status.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
         jdss-api-tools.exe scrub 192.168.0.220
 
-    Scrub specified pools only.
+    Scrub on specified pools only.
     
         jdss-api-tools.exe scrub --pool Pool-0 --node 192.168.0.220
         jdss-api-tools.exe scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220
 
+    Stop scrub on all pools.
+    
         jdss-api-tools.exe scrub --action stop --node 192.168.0.220
+
+    Scrub status on all pools.
+    
+        jdss-api-tools.exe scrub --action status --node 192.168.0.220
     
 
 27. <b>Set scrub scheduler</b>.
@@ -240,7 +246,7 @@
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220
 
     <b>TIP:</b>
-    Quick schedule params check via browser on  Pool-0 192.168.0.220:
+    Quick schedule params check via browser on  Pool-0 on  192.168.0.220:
     https:// 192.168.0.220:82/api/v3/pools/ Pool-0/scrub/scheduler
 
 
@@ -261,7 +267,8 @@
      Once the second node is up, also the REST api must be enabled via GUI.
 
 
-        jdss-api-tools.exe batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt api_test_cluster_80.txt  --node 192.168.0.80
+        jdss-api-tools.exe batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80
+        jdss-api-tools.exe batch_setup  --setup_files  api_test_cluster_80.txt  --node 192.168.0.80
 
 
 30. <b>Print system info</b>.

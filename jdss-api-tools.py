@@ -406,18 +406,24 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
     
 
-26. {BOLD}Scrub start|stop{END}.
+26. {BOLD}Scrub{END} start|stop|status.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
     {LG}%(prog)s scrub 192.168.0.220{ENDF}
 
-    Scrub specified pools only.
+    Scrub on specified pools only.
     
     {LG}%(prog)s scrub --pool Pool-0 --node 192.168.0.220{ENDF}
     {LG}%(prog)s scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220{ENDF}
 
+    Stop scrub on all pools.
+    
     {LG}%(prog)s scrub --action stop --node 192.168.0.220{ENDF}
+
+    Scrub status on all pools.
+    
+    {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
     
 
 27. {BOLD}Set scrub scheduler{END}.
@@ -443,8 +449,8 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220{ENDF}
 
     {BOLD}TIP:{END}
-    Quick schedule params check via browser on {LG}Pool-0 192.168.0.220{ENDF}:
-    https://{LG}192.168.0.220{ENDF}:82/api/v3/pools/{LG}Pool-0{ENDF}/scrub/scheduler
+    Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
+    https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
 28. {BOLD}Genarate factory setup files for batch setup.{END}.
@@ -464,7 +470,8 @@ def get_args(batch_args_line=None):
      Once the second node is up, also the REST api must be enabled via GUI.
 
 
-    {LG}%(prog)s batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
+    {LG}%(prog)s batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80{ENDF}
+    {LG}%(prog)s batch_setup  --setup_files  api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
 
 
 30. {BOLD}Print system info{END}.
@@ -495,6 +502,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 '''
 .format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## ENDS->End-Style, ENDF->End-Foreground
+
     global commands    
     commands = parser.add_argument(
         'cmd',
@@ -838,8 +846,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     )
 
 
+    ## TESTING ONLY !
+    test_mode = False
+    test_command_line = 'info --node 192.168.0.80'
+    
+    
     ## ARGS
-    if batch_args_line:
+    if test_mode:
+         args = parser.parse_args(test_command_line.split())
+    elif batch_args_line:
         args = parser.parse_args(batch_args_line.split())
     else:
         args = parser.parse_args()
@@ -2992,11 +3007,6 @@ def command_processor() :
         reboot_nodes()
     
 
-def print_README_md_for_GitHub():
-    print(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s',' jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
-    with open('README.md','w') as f:
-        f.write(parser.epilog.replace('\x1b[1m','<br><b>').replace('\x1b[22m','</b>').replace('\x1b[92m%(prog)s','    jdss-api-tools.exe').replace('\x1b[92m',' ').replace('\x1b[39m',''))
-    
 
 ##  FACTORY DEFAULT BATCH SETUP FILES
 factory_setup_files_content = dict(
@@ -3165,6 +3175,16 @@ def main() :
                 print_with_timestamp( '{}\twriten into current directory.'.format(file_name))
     else:
         command_processor()
+
+
+def print_README_md_for_GitHub():
+    with open('README.md','w') as f:
+        f.write(parser.epilog.replace(
+            '\x1b[1m','<b>').replace(
+            '\x1b[22m','</b>').replace(
+            '\x1b[92m%(prog)s','    jdss-api-tools.exe').replace(
+            '\x1b[92m',' ').replace(
+            '\x1b[39m',''))
 
 
 if __name__ == '__main__':
