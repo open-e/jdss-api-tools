@@ -37,7 +37,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-27  network improvements and fixes
 2018-08-08  add create_vip
 2018-08-27  add create storage resources and scrub and help-in-color
-
+2018-09-05  add batch_setup, create_factory_setup_files, scrub, set_scrub_scheduler, node-ip requires --nodes prefix 
 """
     
 from __future__ import print_function
@@ -47,6 +47,7 @@ import datetime
 import argparse
 import collections
 import ipcalc
+import ping
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
 from colorama import init
@@ -138,6 +139,25 @@ def delete(endpoint,data):
 '''
 
 def wait_for_node():
+
+    global waiting_dots_printed
+    waiting_dots_printed = False
+    ## PING
+    repeat = 100
+    counter = 0
+    while ping.quiet_ping(node)[0]>0:
+        if counter < 2:
+            print_with_timestamp( 'Node {} does not respond to ping command.'.format(node))
+        elif counter > 1:
+            print('.',end='')
+            waiting_dots_printed = True
+        counter += 1
+        if counter == repeat:   ## Connection timed out
+            exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+
+    waiting_dots_printed = False
+
+    ## REST API
     repeat = 100
     counter = 0
     while True:
@@ -147,12 +167,14 @@ def wait_for_node():
             api.driver.get(endpoint)['data']  ## GET
         except Exception as e:
             error = str(e[0])
-            if counter % 3:
+            if counter in (1,2):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
-            else:
-                if counter >0:
+            elif counter == 3:
                     print_with_timestamp(
                     'Please enable REST API on {} in GUI: System Settings -> Administration -> REST access, or check access credentials.'.format(node))
+            elif counter > 3:
+                print('.',end='')
+                waiting_dots_printed = True
         else:
             try:
                 if to_print_timestamp_msg[node]:
@@ -170,7 +192,8 @@ def wait_for_node():
         if counter == repeat:   ## Connection timed out
             exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
-def get_args():
+
+def get_args(batch_args_line=None):
 
     parser = argparse.ArgumentParser(
         prog='jdss-api-tools',
@@ -188,7 +211,7 @@ def get_args():
     If given volume is NAS dataset, the created clone will be exported via network share
     as shown in the next example.
 
-    {LG}%(prog)s clone --pool=Pool-0 --volume=zvol00 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
  2. {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
@@ -196,56 +219,56 @@ def get_args():
     So, the share exports most recent data every run. The share is invisible by default.
     The example is using default password and port and make the share visible with default share name.
 
-    {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --visible 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --node 192.168.0.220{ENDF}
 
     The examples are using default password and port and make the shares invisible.
      
-    {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup 192.168.0.220{ENDF}
-    {LG}%(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool Pool-0 --volume vol01 --share_name vol01_backup --node 192.168.0.220{ENDF}
 
  3. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
 
-    {LG}%(prog)s delete_clone --pool=Pool-0 --volume=zvol00 192.168.0.220{ENDF}
+    {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
  4. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
 
-    {LG}%(prog)s delete_clone --pool=Pool-0 --volume=vol00 192.168.0.220{ENDF}
+    {LG}%(prog)s delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220{ENDF}
 
  5. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
     The example is using password 12345 and default port.
 
-    {LG}%(prog)s clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
+    {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
  6. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     The example is using password 12345 and default port.
 
-    {LG}%(prog)s clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
+    {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
  7. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
-    {LG}%(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=zvol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
+    {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
  8. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
-    {LG}%(prog)s delete_clone_existing_snapshot --pool=Pool-0 --volume=vol00 --snapshot=autosnap_2018-06-07-080000 192.168.0.220 --pswd 12345{ENDF}
+    {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
  9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
     Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
-    {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 192.168.0.220{ENDF}
+    {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
  10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
     Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
-    {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 192.168.0.220{ENDF}
+    {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
  11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
 
@@ -254,127 +277,127 @@ def get_args():
     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
     Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
-    {LG}%(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 192.168.0.220{ENDF}
+    {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
  12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
 
-    {LG}%(prog)s --pswd password shutdown 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
+    {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
     or with IP range syntax ".."
 
-    {LG}%(prog)s --pswd password shutdown 192.168.0.220..222{ENDF}
+    {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
  13. {BOLD}Reboot{END} single JovianDSS server.
 
-    {LG}%(prog)s reboot 192.168.0.220{ENDF}
+    {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
  14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
-    {LG}%(prog)s set_host --host=node220 --server=server220 --description=jdss220 192.168.0.220{ENDF}
+    {LG}%(prog)s set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220{ENDF}
 
  15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
-    {LG}%(prog)s set_time --timezone=America/New_York 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone=America/Chicago 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone=America/Los_Angeles 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone=Europe/Berlin 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
  16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
     Missing netmask option will set default 255.255.255.0
 
-    {LG}%(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.220{ENDF}
+    {LG}%(prog)s network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
     Setting new DNS only.
 
-    {LG}%(prog)s network --new_dns=192.168.0.1 192.168.0.220{ENDF}
+    {LG}%(prog)s network --new_dns 192.168.0.1 --node 192.168.0.220{ENDF}
 
     Setting new gateway only. The default gateway will be set automatically.
 
-    {LG}%(prog)s network --nic=eth0 --new_gw=192.168.0.1 192.168.0.220{ENDF}
+    {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
- 17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-    Default = active-backup
+ 17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
+    Default   active-backup
 
-    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 192.168.0.80{ENDF}
-    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80{ENDF}
-    {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --bond_type=active-backup --new_ip=192.168.0.80 --new_gw=192.168.0.1 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
  18. {BOLD}Delete bond{END}.
 
-    {LG}%(prog)s delete_bond --nic=bond0 192.168.0.80{ENDF}
+    {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
  19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80{ENDF}
 
-    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
+    RESTapi user   admin, RESTapi password   password, node-b GUI password   admin
 
-    {LG}%(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin 192.168.0.80 192.168.0.81{ENDF}
+    {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
- 20. {BOLD}Set HA-cluster ping nodes{END}. First IP = access node IP, next IPs are new ping nodes
+ 20. {BOLD}Set HA-cluster ping nodes{END}. First IP   access node IP, next IPs are new ping nodes
 
-    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+    RESTapi user   administrator, RESTapi password   password, netmask   255.255.0.0
 
-    {LG}%(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242{ENDF}
+    {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80 {ENDF}
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
+    Same, but with defaults: user   admin, password   admin and netmask   255.255.255.0
 
-    {LG}%(prog)s set_ping_nodes 192.168.0.80 192.168.0.240 192.168.0.241 192.168.0.242{ENDF}
+    {LG}%(prog)s set_ping_nodes  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
  21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
-    {LG}%(prog)s set_mirror_path --mirror_nics=eth4,eth4 192.168.0.82{ENDF}
+    {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
  22. {BOLD}Create VIP (Virtual IP){END} examples. 
 
-    {LG}%(prog)s create_vip --pool=Pool-0 --vip_name=vip21 --vip_nics=eth2,eth2 --vip_ip=192.168.21.100  --vip_mask=255.255.0.0 192.168.0.80{ENDF}
-    {LG}%(prog)s create_vip --pool=Pool-0 --vip_name=vip31 --vip_nics=eth2      --vip_ip=192.168.31.100  192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2,eth2 --vip_ip 192.168.21.100  --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2      --vip_ip 192.168.31.100  --node 192.168.0.80{ENDF}
 
     If cluster is configured both vip_nics must be provided.
     With single node (no cluster) only first vip_nic specified will be used.
-    The second nic (if specified) will be ignored. Default vip_mask=255.255.255.0
+    The second nic (if specified) will be ignored. Default vip_mask 255.255.255.0
 
  23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
-    {LG}%(prog)s start_cluster 192.168.0.82{ENDF}
+    {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
  24. {BOLD}Move (failover){END} given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node.
 
-    {LG}%(prog)s move --pool=Pool-0 192.168.0.82{ENDF}
+    {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
  25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume or SMB share with dataset.
 
     iSCSI target with volume
 
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-08:ha-00.target0 --size=1TB --provisioning=thin 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target_name iqn.2018-08:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    with defaults: size=1TB, provisioning=thin volume=auto target_name=auto
-    if target_name=auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
+    with defaults: size 1TB, provisioning thin volume auto target_name auto
+    if target_name auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
     if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --cluster=ha-00 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
 
-    with missing --cluster=ha-00, it will produce same result as "ha-00" is default cluster name.
+    with missing --cluster ha-00, it will produce same result as "ha-00" is default cluster name.
 
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
        
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --volume=vol000 --share_name=data  192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol000 --share_name data  --node 192.168.0.220{ENDF}
 
-    with defaults: volume=auto share_name=auto
+    with defaults: volume auto share_name auto
 
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb  192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb  --node 192.168.0.220{ENDF}
 
     and multi-resource with --quantity option, starting consecutive number from zero (default)
 
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5  192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5  --node 192.168.0.220{ENDF}
 
-    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with=10)
+    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10)
     
-    {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10  192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
     
 
- 26. {BOLD}Scrub {END}.
+ 26. {BOLD}Scrub start|stop{END}.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -382,33 +405,103 @@ def get_args():
 
     Scrub specified pools only.
     
-    {LG}%(prog)s scrub --pool=Pool-0 192.168.0.220{ENDF}
-    {LG}%(prog)s scrub --pool=Pool-0 --pool=Pool-1 --pool=Pool-2 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --pool Pool-0 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220{ENDF}
 
-    {LG}%(prog)s scrub --action=stop 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --action stop --node 192.168.0.220{ENDF}
     
+
+ 27. {BOLD}Set scrub scheduler{END}.
+    By default the command search all pools on node ot cluster(if configured) and set default schedule: evey month at 0:15.
+    Every pool will set on diffrent month day.
+
+    {LG}%(prog)s set_scrub_scheduler --node 192.168.0.220{ENDF}
+
+    set default schedule on Pool-0 and Pool-1 only.
     
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
 
- 27. {BOLD}Print system info{END}.
+    set chedule on every week on Monday at 1:10 AM on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --day_of_the_week 1 --hour 1 --minute 10 --node 192.168.0.220{ENDF}
 
-    {LG}%(prog)s info 192.168.0.220{ENDF}
-'''.format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
+    set chedule on every day at 2:30 AM on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --hour 2 --minute 30 --node 192.168.0.220{ENDF}
+
+    set chedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220{ENDF}
+
+    {BOLD}TIP:{END}
+    Quick schedule params check via browser on {LG}Pool-0 192.168.0.220{ENDF}:
+    https://{LG}192.168.0.220{ENDF}:82/api/v3/pools/{LG}Pool-0{ENDF}/scrub/scheduler
+
+
+ 28. {BOLD}Genarate factory setup files for batch setup.{END}.
+    It creates and overwrite(if previously created) batch setup files.
+    Setup files need to be edited and changed to required setup accordingly.
+    For single node setup single node ip address can be specified.
+    For cluster, both cluster nodes, so it will create setup file for every node.
+
+    {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
+
+
+ 29. {BOLD}Execute factory setup files for batch setup.{END}.
+     This example run setup for nodes 192.168.0.80, 192.168.0.81.
+     Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
+     First only one node must be started. Once booted, the REST api must be enabled via GUI.
+     The batch setup will start to cofigure first node. Now, the second node can be booted.
+     Once the second node is up, also the REST api must be enabled via GUI.
+
+
+    {LG}%(prog)s batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
+
+
+ 30. {BOLD}Print system info{END}.
+
+    {LG}%(prog)s info --node 192.168.0.220{ENDF}
+
+
+#########################################
+After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
+
+	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
+
+And try it:
+
+	C:\Python27>dist\jdss-api-tools.exe -h
+
+Missing Python modules need to be installed with pip, e.g.:
+
+	C:\Python27\Scripts>pip install ipcalc
+	C:\Python27\Scripts>pip install ping
+	C:\Python27\Scripts>pip install colorama
+
+
+NOTE:
+In case of error: "msvcr100.dll missing...",
+download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+
+'''
+.format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## ENDS->End-Style, ENDF->End-Foreground
-    
-    parser.add_argument(
+    global commands    
+    commands = parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'create_storage_resource', 'delete_clone',
+        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'delete_clone',
                  'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes','set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
-                 'shutdown', 'reboot'],
+                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:  %(choices)s.'
     )
     parser.add_argument(
-        'ip',
-        metavar='jdss-ip-addr',
+        '--nodes',
+        metavar='ip-addr',
+        required=True,
         nargs='+',
-        help='Enter nodes IP(s). Some commands work with multi nodes. Enter comma separated IP or with .. range of IPs.'
+        help='Enter nodes IP(s). Some commands work with multi nodes. Enter space separated IP or with .. range of IPs.'
     )
     parser.add_argument(
         '--pool',
@@ -424,9 +517,9 @@ def get_args():
     )
     parser.add_argument(
         '--storage_type',
-        metavar='iscsi|smb|nfs|smb,nfs|fc',
-        choices=['iscsi', 'smb', 'nfs','smb,nfs','fc'],
-        help='Enter iscsi or fc(not implemented yet) or smb or nfs or smb,nfs.'
+        metavar='iscsi|smb|nfs|smb nfs|fc',
+	nargs='+',
+        help='Enter iscsi or fc(not implemented yet) or smb or nfs or smb nfs.'
     )
     parser.add_argument(
         '--size',
@@ -543,7 +636,7 @@ def get_args():
     )
     parser.add_argument(
         '--nic',
-        metavar='eth#',
+        metavar='name',
         default=None,
         help='Enter NIC name. Example: eth0, eth1, bond0, bond1, etc.'
     )
@@ -573,21 +666,29 @@ def get_args():
     )
     parser.add_argument(
         '--bond_type',
-        metavar='bond_type',
-        default='active-backup',   
-        help='Enter bond type: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb. Default=active-backup'
+        metavar='type',
+        choices=['active-backup', 'balance-rr'],
+        default='active-backup',
+        help='Enter bond type: balance-rr, active-backup. Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
-        default='eth0,eth1',   
-        help='Enter comma separated bond NICs. Default=eth0,eth1'
+        nargs='+',
+        help='Enter at least two nics names, space separated bond NICs.'
     )
     parser.add_argument(
         '--mirror_nics',
         metavar='nics',
+        nargs='+',
         default=None,   
-        help='Enter comma separated mirror path NICs.'
+        help='Enter space separated mirror path NICs.'
+    )
+    parser.add_argument(
+        '--ping_nodes',
+        metavar='ip-addr',
+        nargs='+',
+        help='Enter ping nodes IP(s). Enter at least 2 space separated IPs.'
     )
     parser.add_argument(
         '--vip_name',
@@ -598,8 +699,9 @@ def get_args():
     parser.add_argument(
         '--vip_nics',
         metavar='nics',
+        nargs='+',
         default=None,   
-        help='Enter comma separated both cluster nodes NICs, or single NIC for single node. '
+        help='Enter space separated both cluster nodes NICs, or single NIC for single node. '
     )
     parser.add_argument(
         '--vip_ip',
@@ -673,15 +775,65 @@ def get_args():
         help='Enter scrub action, Default=start.'
     )
     parser.add_argument(
+        '--day_of_the_month',
+        metavar='day',
+        nargs = '*',
+        choices=[str(i) for i in range(1,32)],
+        default = all,  
+        help='Enter the day of a month of schedule plan. Default=1.'
+    )
+    parser.add_argument(
+        '--month_of_the_year',
+        metavar='day',
+        nargs = '*',
+        choices=[str(i) for i in range(1,13)],
+        default = all,  
+        help='Enter the month or months (space separated) of the year of schedule plan, Default 1 2 3 4 5 6 7 8 9 10 11 12 (every-month).'
+    )
+    parser.add_argument(
+        '--day_of_the_week',
+        metavar='day',
+        nargs = '*',
+        choices=[str(i) for i in range(1,8)],
+        default = all,  
+        help='Enter the day or days (space separated) of the week of schedule plan.'
+    )
+    parser.add_argument(
+        '--hour',
+        metavar='hour',
+        nargs = '*',
+        choices=[str(i) for i in range(24)],
+        default = all,  
+        help='Enter the hour of schedule plan, Default=0.'
+    )
+    parser.add_argument(
+        '--minute',
+        metavar='minute',
+        nargs = '*',
+        choices=[str(i) for i in range(60)],
+        default = all,  
+        help='Enter the minute of schedule plan, Default=15.'
+    )
+    parser.add_argument(
         '--menu',
         dest='menu',
         action='store_true',
         default=False,
         help='Interactive menu. Auto-start with --jbods_num > 1'
     )
+    parser.add_argument(
+        '--setup_files',
+        metavar='file',
+        nargs='+',
+        type=argparse.FileType('r')
+    )
+
 
     ## ARGS
-    args = parser.parse_args()
+    if batch_args_line:
+        args = parser.parse_args(batch_args_line.split())
+    else:
+        args = parser.parse_args()
     ## convert args Namespace to dictionary
     args = vars(args)
     ## '' in command line is validated as "''"
@@ -690,21 +842,26 @@ def get_args():
         if type(value) is str:
             if value in "''":
                 args[key] = ""
+
     
     global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type, size, sparse, snapshot_name
-    global delay, nodes, node, menu
+    global nodes, ping_nodes, node
+    global delay, menu
     global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
     global bind_node_password
-    global to_print_timestamp_msg
+    global to_print_timestamp_msg, waiting_dots_printed
     global pool_based_consecutive_number_generator
     global cluster_pool_names
     global target_name, cluster_name
     global quantity, start_with
     global scrub_action
+    global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
+
+    global setup_files
     
 
     api_port                = args['port']
@@ -753,13 +910,34 @@ def get_args():
     vip_mask                = args['vip_mask']
 
     delay                   = args['delay']
-    nodes                   = args['ip']
+    nodes                   = args['nodes']
+    ping_nodes              = args['ping_nodes']
 
     scrub_action            = args['scrub_action']
+    day_of_the_month        = args['day_of_the_month']
+    month_of_the_year       = args['month_of_the_year']
+    day_of_the_week         = args['day_of_the_week']
+    hour                    = args['hour']
+    minute                  = args['minute']
+    
     menu                    = args['menu']
+    setup_files             = args['setup_files']
+    
 
-    to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
-
+    ## scrub scheduler
+    ## set default to 1st of every month at 0:15
+    if day_of_the_month == all:
+        day_of_the_month = '1'
+    if month_of_the_year == all:
+        month_of_the_year = '*'
+    if day_of_the_week == all:
+        day_of_the_week = '*'
+    if hour == all:
+        hour = '0'
+    if minute == all:
+        minute = '15'
+  
+    
     pools_names = pool_name
     if pool_name:
         pool_name = pool_name[0]
@@ -769,11 +947,16 @@ def get_args():
     if jbods_num > 1: 
         menu = True
 
-    ## storage_type         ISCSI, FC, SMB, NFS or SMB,NFS
+    ## storage_type   list  ISCSI, FC, SMB, NFS or SMB,NFS
     ## storage_volume_type  ISCSI, FC ='volume', SMB, NFS ='dataset'
     if storage_type:
-        storage_type = storage_type.upper()
-        storage_type = convert_comma_separated_to_list(storage_type)
+        storage_type=[ item.upper() for item in storage_type]
+        if len(storage_type)>1:
+            if not ('SMB' in storage_type and 'NFS' in storage_type):
+                sys_exit_with_timestamp('Error: Only SMB with NFS combination is allowed.')
+            else:
+                if 'FC' in storage_type :
+                    sys_exit_with_timestamp('Error: FC setup automation not implemented yet.')
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
         
@@ -804,9 +987,15 @@ def get_args():
 
     ## first node
     node    = nodes[0]
+    
+    ## True if action msg need to be printed
+    to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
+    waiting_dots_printed = False
+
             
     ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
     all_ip_addr = nodes[:]  ## copy
+    all_ip_addr = all_ip_addr + ping_nodes if ping_nodes else all_ip_addr
     for ip in new_ip_addr, new_gw, new_dns, new_mask:
         if ip:
             all_ip_addr.append(ip)
@@ -823,6 +1012,44 @@ def get_args():
     if not 22 <= api_port <= 65535:
         sys_exit( 'Port {} is out of allowed range 22..65535'.format(port))
 
+
+#_____________________END_OF_ARGS_____________________#
+
+
+
+def is_node_alive(test_node):
+    api = API.via_rest(test_node, api_port, api_user, api_password)
+    try:
+        result = api.driver.get('/conn_test')['data']
+    except:
+        result = None
+    return True if result else False
+
+    
+def wait_for_move_destination_node(test_node):
+    repeat = 100
+    counter = 0
+    time.sleep(15)
+    while not is_node_alive(test_node):
+        counter += 1
+        time.sleep(30)
+        print_with_timestamp( 'Waiting for : {}.'.format(test_node))
+        if counter == repeat:   ## timed out
+            exit_with_timestamp( 'Time out of waiting for : {}.'.format(test_node))
+
+
+def wait_for_zero_unmanaged_pools():
+    repeat = 300
+    counter = 0
+    time.sleep(5)
+    while is_node_running_any_unmanaged_pool():
+        counter += 1
+        time.sleep(20)
+        unmanaged_pools_names = unmanaged_pools()
+        print_with_timestamp( 'Unmanaged pools: {}. Wait for managed state.'.format(','.join(unmanaged_pools_names)))
+        if counter == repeat:   ## timed out
+            unmanaged_pools_names = unmanaged_pools()
+            exit_with_timestamp( 'Unmanaged pools: {}'.format(','.join(unmanaged_pools_names)))
 
 
 def human2bytes(s):
@@ -907,6 +1134,8 @@ def time_stamp_clone_syntax():
 
 
 def print_with_timestamp(msg):
+    if waiting_dots_printed:
+        print()
     print('{}  {}'.format(time_stamp(), msg))
 
 
@@ -964,17 +1193,29 @@ def display_delay(msg):
 
 def shutdown_nodes():
     global node
+    global action_message
+    action_message = 'Sending shutdown request to: {}'.format(node)
+    _nodes = get_cluster_nodes_addresses()
+    passive_node = [_node for _node in _nodes if _node not in node][0]
+    wait_for_move_destination_node(passive_node)
+    wait_for_zero_unmanaged_pools() 
     display_delay('Shutdown')
     for node in nodes:
-        post('/power/shutdown',dict(force=True))
+        post('/power/shutdown',dict(force=False))
         print_with_timestamp( 'Shutdown: {}'.format(node))
 
 
 def reboot_nodes() :
     global node
+    global action_message
+    action_message = 'Sending reboot request to: {}'.format(node)
+    _nodes = get_cluster_nodes_addresses()
+    passive_node = [_node for _node in _nodes if _node not in node][0]
+    wait_for_move_destination_node(passive_node)
+    wait_for_zero_unmanaged_pools() 
     display_delay('Reboot')
     for node in nodes:
-        post('/power/reboot', dict(force=True))
+        post('/power/reboot', dict(force=False))
         print_with_timestamp( 'Reboot: {}'.format(node))
 
 
@@ -1239,6 +1480,23 @@ def get_dns():
     else:
         return dns['servers']
 
+
+def set_scrub_scheduler():
+    global node
+    global action_message
+    action_message = 'Sending set scrub schedule request to: {}'.format(node)
+    if not pool_name:
+        cluster_pools_names = get_cluster_pools_names()
+    incr = 28 / len(cluster_pools_names)
+    _day_of_the_month = day_of_the_month
+    for _pool_name in sorted(cluster_pools_names):
+        data = dict(day_of_the_month=_day_of_the_month, hour=hour, month_of_the_year=month_of_the_year, day_of_the_week=day_of_the_week, minute=minute)
+        node = get_active_cluster_node_address_of_given_pool(_pool_name)
+        post('/pools/{POOL}/scrub/scheduler'.format(POOL = _pool_name), data)
+        print_with_timestamp( 'Scrub schedule set for: {} on {}'.format(_pool_name,node))
+        _day_of_the_month = str(int(_day_of_the_month)+incr)
+        
+
 def scrub():
     global node
     global action_message
@@ -1266,12 +1524,14 @@ def scrub():
     header= ('pool','state', 'scrub_start_time', 'end_time', 'rate', 'mins_left','examined', '%', 'total')
     fields= ('pool','state', 'start_time', 'end_time', 'rate', 'mins_left', 'examined', 'percent', 'total')
     print_scrub_pools_details(header,fields)
-
     
 
 def get_pools_names():
     pools = get('/pools')
-    return [pool['name'] for pool in pools]
+    if pools:
+        return [pool['name'] for pool in pools]
+    else:
+        return []
 
 
 def get_cluster_pools_names():
@@ -1280,7 +1540,8 @@ def get_cluster_pools_names():
     cluster_nodes = get_cluster_nodes_addresses()
     for node in cluster_nodes:
         pools = get('/pools')
-        cluster_pools_names += [pool['name'] for pool in pools]
+        if pools:
+            cluster_pools_names += [pool['name'] for pool in pools]
     return cluster_pools_names
 
 
@@ -1296,13 +1557,57 @@ def get_active_cluster_node_address_of_given_pool(pool_name):
             break
     return active_node
 
+
+def is_cluster_configured():
+    return get('/cluster')['enabled']
+
+
+def is_cluster_started():
+    result = ''
+    result = get('/cluster')
+    result = result['status'] if result else ''
+    return True if 'started' in result else False
+
+
+def is_node_running_all_managed_pools():
+    result = get('/cluster/resources')
+    if result:
+        return all((item['managed'] for item in result))
+    else:
+        return True  ## result is None if no cluster cofigured
+
+
+def is_node_running_any_unmanaged_pool():
+    result = get('/cluster/resources')
+    if result:
+        return not all((item['managed'] for item in result))
+    else:
+        return False  ## result is None if no cluster cofigured
+
+
+def managed_pools():
+    result = get('/cluster/resources')
+    if result:
+        return [item['name'] for item in result if item['managed']]
+    else:
+        return []
+
+
+def unmanaged_pools():
+    result = get('/cluster/resources')
+    if result:
+        return [item['name'] for item in result if not item['managed']]
+    return []
+
     
 def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
     consecutive_integer = pool_based_consecutive_number_generator[pool_name].next()
     consecutive_string = "{:0>3}".format(consecutive_integer)
     iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name, consecutive_string)
-    volume_name =                   "zvol{}".format(consecutive_string)
+    if is_cluster_configured():
+        iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
+    volume_name = "zvol{}".format(consecutive_string)
     return (iscsi_target_name, volume_name)
 
 def generate_share_and_volume_name(pool_name):
@@ -1369,12 +1674,12 @@ def get_ring_interface_of_first_node():
         sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
         
 
-
 def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
-    cluster_nodes_addresses = [cluster_node['address']for cluster_node in get('/cluster/nodes')]
-    if len(cluster_nodes_addresses)>1:
+    result = get('/cluster/nodes')
+    cluster_nodes_addresses = [cluster_node['address']for cluster_node in result ]
+    if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
         is_cluster = True
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
@@ -1386,7 +1691,8 @@ def get_cluster_node_id(node):
         ## cluster not cofigured yet
         sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
     else:
-        return (cluster_node['id']for cluster_node in get('/cluster/nodes') if cluster_node['address'] in node).next()
+        result = get('/cluster/nodes')
+        return (cluster_node['id']for cluster_node in result if cluster_node['address'] in node).next()
 
 
 def get_vips():
@@ -1414,7 +1720,8 @@ def create_vip():
     if not pool_name:
         sys_exit_with_timestamp( 'Error: Pool name missing.')
 
-    nics = convert_comma_separated_to_list(vip_nics)
+    #nics = convert_comma_separated_to_list(vip_nics)
+    nics = list(vip_nics)
     if len(nics)==1:
         nics.append(nics[0])
     if len(nics)==2:
@@ -1458,23 +1765,27 @@ def set_mirror_path():
     if cluster_nodes_addresses[0] != node:
         cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
         cluster_nodes_addresses[1], cluster_nodes_addresses[0]
-    _mirror_nics = convert_comma_separated_to_list(mirror_nics)
     for i, cluster_node_address in enumerate(cluster_nodes_addresses):
         node_id = get_cluster_node_id(cluster_node_address)
-        interfaces_items.append(dict(interface=_mirror_nics[i], node_id=node_id))
+        interfaces_items.append(dict(interface=mirror_nics[i], node_id=node_id))
     data = dict(interfaces=interfaces_items)
     return_code = {}
-
     ## POST
     return_code = post('/cluster/remote-disks/paths',data)
-
-    for _ in range(5):
+    is_all_OK = False
+    for _ in range(20):
         time.sleep(5)
-        if return_code and _mirror_nics == [item['_interface']for item in return_code['data']['_members']]:
-            print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(_mirror_nics)))
+        result = get('/cluster/remote-disks/paths')
+        is_all_OK = all(['OK' in interface['status'] for interface in result[0]['interfaces']])
+        if is_all_OK:
+            print()
+            print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(mirror_nics)))
             break
-    else:
-        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(_mirror_nics),error))
+        else:
+            print('.', end='')
+    if not is_all_OK:
+        print()
+        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(mirror_nics),error))
 
 
 def get_ping_nodes():
@@ -1495,9 +1806,10 @@ def set_ping_nodes():
     if current_ping_nodes is None:
         sys_exit_with_timestamp( 'Cannot set ping nodes on {}'.format(node))
     endpoint = '/cluster/ping-nodes'
-    e = None
-    ping_nodes = nodes[1:]
-    for ping_node in ping_nodes:
+    #e = None
+    if len(ping_nodes)<2:
+        print_with_timestamp( 'Warning: One ping node provided. At least 2 ping nodes are recommended')
+    for ping_node in ping_nodes:   
         if ping_node in current_ping_nodes:
             print_with_timestamp('Error: Ping node {} already set.'.format(ping_node))
             continue
@@ -1538,21 +1850,20 @@ def start_cluster():
         sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error))
 
     print_with_timestamp('Cluster service starting...')
-    time.sleep(30)
-
-    ## GET
+    
+    ## check start
+    is_started = False
     for _ in range(5):
-        time.sleep(5)
-        try:
-            status = get('/cluster/nodes')
-            started = status[0]['status'] == status[1]['status'] == 'online'
-        except:
-            continue
-        if started:
-            time.sleep(5)
+        is_started = is_cluster_started()
+        time.sleep(10)
+        if is_cluster:
+            print()
             print_with_timestamp('Cluster service started successfully.')
             break
-    else:
+        else:
+            print('.', end='')
+    if not is_cluster:
+        print()
         sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error if error else ''))
 
 
@@ -1563,6 +1874,9 @@ def move():
     global action_message
     action_message = 'Sending Failover(Move) request to: {}'.format(node)
     command_line_node = node
+    if not all((is_cluster_configured,is_cluster_started)):
+        sys_exit_with_timestamp( 'Error: Cluster not running on: {}.'.format(node))
+    time.sleep(15)  ## in batch mode reboot can be in progress
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
@@ -1571,7 +1885,8 @@ def move():
     new_active_node = ''
     for i,node in enumerate(nodes):
         if node not in command_line_node:
-            wait_for_node()
+            wait_for_move_destination_node(node)
+            #wait_for_node()
 
         ## GET
         pools = get('/pools')
@@ -1582,6 +1897,9 @@ def move():
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
+            ## wait ...
+            wait_for_move_destination_node(passive_node)
+            wait_for_zero_unmanaged_pools() 
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
@@ -1592,7 +1910,7 @@ def move():
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
-    for _ in range(5):
+    for _ in range(15):
         for node in nodes:
             ## GET
             pools = get('/pools')
@@ -1606,7 +1924,7 @@ def move():
         if new_active_node:
             break
         print_with_timestamp('Moving in progress...')
-        time.sleep(5)
+        time.sleep(10)
     if new_active_node == passive_node: ## after move (failover) passive node is active
         time.sleep(15)
         print_with_timestamp('{} is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
@@ -1677,18 +1995,32 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     action_message = 'Sending Create Bond request to: {}'.format(node)
 
     timeouted = False
-    
-    bond_nics = convert_comma_separated_to_list(bond_nics)
+
+    if len(bond_nics) <2:
+        sys_exit_with_timestamp( 'Error: at least two nics required')
     ip_addr = new_ip_addr if new_ip_addr else node
+
     endpoint='/network/interfaces'
-    data = dict(type='bonding',
-                configuration='static',
+
+    if 'active-backup' in bond_type.lower():
+        data = dict(type = 'bonding',
+                configuration = 'static',
                 address = ip_addr,
                 netmask = new_mask,
-                slaves= bond_nics,
+                slaves = bond_nics,
                 bond_mode = bond_type.lower(),
                 primary_interface = bond_nics[0],
-                bond_primary_reselect='failure')
+                bond_primary_reselect = 'failure')
+
+    if 'balance-rr' in bond_type.lower():
+        data = dict(type = 'bonding',
+                configuration = 'static',
+                address = ip_addr,
+                netmask = new_mask,
+                slaves = bond_nics,
+                bond_mode = bond_type.lower(),
+                bond_primary_reselect = 'always')
+
     if new_gw or new_gw == '':
         data["gateway"]=new_gw if new_gw else None
     ## POST
@@ -1702,8 +2034,10 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         time.sleep(1)
     ##
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
-    if 'bond' in nic_name:
+    if nic_name and ('bond' in nic_name):
         print_with_timestamp( '{} created with IP: {}'.format(nic_name, new_ip_addr))
+    else:
+        sys_exit_with_timestamp( 'Error: cannot create bond with {} on {}'.format(','.join(bond_nics), node))
     ## set default gateway interface
     if new_gw:
         set_default_gateway()
@@ -1825,11 +2159,13 @@ def bind_cluster(bind_ip_addr):
     ## POST
     result = post(endpoint, data)
 
-    if result and result['error'] is None:
+    ## GET and check 
+    bind_node_address = get('/cluster/nodes')[0]['address']
+    if bind_node_address != '127.0.0.1':
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
-
+    
 
 def info():
     ''' Time, Version, Serial number, Licence, Host name, DNS, GW, NICs, Pools
@@ -2026,7 +2362,7 @@ def create_pool(pool_name,vdev_type,jbods):
         
 
 def create_volume(vol_type):
-    #######################   print('vol_type: ',vol_type,' size: ',size)
+    
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         data=dict(name=volume_name, sparse=sparse, size=size)
@@ -2298,7 +2634,6 @@ def create_share_for_auto_clone(ignore_error=None):
         print("\tClone:\t{}/{}\n".format(pool_name,clone_name))
 
 
-###################################
 def create_share(ignore_error=None):
     global node
     for node in nodes:
@@ -2517,9 +2852,9 @@ def read_jbods_and_create_pool(choice='0'):
         print("\tNode {} {}: {}*{}[{} disk]".format(node, pool, *get_pool_details(node, pool)))
         
 
-def main() :
+def command_processor() :
 
-    get_args()
+    print()
 
     if action == 'clone':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
@@ -2557,7 +2892,10 @@ def main() :
     elif action == 'scrub':
         scrub()
 
-####################
+    elif action == 'set_scrub_scheduler':
+        set_scrub_scheduler()
+
+
     elif action == 'create_storage_resource':
         c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
         if c < 5:
@@ -2605,8 +2943,8 @@ def main() :
         bind_cluster(bind_ip_addr)
 
     elif action == 'set_ping_nodes':
-        if len(nodes) < 2:
-            sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 2 IP addresses')
+        if len(ping_nodes) < 1:
+            sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 1 IP addresses')
         set_ping_nodes()
 
     elif action == 'set_mirror_path':
@@ -2643,11 +2981,182 @@ def main() :
 
     elif action == 'reboot':
         reboot_nodes()
+    
+
+
+##  FACTORY DEFAULT BATCH SETUP FILES
+factory_setup_files_content = dict(
+    api_setup_single_node = """# The '#' comments-out the rest of the line
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth0	  --new_ip _192.168.0.80_   --node 192.168.0.220        # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth1	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth2	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth3	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth4	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+network     --nic eth5	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+#------------------------------------------------------------------------------------------------------------------------
+# network   --nic eth6	  --new_ip:nic         --node _192.168.0.80_
+# network   --nic eth7	  --new_ip:nic         --node _192.168.0.80_
+# network   --nic eth8	  --new_ip:nic         --node _192.168.0.80_
+# network   --nic eth9	  --new_ip:nic         --node _192.168.0.80_
+# network   --nic eth10	  --new_ip:nic        --node _192.168.0.80_
+# network   --nic eth11	  --new_ip:nic        --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE BOND : nodes bind and ring : with default --bond_type active-backup 
+#------------------------------------------------------------------------------------------------------------------------
+create_bond --bond_nics eth0 eth1   --new_ip:bond    --new_gw 192.168.0.1    --new_dns 192.168.0.1   --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE BOND : mirror path : active-backup or  balance-rr (round-robin) 
+#------------------------------------------------------------------------------------------------------------------------
+create_bond --bond_nics eth4 eth5   --new_ip:bond   --bond_type active-backup   --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+set_host  --host node-80-ha00 --server node-80-ha00 --node _192.168.0.80_           # SET HOST & SERVER
+#------------------------------------------------------------------------------------------------------------------------
+set_time  --timezone Europe/Berlin                  --node _192.168.0.80_           # SET TIME
+#------------------------------------------------------------------------------------------------------------------------
+info                                                --node _192.168.0.80_           # PRINT INFO
+#------------------------------------------------------------------------------------------------------------------------
+""",
+    api_setup_cluster = """# The '#' comments-out the rest of the line
+# BIND CLUSTER
+#------------------------------------------------------------------------------------------------------------------------
+bind_cluster        --nodes _192.168.0.80_ _192.168.0.81_
+#------------------------------------------------------------------------------------------------------------------------
+# PING NODES  
+#------------------------------------------------------------------------------------------------------------------------
+set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                          --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# MIRROR PATH
+#------------------------------------------------------------------------------------------------------------------------
+set_mirror_path     --mirror_nics bond1 bond1                                                       --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# START CLUSTER
+#------------------------------------------------------------------------------------------------------------------------
+start_cluster                                                                                       --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE Pool-0
+#------------------------------------------------------------------------------------------------------------------------
+create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4                            --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# VIP FOR Pool-0
+#------------------------------------------------------------------------------------------------------------------------
+create_vip      --pool Pool-0   --vip_name vip21    --vip_ip 192.168.21.100   --vip_nics eth2 eth2  --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# VIP FOR Pool-0
+#------------------------------------------------------------------------------------------------------------------------
+create_vip      --pool Pool-0   --vip_name vip31    --vip_ip 192.168.31.100   --vip_nics eth3 eth3  --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE Pool-1
+#------------------------------------------------------------------------------------------------------------------------
+create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4                          --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# VIP FOR Pool-1
+#------------------------------------------------------------------------------------------------------------------------
+create_vip      --pool Pool-1   --vip_name vip22    --vip_ip 192.168.22.100   --vip_nics eth2 eth2  --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# VIP FOR Pool-1
+#------------------------------------------------------------------------------------------------------------------------
+create_vip      --pool Pool-1   --vip_name vip32    --vip_ip 192.168.32.100   --vip_nics eth3 eth3  --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE ZVOLS
+#------------------------------------------------------------------------------------------------------------------------
+create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2                    --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# CREATE VOLs
+#------------------------------------------------------------------------------------------------------------------------
+create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# MOVE
+#------------------------------------------------------------------------------------------------------------------------
+move            --pool Pool-1   --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# SCRUB ALL
+#------------------------------------------------------------------------------------------------------------------------
+scrub                           --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
+# SET SCRUB SCHEDULER to all pools (also on other cluster node)
+#------------------------------------------------------------------------------------------------------------------------
+set_scrub_scheduler             --node 192.168.0.80
+#------------------------------------------------------------------------------------------------------------------------
+""",
+    api_test_cluster = """### The '#' comments-out the rest of the line ###
+move            --pool Pool-1   --node _192.168.0.80_	# move 
+move            --pool Pool-0   --node _192.168.0.80_	# move 
+move            --pool Pool-1   --node _192.168.0.80_	# move 
+move            --pool Pool-0   --node _192.168.0.80_	# move 
+move            --pool Pool-1   --node _192.168.0.80_	# move 
+scrub                           --node _192.168.0.80_   # scrub all
+reboot          --delay 5       --node _192.168.0.80_   # reboot
+move            --pool Pool-0   --node _192.168.0.80_	# move 
+move            --pool Pool-1   --node _192.168.0.80_	# move 
+reboot          --delay 1       --node _192.168.0.80_   # reboot
+scrub                           --node _192.168.0.80_   # scrub all
+move            --pool Pool-0   --node _192.168.0.80_	# move 
+""")
+
+
+def main() :
+
+    global nodes
+
+    if 'batch_setup' in action:
+        for setup_file in setup_files:
+            with setup_file as f:
+                for line in f.readlines():
+                    line = line.split('#')[0].strip()
+                    if line and line.split()[0] in commands.choices:
+                        get_args(line)
+                        command_processor()
+    elif 'create_factory_setup_files' in action:
+        trigger = True                      # to produce 2 files of "api_setup_single_node"
+        if len(nodes)==1:
+            nodes = nodes + nodes           # fake second node if missing in cli for simpler code
+            factory_files_names = factory_setup_files_content.keys()
+        else:
+            factory_files_names = factory_setup_files_content.keys() + ['api_setup_single_node']
+        for factory_file_name in factory_files_names:
+            if 'api_setup_single_node' in factory_file_name:
+                current_node = nodes[0] if trigger else nodes[1]
+                content = factory_setup_files_content[factory_file_name].replace('_192.168.0.80_',current_node)
+                ending = current_node.split('.')[-1]
+                host_server_name = 'node-{}-ha00'.format(ending)
+                content = content.replace('node-80-ha00',host_server_name)
+                for i in range(content.count('--new_ip:nic')):
+                    _current_node = current_node.replace('0.',str(i+1)+'.')
+                    content = content.replace('--new_ip:nic','--new_ip '+_current_node,1)
+                ## numbers of first nics in --bond_nics 
+                first_nics_number_of_bonds = [item.split()[0].strip().strip('eth') for item in content.split('--bond_nics') if item.strip().startswith('eth')]
+                for i in first_nics_number_of_bonds:
+                    _current_node = current_node.replace('0.',str(i)+'.')
+                    content = content.replace('--new_ip:bond','--new_ip '+_current_node,1)
+                trigger = False
+            else:
+                current_node = nodes[0]
+                content = factory_setup_files_content[factory_file_name].replace('_192.168.0.80_',current_node)
+                if nodes[0] != nodes[1]:    # replace the second ip in bind_cluster
+                    content = content.replace('_192.168.0.81_',nodes[1])
+                if ping_nodes:
+                    content = content.replace('192.168.0.30 192.168.0.40',' '.join(ping_nodes))
+                if mirror_nics:
+                    content = content.replace('eth4 eth4',' '.join(mirror_nics))
+            ending = current_node.split('.')[-1]
+            file_name =  '{}_{}.txt'.format(factory_file_name, ending)
+            with open(file_name,'w') as f:
+                f.write(content)
+                print_with_timestamp( '{}\twriten into current directory.'.format(file_name))
+    else:
+        command_processor()
 
 
 if __name__ == '__main__':
     
-    init()
+    init()          ## colorama
+    get_args()      ## args
     try:
         main()
     except KeyboardInterrupt:
