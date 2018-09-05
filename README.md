@@ -246,8 +246,8 @@
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220
 
     <b>TIP:</b>
-    Quick schedule params check via browser on  Pool-0 on  192.168.0.220:
-    https:// 192.168.0.220:82/api/v3/pools/ Pool-0/scrub/scheduler
+    Quick schedule params check via browser on <b>Pool-0</b> on <b>192.168.0.220</b>:
+    https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
 28. <b>Genarate factory setup files for batch setup.</b>.
