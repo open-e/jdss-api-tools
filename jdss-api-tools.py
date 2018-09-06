@@ -449,11 +449,13 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220{ENDF}
 
     {BOLD}TIP:{END}
+    
     Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
+    
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
-28. {BOLD}Genarate factory setup files for batch setup.{END}.
+28. {BOLD}Genarate factory setup files for batch setup.{END}
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -462,7 +464,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
 
 
-29. {BOLD}Execute factory setup files for batch setup.{END}.
+29. {BOLD}Execute factory setup files for batch setup.{END}
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
      Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
@@ -796,7 +798,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,32)],
-        default = all,  
         help='Enter the day of a month of schedule plan. Default=1.'
     )
     parser.add_argument(
@@ -804,7 +805,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,13)],
-        default = all,  
         help='Enter the month or months (space separated) of the year of schedule plan, Default 1 2 3 4 5 6 7 8 9 10 11 12 (every-month).'
     )
     parser.add_argument(
@@ -812,7 +812,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,8)],
-        default = all,  
         help='Enter the day or days (space separated) of the week of schedule plan.'
     )
     parser.add_argument(
@@ -820,7 +819,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='hour',
         nargs = '*',
         choices=[str(i) for i in range(24)],
-        default = all,  
         help='Enter the hour of schedule plan, Default=0.'
     )
     parser.add_argument(
@@ -828,7 +826,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='minute',
         nargs = '*',
         choices=[str(i) for i in range(60)],
-        default = all,  
         help='Enter the minute of schedule plan, Default=15.'
     )
     parser.add_argument(
@@ -950,16 +947,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## scrub scheduler
     ## set default to 1st of every month at 0:15
-    if day_of_the_month == all:
-        day_of_the_month = '1'
-    if month_of_the_year == all:
-        month_of_the_year = '*'
-    if day_of_the_week == all:
-        day_of_the_week = '*'
-    if hour == all:
-        hour = '0'
-    if minute == all:
-        minute = '15'
+    if not day_of_the_month:    day_of_the_month = '1'
+    if not month_of_the_year:   month_of_the_year = '*'
+    if not day_of_the_week:     day_of_the_week = '*'
+    if not hour:                hour = '0'
+    if not minute:              minute = '15'
   
     
     pools_names = pool_name
@@ -2389,11 +2381,11 @@ def create_volume(vol_type):
     
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        data=dict(name=volume_name, sparse=sparse, size=size)
+        data=dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
         result=post(endpoint,data)
     if vol_type == 'dataset':
         endpoint='/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        data=dict(name=volume_name)
+        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard') 
         result=post(endpoint,data)
 
 
@@ -3010,7 +3002,10 @@ def command_processor() :
 
 ##  FACTORY DEFAULT BATCH SETUP FILES
 factory_setup_files_content = dict(
-    api_setup_single_node = """# The '#' comments-out the rest of the line
+    api_setup_single_node = """
+#
+# The '#' comments-out the rest of the line
+#
 #------------------------------------------------------------------------------------------------------------------------
 network     --nic eth0	  --new_ip _192.168.0.80_   --node 192.168.0.220        # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
@@ -3024,12 +3019,12 @@ network     --nic eth4	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
 network     --nic eth5	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-# network   --nic eth6	  --new_ip:nic         --node _192.168.0.80_
-# network   --nic eth7	  --new_ip:nic         --node _192.168.0.80_
-# network   --nic eth8	  --new_ip:nic         --node _192.168.0.80_
-# network   --nic eth9	  --new_ip:nic         --node _192.168.0.80_
-# network   --nic eth10	  --new_ip:nic        --node _192.168.0.80_
-# network   --nic eth11	  --new_ip:nic        --node _192.168.0.80_
+#   network   --nic eth6	  --new_ip:nic         --node _192.168.0.80_
+#   network   --nic eth7	  --new_ip:nic         --node _192.168.0.80_
+#   network   --nic eth8	  --new_ip:nic         --node _192.168.0.80_
+#   network   --nic eth9	  --new_ip:nic         --node _192.168.0.80_
+#   network   --nic eth10	  --new_ip:nic        --node _192.168.0.80_
+#   network   --nic eth11	  --new_ip:nic        --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE BOND : nodes bind and ring : with default --bond_type active-backup 
 #------------------------------------------------------------------------------------------------------------------------
@@ -3043,10 +3038,15 @@ set_host  --host node-80-ha00 --server node-80-ha00 --node _192.168.0.80_       
 #------------------------------------------------------------------------------------------------------------------------
 set_time  --timezone Europe/Berlin                  --node _192.168.0.80_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
+#   set_time  --timezone America/New_York              --node _192.168.0.80_           # SET TIME
+#   set_time  --timezone America/Chicago               --node _192.168.0.80_           # SET TIME
+#   set_time  --timezone America/Los_Angeles           --node _192.168.0.80_           # SET TIME
+#------------------------------------------------------------------------------------------------------------------------
 info                                                --node _192.168.0.80_           # PRINT INFO
 #------------------------------------------------------------------------------------------------------------------------
 """,
-    api_setup_cluster = """# The '#' comments-out the rest of the line
+    api_setup_cluster = """
+# The '#' comments-out the rest of the line
 # BIND CLUSTER
 #------------------------------------------------------------------------------------------------------------------------
 bind_cluster        --nodes _192.168.0.80_ _192.168.0.81_
@@ -3058,10 +3058,6 @@ set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                      
 # MIRROR PATH
 #------------------------------------------------------------------------------------------------------------------------
 set_mirror_path     --mirror_nics bond1 bond1                                                       --node _192.168.0.80_
-#------------------------------------------------------------------------------------------------------------------------
-# START CLUSTER
-#------------------------------------------------------------------------------------------------------------------------
-start_cluster                                                                                       --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-0
 #------------------------------------------------------------------------------------------------------------------------
@@ -3095,9 +3091,9 @@ create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2
 #------------------------------------------------------------------------------------------------------------------------
 create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
-# MOVE
+# START CLUSTER
 #------------------------------------------------------------------------------------------------------------------------
-move            --pool Pool-1   --node _192.168.0.80_
+start_cluster                                                                                       --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
 # SCRUB ALL
 #------------------------------------------------------------------------------------------------------------------------
@@ -3107,8 +3103,13 @@ scrub                           --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
 set_scrub_scheduler             --node 192.168.0.80
 #------------------------------------------------------------------------------------------------------------------------
+# MOVE
+#------------------------------------------------------------------------------------------------------------------------
+move            --pool Pool-1   --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
 """,
-    api_test_cluster = """### The '#' comments-out the rest of the line ###
+    api_test_cluster = """
+#   The '#' comments-out the rest of the line 
 move            --pool Pool-1   --node _192.168.0.80_	# move 
 move            --pool Pool-0   --node _192.168.0.80_	# move 
 move            --pool Pool-1   --node _192.168.0.80_	# move 
@@ -3196,4 +3197,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    # print_README_md_for_GitHub()
