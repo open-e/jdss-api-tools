@@ -845,7 +845,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY !
     test_mode = False
-    test_command_line = 'info --node 192.168.0.80'
+    test_command_line = 'start_cluster                                                                                       --node 192.168.0.80'
     
     
     ## ARGS
@@ -1694,7 +1694,10 @@ def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
     result = get('/cluster/nodes')
-    cluster_nodes_addresses = [cluster_node['address']for cluster_node in result ]
+    if result:
+        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result ]
+    else:
+        cluster_nodes_addresses = []
     if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
         is_cluster = True
     else:
@@ -1866,19 +1869,20 @@ def start_cluster():
         sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error))
 
     print_with_timestamp('Cluster service starting...')
+    time.sleep(20)  ##
     
     ## check start
     is_started = False
-    for _ in range(5):
+    for _ in range(50):
+        time.sleep(5)
         is_started = is_cluster_started()
-        time.sleep(10)
-        if is_cluster:
+        if is_started:
             print()
             print_with_timestamp('Cluster service started successfully.')
             break
         else:
             print('.', end='')
-    if not is_cluster:
+    if not is_started:
         print()
         sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error if error else ''))
 
@@ -3059,6 +3063,10 @@ set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                      
 #------------------------------------------------------------------------------------------------------------------------
 set_mirror_path     --mirror_nics bond1 bond1                                                       --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
+# START CLUSTER
+#------------------------------------------------------------------------------------------------------------------------
+start_cluster                                                                                       --node _192.168.0.80_
+#------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-0
 #------------------------------------------------------------------------------------------------------------------------
 create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4                            --node _192.168.0.80_
@@ -3090,10 +3098,6 @@ create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2
 # CREATE VOLs
 #------------------------------------------------------------------------------------------------------------------------
 create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _192.168.0.80_
-#------------------------------------------------------------------------------------------------------------------------
-# START CLUSTER
-#------------------------------------------------------------------------------------------------------------------------
-start_cluster                                                                                       --node _192.168.0.80_
 #------------------------------------------------------------------------------------------------------------------------
 # SCRUB ALL
 #------------------------------------------------------------------------------------------------------------------------
