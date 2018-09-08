@@ -37,7 +37,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-07-27  network improvements and fixes
 2018-08-08  add create_vip
 2018-08-27  add create storage resources and scrub and help-in-color
-2018-09-05  add batch_setup, create_factory_setup_files, scrub, set_scrub_scheduler, node-ip requires --nodes prefix 
+2018-09-05  add batch_setup, create_factory_setup_files, scrub, set_scrub_scheduler, node-ip requires --nodes prefix
+2018-09-08  add volumes details in info 
 """
     
 from __future__ import print_function
@@ -843,9 +844,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     )
 
 
-    ## TESTING ONLY !
     test_mode = False
-    test_command_line = 'start_cluster                                                                                       --node 192.168.0.80'
+
+    # TESTING ONLY !
+    #test_mode = True
+    #test_command_line = 'start_cluster  --node 192.168.0.80'
+    #test_command_line = 'info  --node 192.168.0.80'
     
     
     ## ARGS
@@ -1066,6 +1070,66 @@ def wait_for_zero_unmanaged_pools():
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
             exit_with_timestamp( 'Unmanaged pools: {}'.format(','.join(unmanaged_pools_names)))
+
+
+def bytes2human(n, format='%(value).1f %(symbol)s', symbols='customary'):
+    """
+    Convert n bytes into a human readable string based on format.
+    symbols can be either "customary", "customary_ext", "iec" or "iec_ext",
+    see: http://goo.gl/kTQMs
+
+      >>> bytes2human(0)
+      '0.0 B'
+      >>> bytes2human(0.9)
+      '0.0 B'
+      >>> bytes2human(1)
+      '1.0 B'
+      >>> bytes2human(1.9)
+      '1.0 B'
+      >>> bytes2human(1024)
+      '1.0 K'
+      >>> bytes2human(1048576)
+      '1.0 M'
+      >>> bytes2human(1099511627776127398123789121)
+      '909.5 Y'
+
+      >>> bytes2human(9856, symbols="customary")
+      '9.6 K'
+      >>> bytes2human(9856, symbols="customary_ext")
+      '9.6 kilo'
+      >>> bytes2human(9856, symbols="iec")
+      '9.6 Ki'
+      >>> bytes2human(9856, symbols="iec_ext")
+      '9.6 kibi'
+
+      >>> bytes2human(10000, "%(value).1f %(symbol)s/sec")
+      '9.8 K/sec'
+
+      >>> # precision can be adjusted by playing with %f operator
+      >>> bytes2human(10000, format="%(value).5f %(symbol)s")
+      '9.76562 K'
+    """
+    SYMBOLS = {
+        'customary'     : ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
+        'customary_ext' : ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
+                           'zetta', 'iotta'),
+        'iec'           : ('Bi', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'),
+        'iec_ext'       : ('byte', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi',
+                           'zebi', 'yobi'),
+    }
+
+    n = int(n)
+    if n < 0:
+        raise ValueError("n < 0")
+    symbols = SYMBOLS[symbols]
+    prefix = {}
+    for i, s in enumerate(symbols[1:]):
+        prefix[s] = 1 << (i+1)*10
+    for symbol in reversed(symbols[1:]):
+        if n >= prefix[symbol]:
+            value = float(n) / prefix[symbol]
+            return format % locals()
+    return format % dict(symbol=symbols[0], value=n)
 
 
 def human2bytes(s):
@@ -1290,6 +1354,110 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
         print_with_timestamp( 'Set NTP servers: {}'.format(ntp_servers))
 
 
+def print_volumes_details(header,fields):
+    pools = get('/pools')
+    pools.sort(key=lambda k : k['name'])
+    fields_length={}
+    is_field_separator_added = False
+    for field in fields+('origin',):
+        fields_length[field]=0
+    for pool in pools:
+        endpoint = '/pools/{POOL}/volumes'.format(POOL=pool['name'])
+        volumes = get(endpoint)
+        volumes.sort(key=lambda k : k['name'])
+        is_origin = any([volume['origin'] for volume in volumes])
+        if is_origin:
+            header,fields = header+('origin',),fields+('origin',)
+        for volume in volumes:
+            for i,field in enumerate(fields):
+                value = '-'
+                if field in ('volblocksize', 'volsize', 'used', 'available'):
+                    volume[field] =  bytes2human(volume[field], format='%(value).0f%(symbol)s', symbols='customary')
+                if field in volume.keys():
+                    value = str(volume[field])
+                current_max_field_length = max(len(header[i]), len(value)) 
+                if current_max_field_length > fields_length[field]:
+                    fields_length[field] = current_max_field_length
+
+        ## add field seperator
+        if not is_field_separator_added:
+            for key in fields_length.keys():
+                fields_length[key] +=  3
+        is_field_separator_added = True
+
+        header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+        field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
+
+        print()
+        if len(volumes):
+            print( header_format_template.format( *(header)))
+        #else:
+        #    print('\tNo volumes found')
+
+        for volume in volumes:
+            volume_details = []
+            for field in fields:
+                value = '-'
+                if field in volume.keys():
+                    value = str(volume[field])
+                    if value in ('None',):
+                        value = '-'
+                volume_details.append(value)
+            print(field_format_template.format(*volume_details))
+
+
+def print_nas_volumes_details(header,fields):
+    pools = get('/pools')
+    pools.sort(key=lambda k : k['name'])
+    fields_length={}
+    is_field_separator_added = False
+    for field in fields+('origin',):
+        fields_length[field]=0
+    for pool in pools:
+        endpoint = '/pools/{POOL}/nas-volumes'.format(POOL=pool['name'])
+        volumes = get(endpoint)
+        volumes.sort(key=lambda k : k['name'])
+        is_origin = any([volume['origin'] for volume in volumes])
+        if is_origin:
+            header,fields = header+('origin',),fields+('origin',)
+        for volume in volumes:
+            for i,field in enumerate(fields):
+                value = '-'
+                if field in ('recordsize',):
+                    volume[field] =  bytes2human(volume[field], format='%(value).0f%(symbol)s', symbols='customary')
+                if field in volume.keys():
+                    value = str(volume[field])
+                current_max_field_length = max(len(header[i]), len(value)) 
+                if current_max_field_length > fields_length[field]:
+                    fields_length[field] = current_max_field_length
+
+        ## add field seperator
+        if not is_field_separator_added:
+            for key in fields_length.keys():
+                fields_length[key] +=  3
+        is_field_separator_added = True
+
+        header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+        field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
+
+        print()
+        if len(volumes):
+            print( header_format_template.format( *(header)))
+        #else:
+        #    print('\tNo volumes found')
+
+        for volume in volumes:
+            volume_details = []
+            for field in fields:
+                value = '-'
+                if field in volume.keys():
+                    value = str(volume[field])
+                    if value in ('None',):
+                        value = '-'
+                volume_details.append(value)
+            print(field_format_template.format(*volume_details))
+
+
 def print_pools_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
@@ -1329,7 +1497,7 @@ def print_pools_details(header,fields):
             value = '-'
             if field in pool.keys():
                 value = str(pool[field])
-                if value in 'None':
+                if value in ('None',):
                     value = '-'
             pool_details.append(value)
         print(field_format_template.format(*pool_details))
@@ -1396,7 +1564,7 @@ def print_scrub_pools_details(header,fields):
             value = '-'
             if field in pool.keys():
                 value = str(pool[field])
-                if value in 'None':
+                if value in ('None',):
                     value = '-'
             pool_details.append(value)
         print(field_format_template.format(*pool_details))
@@ -1438,7 +1606,7 @@ def print_interfaces_details(header,fields):
             value = '-'
             if field in interface.keys():
                 value = str(interface[field])
-                if value in 'None':
+                if value in ('None',):
                     value = '-'
             interface_details.append(value)
         print(field_format_template.format(*interface_details))
@@ -1896,7 +2064,6 @@ def move():
     command_line_node = node
     if not all((is_cluster_configured,is_cluster_started)):
         sys_exit_with_timestamp( 'Error: Cluster not running on: {}.'.format(node))
-    time.sleep(15)  ## in batch mode reboot can be in progress
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
@@ -2256,6 +2423,17 @@ def info():
         header= ('name', 'size_TiB', 'available_TiB', 'health', 'io-error-stats' )
         fields= ('name', 'size',     'available',     'health', 'iostats' )
         print_pools_details(header,fields)
+
+        ## PRINT ZVOLs DETAILS
+        header= ('san_volume',    'size', 'used', 'available',        'block', 'sync', 'compressratio', 'dedup' )
+        fields= ('full_name', 'volsize', 'used', 'available', 'volblocksize', 'sync', 'compressratio', 'dedup' )
+        print_volumes_details(header,fields)
+
+        ## PRINT DATASETs DETAILS
+        header= ('nas_volume', 'recordsize', 'sync', 'compression',  'dedup')
+        fields= ('full_name', 'recordsize', 'sync', 'compression',  'dedup')
+        print_nas_volumes_details(header,fields)
+
         
 
 def get_pool_details(node, pool_name):
@@ -3196,6 +3374,7 @@ if __name__ == '__main__':
     
     init()          ## colorama
     get_args()      ## args
+
     try:
         main()
     except KeyboardInterrupt:
