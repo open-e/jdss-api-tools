@@ -849,7 +849,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     # TESTING ONLY !
     #test_mode = True
     #test_command_line = 'start_cluster  --node 192.168.0.80'
-    #test_command_line = 'info  --node 192.168.0.80'
+    test_command_line = 'info  --node 192.168.0.80'
     
     
     ## ARGS
@@ -1283,6 +1283,7 @@ def shutdown_nodes():
     for node in nodes:
         post('/power/shutdown',dict(force=False))
         print_with_timestamp( 'Shutdown: {}'.format(node))
+    time.sleep(60)
 
 
 def reboot_nodes() :
@@ -1297,6 +1298,7 @@ def reboot_nodes() :
     for node in nodes:
         post('/power/reboot', dict(force=False))
         print_with_timestamp( 'Reboot: {}'.format(node))
+    time.sleep(60)
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
@@ -1406,6 +1408,7 @@ def print_volumes_details(header,fields):
             print(field_format_template.format(*volume_details))
 
 
+
 def print_nas_volumes_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
@@ -1457,6 +1460,79 @@ def print_nas_volumes_details(header,fields):
                 volume_details.append(value)
             print(field_format_template.format(*volume_details))
 
+
+def print_nas_snapshots_details(header,fields):
+    ## TO - DO
+    #return
+    ## TO - DO
+
+    
+    global pool_name
+    pools = get('/pools')
+    pools.sort(key=lambda k : k['name'])
+    fields_length={}
+    is_field_separator_added = False
+    for field in fields:
+        fields_length[field]=0
+    for pool in pools:
+        pool_name = pool['name']
+        nas_volumes = get_nas_volumes_names()
+        #nas_volumes.sort(key=lambda k : k['name'])
+        for nas_volume in nas_volumes:
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=5'.format(POOL=pool_name,DATASET=nas_volume))
+            #print(snapshots['results'])
+            #print(len(snapshots['entries']))
+            for snapshot in snapshots['entries']:
+                #snapshot_name = snapshot['name']
+                for snap_property in snapshot['properties']:
+                    for i,field in enumerate(fields):
+                        value = '-'
+                        if snap_property['name'] in fields:
+                            value = snap_property['value']
+                        if field in ('name',):
+                            value = snapshot['name']
+                        current_max_field_length = max(len(header[i]), len(value)) 
+                        if current_max_field_length > fields_length[field]:
+                            fields_length[field] = current_max_field_length
+
+        ## add field seperator
+        if not is_field_separator_added:
+            for key in fields_length.keys():
+                fields_length[key] +=  3
+        is_field_separator_added = True
+
+        header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+        field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
+
+        print()
+        if len(nas_volumes):
+            print( header_format_template.format( *(header)))
+        
+        for nas_volume in nas_volumes:
+            snapshot_details = []
+            #print('entries:',snapshots['entries'])
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0'.format(POOL=pool_name,DATASET=nas_volume))
+            for snapshot in snapshots['entries']:
+                snapshot_details = []
+                for field in fields:
+                    value = '-'
+                    if field in ('name',):
+                        value = snapshot['name']
+                    else:
+                        for snap_property in snapshot['properties']:
+                            if snap_property['name'] in field:
+                                value = snap_property['value']
+                            elif value in ('None',):
+                                value = '-'
+                            elif str.isdigit(str(value)):
+                                value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    snapshot_details.append(value)
+                if snapshot_details:
+                    print(field_format_template.format(*snapshot_details))
+
+        
+        
+        
 
 def print_pools_details(header,fields):
     pools = get('/pools')
@@ -1809,7 +1885,10 @@ def get_iscsi_targets_names():
 
 def get_nas_volumes_names():
     nas_volumes = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
-    return [nas_volume['name'] for nas_volume in nas_volumes]
+    if nas_volumes:
+        return [nas_volume['name'] for nas_volume in nas_volumes]
+    else:
+        return []
 
 
 def get_san_volumes_names():
@@ -2434,6 +2513,11 @@ def info():
         fields= ('full_name', 'recordsize', 'sync', 'compression',  'dedup')
         print_nas_volumes_details(header,fields)
 
+        ## PRINT NAS SNAPs DETAILS
+        header= ('name', 'referenced','written')
+        fields= ('name', 'referenced','written')
+        # TO-DO
+        #print_nas_snapshots_details(header,fields)
         
 
 def get_pool_details(node, pool_name):
@@ -3189,97 +3273,97 @@ factory_setup_files_content = dict(
 # The '#' comments-out the rest of the line
 #
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth0	  --new_ip _192.168.0.80_   --node 192.168.0.220        # SET ETH
+network     --nic eth0	  --new_ip _node-a-ip-address_   --node 192.168.0.220        # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth1	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+network     --nic eth1	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth2	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+network     --nic eth2	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth3	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+network     --nic eth3	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth4	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+network     --nic eth4	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth5	  --new_ip:nic      --node _192.168.0.80_       # SET ETH
+network     --nic eth5	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
-#   network   --nic eth6	  --new_ip:nic         --node _192.168.0.80_
-#   network   --nic eth7	  --new_ip:nic         --node _192.168.0.80_
-#   network   --nic eth8	  --new_ip:nic         --node _192.168.0.80_
-#   network   --nic eth9	  --new_ip:nic         --node _192.168.0.80_
-#   network   --nic eth10	  --new_ip:nic        --node _192.168.0.80_
-#   network   --nic eth11	  --new_ip:nic        --node _192.168.0.80_
+#   network   --nic eth6	  --new_ip:nic         --node _node-a-ip-address_
+#   network   --nic eth7	  --new_ip:nic         --node _node-a-ip-address_
+#   network   --nic eth8	  --new_ip:nic         --node _node-a-ip-address_
+#   network   --nic eth9	  --new_ip:nic         --node _node-a-ip-address_
+#   network   --nic eth10	  --new_ip:nic        --node _node-a-ip-address_
+#   network   --nic eth11	  --new_ip:nic        --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE BOND : nodes bind and ring : with default --bond_type active-backup 
 #------------------------------------------------------------------------------------------------------------------------
-create_bond --bond_nics eth0 eth1   --new_ip:bond    --new_gw 192.168.0.1    --new_dns 192.168.0.1   --node _192.168.0.80_
+create_bond --bond_nics eth0 eth1   --new_ip:bond    --new_gw 192.168.0.1    --new_dns 192.168.0.1   --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE BOND : mirror path : active-backup or  balance-rr (round-robin) 
 #------------------------------------------------------------------------------------------------------------------------
-create_bond --bond_nics eth4 eth5   --new_ip:bond   --bond_type active-backup   --node _192.168.0.80_
+create_bond --bond_nics eth4 eth5   --new_ip:bond   --bond_type active-backup   --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
-set_host  --host node-80-ha00 --server node-80-ha00 --node _192.168.0.80_           # SET HOST & SERVER
+set_host  --host node-80-ha00 --server node-80-ha00 --node _node-a-ip-address_           # SET HOST & SERVER
 #------------------------------------------------------------------------------------------------------------------------
-set_time  --timezone Europe/Berlin                  --node _192.168.0.80_           # SET TIME
+set_time  --timezone Europe/Berlin                  --node _node-a-ip-address_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
-#   set_time  --timezone America/New_York              --node _192.168.0.80_           # SET TIME
-#   set_time  --timezone America/Chicago               --node _192.168.0.80_           # SET TIME
-#   set_time  --timezone America/Los_Angeles           --node _192.168.0.80_           # SET TIME
+#   set_time  --timezone America/New_York              --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone America/Chicago               --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone America/Los_Angeles           --node _node-a-ip-address_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
-info                                                --node _192.168.0.80_           # PRINT INFO
+info                                                --node _node-a-ip-address_           # PRINT INFO
 #------------------------------------------------------------------------------------------------------------------------
 """,
     api_setup_cluster = """
 # The '#' comments-out the rest of the line
 # BIND CLUSTER
 #------------------------------------------------------------------------------------------------------------------------
-bind_cluster        --nodes _192.168.0.80_ _192.168.0.81_
+bind_cluster        --nodes _node-a-ip-address_ _node-b-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # PING NODES  
 #------------------------------------------------------------------------------------------------------------------------
-set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                          --node _192.168.0.80_
+set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                          --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # MIRROR PATH
 #------------------------------------------------------------------------------------------------------------------------
-set_mirror_path     --mirror_nics bond1 bond1                                                       --node _192.168.0.80_
+set_mirror_path     --mirror_nics bond1 bond1                                                       --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # START CLUSTER
 #------------------------------------------------------------------------------------------------------------------------
-start_cluster                                                                                       --node _192.168.0.80_
+start_cluster                                                                                       --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4                            --node _192.168.0.80_
+create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4                            --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip21    --vip_ip 192.168.21.100   --vip_nics eth2 eth2  --node _192.168.0.80_
+create_vip      --pool Pool-0   --vip_name vip21    --vip_ip 192.168.21.100   --vip_nics eth2 eth2  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip31    --vip_ip 192.168.31.100   --vip_nics eth3 eth3  --node _192.168.0.80_
+create_vip      --pool Pool-0   --vip_name vip31    --vip_ip 192.168.31.100   --vip_nics eth3 eth3  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4                          --node _192.168.0.80_
+create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4                          --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1   --vip_name vip22    --vip_ip 192.168.22.100   --vip_nics eth2 eth2  --node _192.168.0.80_
+create_vip      --pool Pool-1   --vip_name vip22    --vip_ip 192.168.22.100   --vip_nics eth2 eth2  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1   --vip_name vip32    --vip_ip 192.168.32.100   --vip_nics eth3 eth3  --node _192.168.0.80_
+create_vip      --pool Pool-1   --vip_name vip32    --vip_ip 192.168.32.100   --vip_nics eth3 eth3  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE ZVOLS
 #------------------------------------------------------------------------------------------------------------------------
-create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2                    --node _192.168.0.80_
+create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2                    --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE VOLs
 #------------------------------------------------------------------------------------------------------------------------
-create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _192.168.0.80_
+create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # SCRUB ALL
 #------------------------------------------------------------------------------------------------------------------------
-scrub                           --node _192.168.0.80_
+scrub                           --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # SET SCRUB SCHEDULER to all pools (also on other cluster node)
 #------------------------------------------------------------------------------------------------------------------------
@@ -3287,23 +3371,21 @@ set_scrub_scheduler             --node 192.168.0.80
 #------------------------------------------------------------------------------------------------------------------------
 # MOVE
 #------------------------------------------------------------------------------------------------------------------------
-move            --pool Pool-1   --node _192.168.0.80_
+move            --pool Pool-1   --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line 
-move            --pool Pool-1   --node _192.168.0.80_	# move 
-move            --pool Pool-0   --node _192.168.0.80_	# move 
-move            --pool Pool-1   --node _192.168.0.80_	# move 
-move            --pool Pool-0   --node _192.168.0.80_	# move 
-move            --pool Pool-1   --node _192.168.0.80_	# move 
-scrub                           --node _192.168.0.80_   # scrub all
-reboot          --delay 5       --node _192.168.0.80_   # reboot
-move            --pool Pool-0   --node _192.168.0.80_	# move 
-move            --pool Pool-1   --node _192.168.0.80_	# move 
-reboot          --delay 1       --node _192.168.0.80_   # reboot
-scrub                           --node _192.168.0.80_   # scrub all
-move            --pool Pool-0   --node _192.168.0.80_	# move 
+move            --pool Pool-1   --node _node-a-ip-address_	# move 
+scrub                           --node _node-a-ip-address_      # scrub all
+reboot          --delay 10      --node _node-a-ip-address_      # reboot
+move            --pool Pool-0   --node _node-a-ip-address_	# move 
+move            --pool Pool-1   --node _node-a-ip-address_	# move 
+reboot          --delay 10      --node _node-a-ip-address_      # reboot
+scrub                           --node _node-a-ip-address_      # scrub all
+reboot          --delay 10      --node _node-b-ip-address_      # reboot node-b
+move            --pool Pool-1   --node _node-a-ip-address_	# move 
+scrub                           --node _node-a-ip-address_      # scrub all
 """)
 
 
@@ -3329,7 +3411,7 @@ def main() :
         for factory_file_name in factory_files_names:
             if 'api_setup_single_node' in factory_file_name:
                 current_node = nodes[0] if trigger else nodes[1]
-                content = factory_setup_files_content[factory_file_name].replace('_192.168.0.80_',current_node)
+                content = factory_setup_files_content[factory_file_name].replace('_node-a-ip-address_',current_node)
                 ending = current_node.split('.')[-1]
                 host_server_name = 'node-{}-ha00'.format(ending)
                 content = content.replace('node-80-ha00',host_server_name)
@@ -3344,13 +3426,15 @@ def main() :
                 trigger = False
             else:
                 current_node = nodes[0]
-                content = factory_setup_files_content[factory_file_name].replace('_192.168.0.80_',current_node)
-                if nodes[0] != nodes[1]:    # replace the second ip in bind_cluster
-                    content = content.replace('_192.168.0.81_',nodes[1])
+                content = factory_setup_files_content[factory_file_name].replace('_node-a-ip-address_',current_node)
+                if nodes[0] != nodes[1]:    # replace the second ip
+                    content = content.replace('_node-b-ip-address_',nodes[1])
+                else:
+                    content = content.replace('_node-b-ip-address_',nodes[0])
                 if ping_nodes:
                     content = content.replace('192.168.0.30 192.168.0.40',' '.join(ping_nodes))
                 if mirror_nics:
-                    content = content.replace('eth4 eth4',' '.join(mirror_nics))
+                    content = content.replace('--mirror_nics bond1 bond1', '--mirror_nics ' + ' '.join(mirror_nics))
             ending = current_node.split('.')[-1]
             file_name =  '{}_{}.txt'.format(factory_file_name, ending)
             with open(file_name,'w') as f:
@@ -3380,4 +3464,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    # print_README_md_for_GitHub()
+    #print_README_md_for_GitHub()
