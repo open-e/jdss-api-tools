@@ -139,13 +139,11 @@
 
         jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81
 
-20. <b>Set HA-cluster ping nodes</b>. First IP   access node IP, next IPs are new ping nodes
-
-    RESTapi user   administrator, RESTapi password   password, netmask   255.255.0.0
+20. <b>Set HA-cluster ping nodes</b>. 
 
         jdss-api-tools.exe set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80 
 
-    Same, but with defaults: user   admin, password   admin and netmask   255.255.255.0
+    Same, but with defaults (user: admin, password: admin and netmask: 255.255.255.0)
 
         jdss-api-tools.exe set_ping_nodes  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80
 
@@ -180,7 +178,7 @@
 
     with defaults: size 1TB, provisioning thin volume auto target_name auto
     if target_name auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
-    if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
+    if iqn.2018-09:ha-00.target000 and zvol000 already exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220
 
@@ -224,7 +222,7 @@
     
 
 27. <b>Set scrub scheduler</b>.
-    By default the command search all pools on node ot cluster(if configured) and set default schedule: evey month at 0:15.
+    By default the command search all pools on node or cluster(if configured) and set default schedule: every month at 0:15.
     Every pool will set on diffrent month day.
 
         jdss-api-tools.exe set_scrub_scheduler --node 192.168.0.220
@@ -233,15 +231,15 @@
     
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 Pool-1 --node 192.168.0.220
 
-    set chedule on every week on Monday at 1:10 AM on Pool-0 only.
+    set schedule on every week on Monday at 1:10 AM on Pool-0 only.
     
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --day_of_the_week 1 --hour 1 --minute 10 --node 192.168.0.220
 
-    set chedule on every day at 2:30 AM on Pool-0 only.
+    set schedule on every day at 2:30 AM on Pool-0 only.
     
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --hour 2 --minute 30 --node 192.168.0.220
 
-    set chedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
+    set schedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
     
         jdss-api-tools.exe set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220
 
@@ -252,7 +250,7 @@
     https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-28. <b>Genarate factory setup files for batch setup.</b>
+28. <b>Generate factory setup files for batch setup.</b>
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -263,9 +261,9 @@
 
 29. <b>Execute factory setup files for batch setup.</b>
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
-     Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
+     Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
-     The batch setup will start to cofigure first node. Now, the second node can be booted.
+     The batch setup will start to configure first node. Now, the second node can be booted.
      Once the second node is up, also the REST api must be enabled via GUI.
 
 
