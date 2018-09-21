@@ -343,13 +343,11 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
-20. {BOLD}Set HA-cluster ping nodes{END}. First IP   access node IP, next IPs are new ping nodes
-
-    RESTapi user   administrator, RESTapi password   password, netmask   255.255.0.0
+20. {BOLD}Set HA-cluster ping nodes{END}. 
 
     {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80 {ENDF}
 
-    Same, but with defaults: user   admin, password   admin and netmask   255.255.255.0
+    Same, but with defaults (user: admin, password: admin and netmask: 255.255.255.0)
 
     {LG}%(prog)s set_ping_nodes  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
@@ -384,7 +382,7 @@ def get_args(batch_args_line=None):
 
     with defaults: size 1TB, provisioning thin volume auto target_name auto
     if target_name auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
-    if iqn.2018-09:ha-00.target000 and zvol000 allreday exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
+    if iqn.2018-09:ha-00.target000 and zvol000 already exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
 
@@ -428,7 +426,7 @@ def get_args(batch_args_line=None):
     
 
 27. {BOLD}Set scrub scheduler{END}.
-    By default the command search all pools on node ot cluster(if configured) and set default schedule: evey month at 0:15.
+    By default the command search all pools on node or cluster(if configured) and set default schedule: every month at 0:15.
     Every pool will set on diffrent month day.
 
     {LG}%(prog)s set_scrub_scheduler --node 192.168.0.220{ENDF}
@@ -437,15 +435,15 @@ def get_args(batch_args_line=None):
     
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
 
-    set chedule on every week on Monday at 1:10 AM on Pool-0 only.
+    set schedule on every week on Monday at 1:10 AM on Pool-0 only.
     
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --day_of_the_week 1 --hour 1 --minute 10 --node 192.168.0.220{ENDF}
 
-    set chedule on every day at 2:30 AM on Pool-0 only.
+    set schedule on every day at 2:30 AM on Pool-0 only.
     
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --hour 2 --minute 30 --node 192.168.0.220{ENDF}
 
-    set chedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
+    set schedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
     
     {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220{ENDF}
 
@@ -456,7 +454,7 @@ def get_args(batch_args_line=None):
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
-28. {BOLD}Genarate factory setup files for batch setup.{END}
+28. {BOLD}Generate factory setup files for batch setup.{END}
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -467,9 +465,9 @@ def get_args(batch_args_line=None):
 
 29. {BOLD}Execute factory setup files for batch setup.{END}
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
-     Both nodes nned to be fresh rebooted with factory defaults eth0=192.168.0.220.
+     Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
-     The batch setup will start to cofigure first node. Now, the second node can be booted.
+     The batch setup will start to configure first node. Now, the second node can be booted.
      Once the second node is up, also the REST api must be enabled via GUI.
 
 
@@ -1360,10 +1358,10 @@ def print_volumes_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
     fields_length={}
-    is_field_separator_added = False
-    for field in fields+('origin',):
-        fields_length[field]=0
     for pool in pools:
+        is_field_separator_added = False
+        for field in fields+('origin',):
+            fields_length[field]=0
         endpoint = '/pools/{POOL}/volumes'.format(POOL=pool['name'])
         volumes = get(endpoint)
         volumes.sort(key=lambda k : k['name'])
@@ -1385,7 +1383,7 @@ def print_volumes_details(header,fields):
         if not is_field_separator_added:
             for key in fields_length.keys():
                 fields_length[key] +=  3
-        is_field_separator_added = True
+            is_field_separator_added = True
 
         header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1413,10 +1411,10 @@ def print_nas_volumes_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
     fields_length={}
-    is_field_separator_added = False
-    for field in fields+('origin',):
-        fields_length[field]=0
     for pool in pools:
+        is_field_separator_added = False
+        for field in fields+('origin',):
+            fields_length[field]=0
         endpoint = '/pools/{POOL}/nas-volumes'.format(POOL=pool['name'])
         volumes = get(endpoint)
         volumes.sort(key=lambda k : k['name'])
@@ -1438,8 +1436,8 @@ def print_nas_volumes_details(header,fields):
         if not is_field_separator_added:
             for key in fields_length.keys():
                 fields_length[key] +=  3
-        is_field_separator_added = True
-
+            is_field_separator_added = True
+            
         header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
@@ -3464,4 +3462,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    #print_README_md_for_GitHub()
+    print_README_md_for_GitHub()
