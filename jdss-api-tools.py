@@ -1360,11 +1360,13 @@ def print_volumes_details(header,fields):
     fields_length={}
     for pool in pools:
         is_field_separator_added = False
-        for field in fields+('origin',):
-            fields_length[field]=0
+        fields_length = fields_length.fromkeys(fields+('origin',), 0)  ## reset dict to zero, origin field is used by clones
         endpoint = '/pools/{POOL}/volumes'.format(POOL=pool['name'])
-        volumes = get(endpoint)
-        volumes.sort(key=lambda k : k['name'])
+        volumes = get(endpoint)     ## ZVOLs
+        if not volumes:
+            continue
+        format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
+        volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
         if is_origin:
             header,fields = header+('origin',),fields+('origin',)
@@ -1413,11 +1415,13 @@ def print_nas_volumes_details(header,fields):
     fields_length={}
     for pool in pools:
         is_field_separator_added = False
-        for field in fields+('origin',):
-            fields_length[field]=0
+        fields_length = fields_length.fromkeys(fields+('origin',), 0)  ## reset dict to zero, origin field is used by clones
         endpoint = '/pools/{POOL}/nas-volumes'.format(POOL=pool['name'])
         volumes = get(endpoint)
-        volumes.sort(key=lambda k : k['name'])
+        if not volumes:
+            continue
+        format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
+        volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
         if is_origin:
             header,fields = header+('origin',),fields+('origin',)
@@ -1528,14 +1532,12 @@ def print_nas_snapshots_details(header,fields):
                 if snapshot_details:
                     print(field_format_template.format(*snapshot_details))
 
-        
-        
-        
-
+       
 def print_pools_details(header,fields):
     pools = get('/pools')
-    pools.sort(key=lambda k : k['name'])
-
+    if not pools: return
+    format_string = '{0:0>'+str(max((len(pool['name']) for pool in pools)))+'}'   # for natural sorting
+    pools.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
     fields_length={}
     for field in fields:
         fields_length[field]=0
@@ -3462,4 +3464,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    #print_README_md_for_GitHub()
