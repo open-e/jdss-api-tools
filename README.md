@@ -278,7 +278,7 @@
 
 ############################################################################################
 
-After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
+After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
 

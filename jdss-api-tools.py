@@ -482,7 +482,7 @@ def get_args(batch_args_line=None):
 
 ############################################################################################
 
-After any modifications of source jdss-tools.py, run pyinstaller to create new jdss-tools.exe:
+After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
 
@@ -890,11 +890,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     api_port                = args['port']
     api_user                = args['user']
     api_password            = args['pswd']
-    action                  = args['cmd']     ## the command
+    action                  = args['cmd']                   ## the command
     pool_name               = args['pool']
     volume_name             = args['volume']
     storage_type            = args['storage_type']
-    sparse                  = args['provisioning'].upper() ## THICK | THIN, default==THIN
+    sparse                  = args['provisioning'].upper()  ## THICK | THIN, default==THIN
     size                    = args['size']
     target_name             = args['target']
     quantity                = args['quantity']
@@ -914,7 +914,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     server_name             = args['server']
     server_description      = args['description']
     timezone                = args['timezone']
-    ntp                     = args['ntp'].upper() ## ON | OFF, default=ON
+    ntp                     = args['ntp'].upper()           ## ON | OFF, default=ON
     ntp_servers             = args['ntp_servers']
     
     nic_name                = args['nic']
@@ -1344,7 +1344,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     put('/time',data)
 
     if error:
-        sys_exit_with_timestamp('Cannot set NTP. Error: {}.'.format())
+        sys_exit_with_timestamp('Cannot set NTP. Error: {}.'.format(error))
 
     if timezone:
         print_with_timestamp( 'Set timezone: {}'.format(timezone))
@@ -1364,7 +1364,7 @@ def print_volumes_details(header,fields):
         endpoint = '/pools/{POOL}/volumes'.format(POOL=pool['name'])
         volumes = get(endpoint)     ## ZVOLs
         if not volumes:
-            continue
+            continue                ##  SKIP if no vol
         format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
         volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
@@ -1391,10 +1391,7 @@ def print_volumes_details(header,fields):
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
         print()
-        if len(volumes):
-            print( header_format_template.format( *(header)))
-        #else:
-        #    print('\tNo volumes found')
+        print( header_format_template.format( *(header)))
 
         for volume in volumes:
             volume_details = []
@@ -1417,9 +1414,9 @@ def print_nas_volumes_details(header,fields):
         is_field_separator_added = False
         fields_length = fields_length.fromkeys(fields+('origin',), 0)  ## reset dict to zero, origin field is used by clones
         endpoint = '/pools/{POOL}/nas-volumes'.format(POOL=pool['name'])
-        volumes = get(endpoint)
+        volumes = get(endpoint) ## datasets
         if not volumes:
-            continue
+            continue            ##  SKIP if no vol
         format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
         volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
@@ -1446,10 +1443,7 @@ def print_nas_volumes_details(header,fields):
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
         print()
-        if len(volumes):
-            print( header_format_template.format( *(header)))
-        #else:
-        #    print('\tNo volumes found')
+        print( header_format_template.format( *(header)))
 
         for volume in volumes:
             volume_details = []
@@ -3026,7 +3020,7 @@ def user_choice():
 
 def read_jbods_and_create_pool(choice='0'):
 
-    global  vdevs_num,vdev_type
+    global vdevs_num,vdev_type
     global action_message
     action_message = 'Sending Create Pool request to: {}'.format(node)
 
@@ -3464,4 +3458,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    #print_README_md_for_GitHub()
+    print_README_md_for_GitHub()
