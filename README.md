@@ -274,6 +274,8 @@
 30. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
+        jdss-api-tools.exe info --list_all_snapshots --node 192.168.0.220
+    
 
 
 ############################################################################################

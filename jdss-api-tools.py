@@ -92,6 +92,8 @@ def get(endpoint):
     api=interface()
     try:
         result = api.driver.get(endpoint)['data']
+        result = natural_dict_sort_by_name_key(result)
+        #result = natural_list_sort(result)
     except Exception as e:
         error = str(e[0])
     return result
@@ -478,6 +480,8 @@ def get_args(batch_args_line=None):
 30. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
+    {LG}%(prog)s info --list_all_snapshots --node 192.168.0.220{ENDF}
+    
 
 
 ############################################################################################
@@ -840,6 +844,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         nargs='+',
         type=argparse.FileType('r')
     )
+    parser.add_argument(
+        '--list_all_snapshots',
+        dest='list_all_snapshots',
+        action='store_true',
+        default=False,
+        help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only.'
+    )
 
 
     test_mode = False
@@ -847,7 +858,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     # TESTING ONLY !
     #test_mode = True
     #test_command_line = 'start_cluster  --node 192.168.0.80'
-    test_command_line = 'info  --node 192.168.0.80'
+    test_command_line = 'info --node 192.168.0.32'
     
     
     ## ARGS
@@ -884,7 +895,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
 
-    global setup_files
+    global setup_files, list_all_snapshots
     
 
     api_port                = args['port']
@@ -945,8 +956,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     
     menu                    = args['menu']
     setup_files             = args['setup_files']
+    list_all_snapshots      = args['list_all_snapshots']
     
-
     ## scrub scheduler
     ## set default to 1st of every month at 0:15
     if not day_of_the_month:    day_of_the_month = '1'
@@ -1337,7 +1348,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
 
     ## exit if DNS is missing
     dns = get_dns()
-    if (ntp == 'ON') and (dns is None):
+    if ntp == 'ON' and not dns:
         sys_exit_with_timestamp('Cannot set NTP. Missing DNS setting on node: {}.'.format(node))
 
     ## PUT
@@ -1354,6 +1365,25 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
         print_with_timestamp( 'Set NTP servers: {}'.format(ntp_servers))
 
 
+def add_fields_seperator(fields,fields_length,seperator_lenght):
+    for key in fields_length.keys():
+        fields_length[key] +=  seperator_lenght
+    fields_length[fields[0]] -= seperator_lenght
+    return fields_length
+
+
+def natural_dict_sort_by_name_key(items):
+    format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}'   # for natural sorting
+    items.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
+    return items
+
+    
+def natural_list_sort(items):
+    format_string = '{0:0>'+str(max((len(item) for item in items)))+'}'   # for natural sorting
+    items.sort(key=lambda k : format_string.format(k).lower())            # natural(human) sort
+    return items
+
+
 def print_volumes_details(header,fields):
     pools = get('/pools')
     pools.sort(key=lambda k : k['name'])
@@ -1365,8 +1395,6 @@ def print_volumes_details(header,fields):
         volumes = get(endpoint)     ## ZVOLs
         if not volumes:
             continue                ##  SKIP if no vol
-        format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
-        volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
         if is_origin:
             header,fields = header+('origin',),fields+('origin',)
@@ -1381,10 +1409,8 @@ def print_volumes_details(header,fields):
                 if current_max_field_length > fields_length[field]:
                     fields_length[field] = current_max_field_length
 
-        ## add field seperator
         if not is_field_separator_added:
-            for key in fields_length.keys():
-                fields_length[key] +=  3
+            fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
 
         header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1417,8 +1443,6 @@ def print_nas_volumes_details(header,fields):
         volumes = get(endpoint) ## datasets
         if not volumes:
             continue            ##  SKIP if no vol
-        format_string = '{0:0>'+str(max((len(volume['name']) for volume in volumes)))+'}'   # for natural sorting
-        volumes.sort(key=lambda k : format_string.format(k['name']).lower())                # natural(human) sort
         is_origin = any([volume['origin'] for volume in volumes])
         if is_origin:
             header,fields = header+('origin',),fields+('origin',)
@@ -1433,10 +1457,8 @@ def print_nas_volumes_details(header,fields):
                 if current_max_field_length > fields_length[field]:
                     fields_length[field] = current_max_field_length
 
-        ## add field seperator
         if not is_field_separator_added:
-            for key in fields_length.keys():
-                fields_length[key] +=  3
+            fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
             
         header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1458,62 +1480,54 @@ def print_nas_volumes_details(header,fields):
 
 
 def print_nas_snapshots_details(header,fields):
-    ## TO - DO
-    #return
-    ## TO - DO
 
-    
     global pool_name
     pools = get('/pools')
-    pools.sort(key=lambda k : k['name'])
-    fields_length={}
     is_field_separator_added = False
-    for field in fields:
-        fields_length[field]=0
+    fields_length={}
+    fields_length = fields_length.fromkeys(fields, 0)
     for pool in pools:
+        snapshot_exist = False
         pool_name = pool['name']
         nas_volumes = get_nas_volumes_names()
-        #nas_volumes.sort(key=lambda k : k['name'])
+        if not nas_volumes:
+            continue            ##  SKIP if no vol
         for nas_volume in nas_volumes:
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=5'.format(POOL=pool_name,DATASET=nas_volume))
-            #print(snapshots['results'])
-            #print(len(snapshots['entries']))
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=1'.format(POOL=pool_name,DATASET=nas_volume))
+            if snapshots['results'] == 0: continue
             for snapshot in snapshots['entries']:
-                #snapshot_name = snapshot['name']
                 for snap_property in snapshot['properties']:
                     for i,field in enumerate(fields):
                         value = '-'
-                        if snap_property['name'] in fields:
-                            value = snap_property['value']
                         if field in ('name',):
-                            value = snapshot['name']
+                            value = snapshot['properties'][0]['owner']
+                            snapshot_exist = True
                         current_max_field_length = max(len(header[i]), len(value)) 
                         if current_max_field_length > fields_length[field]:
                             fields_length[field] = current_max_field_length
-
-        ## add field seperator
+        if not snapshot_exist:
+            continue            ##  SKIP if no snap
         if not is_field_separator_added:
-            for key in fields_length.keys():
-                fields_length[key] +=  3
-        is_field_separator_added = True
+            fields_length = add_fields_seperator(fields,fields_length,3)
+            is_field_separator_added = True
 
         header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
         print()
-        if len(nas_volumes):
-            print( header_format_template.format( *(header)))
+        print( header_format_template.format( *(header)))
         
         for nas_volume in nas_volumes:
             snapshot_details = []
-            #print('entries:',snapshots['entries'])
             snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0'.format(POOL=pool_name,DATASET=nas_volume))
+            if snapshots['results'] == 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
                 for field in fields:
                     value = '-'
                     if field in ('name',):
-                        value = snapshot['name']
+                        #value = snapshot['name']                   ## snap
+                        value = snapshot['properties'][0]['owner']  ## pool/vol@snap
                     else:
                         for snap_property in snapshot['properties']:
                             if snap_property['name'] in field:
@@ -1524,14 +1538,89 @@ def print_nas_snapshots_details(header,fields):
                                 value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     snapshot_details.append(value)
                 if snapshot_details:
-                    print(field_format_template.format(*snapshot_details))
+                    print_out = field_format_template.format(*snapshot_details)
+                    if list_all_snapshots:
+                        print(print_out)
+            if not list_all_snapshots:
+                print(print_out)
+        fields_length = fields_length.fromkeys(fields_length, 0)
+        is_field_separator_added = False
 
-       
+
+def print_san_snapshots_details(header,fields):
+
+    global pool_name
+    pools = get('/pools')
+    is_field_separator_added = False
+    fields_length = {}.fromkeys(fields, 0)
+    for pool in pools:
+        snapshot_exist = False
+        pool_name = pool['name']
+        san_volumes = get_san_volumes_names()
+        if not san_volumes:
+            continue            ##  SKIP if no vol
+        for san_volume in san_volumes:
+            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10'.format(POOL=pool_name,VOLUME=san_volume))
+            if snapshots['results'] == 0: continue
+            for snapshot in snapshots['entries']:
+                for i,field in enumerate(fields):
+                    value = '-'
+                    if field in ('name',):
+                        value = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
+                        snapshot_exist = True
+                    else:
+                        value = snapshot[field]
+                        if value in ('None',):
+                            value = '-'
+                        elif str.isdigit(str(value)):
+                            value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    current_max_field_length = max(len(header[i]), len(value)) 
+                    if current_max_field_length > fields_length[field]:
+                        fields_length[field] = current_max_field_length
+        if not snapshot_exist:
+            continue            ##  SKIP if no snap
+        if not is_field_separator_added:
+            fields_length = add_fields_seperator(fields,fields_length,3)
+            is_field_separator_added = True
+            
+        header_format_template  = '{:_<' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
+        field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
+
+        print()
+        print( header_format_template.format( *(header)))
+        
+        for san_volume in san_volumes:
+            snapshot_details = []
+            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0'.format(POOL=pool_name,VOLUME=san_volume))
+            if snapshots['results'] == 0: continue
+            for snapshot in snapshots['entries']:
+                snapshot_details = []
+                for field in fields:
+                    value = '-'
+                    if field in ('name',):
+                        value = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
+                    else:
+                        value = snapshot[field]
+                        if value in ('None',):
+                            value = '-'
+                        elif str.isdigit(str(value)):
+                            value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    snapshot_details.append(value)
+                if snapshot_details:
+                    print_out = field_format_template.format(*snapshot_details)
+                    if list_all_snapshots:
+                        print(print_out)
+            if not list_all_snapshots:
+                print(print_out)
+        fields_length = fields_length.fromkeys(fields_length, 0)
+        is_field_separator_added = False
+    
+    
+
+     
 def print_pools_details(header,fields):
     pools = get('/pools')
     if not pools: return
-    format_string = '{0:0>'+str(max((len(pool['name']) for pool in pools)))+'}'   # for natural sorting
-    pools.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
     fields_length={}
     for field in fields:
         fields_length[field]=0
@@ -1548,9 +1637,7 @@ def print_pools_details(header,fields):
             if current_max_field_length > fields_length[field]:
                 fields_length[field] = current_max_field_length
 
-    ## add field seperator
-    for key in fields_length.keys():
-            fields_length[key] +=  3
+    fields_length = add_fields_seperator(fields,fields_length,3)
 
     header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
     field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1615,9 +1702,7 @@ def print_scrub_pools_details(header,fields):
             if current_max_field_length > fields_length[field]:
                 fields_length[field] = current_max_field_length
 
-    ## add field seperator
-    for key in fields_length.keys():
-            fields_length[key] +=  3
+    fields_length = add_fields_seperator(fields,fields_length,3)
 
     header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
     field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1660,9 +1745,7 @@ def print_interfaces_details(header,fields):
             if current_max_field_length > fields_length[field]:
                 fields_length[field] = current_max_field_length
 
-    ## add field seperator
-    for key in fields_length.keys():
-            fields_length[key] +=  3
+    fields_length = add_fields_seperator(fields,fields_length,3)
 
     header_format_template  = '{:_>' + '}{:_>'.join([str(fields_length[field]) for field in fields]) + '}'
     field_format_template   =  '{:>' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
@@ -1880,14 +1963,17 @@ def get_iscsi_targets_names():
 def get_nas_volumes_names():
     nas_volumes = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
     if nas_volumes:
-        return [nas_volume['name'] for nas_volume in nas_volumes]
+        return natural_list_sort([nas_volume['name'] for nas_volume in nas_volumes])
     else:
         return []
 
 
 def get_san_volumes_names():
     san_volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
-    return [san_volume['name'] for san_volume in san_volumes]
+    if san_volumes:
+        return natural_list_sort([san_volume['name'] for san_volume in san_volumes])
+    else:
+        return []
 
         
 def get_nic_name_of_given_ip_address(ip_address):
@@ -2508,11 +2594,23 @@ def info():
         print_nas_volumes_details(header,fields)
 
         ## PRINT NAS SNAPs DETAILS
-        header= ('name', 'referenced','written')
+        if list_all_snapshots:
+            header= ('snapshot', 'referenced','written')
+        else:
+            header= ('the_most_recent_snapshot', 'referenced','written')
         fields= ('name', 'referenced','written')
         # TO-DO
-        #print_nas_snapshots_details(header,fields)
+        print_nas_snapshots_details(header,fields)
         
+        ## PRINT SAN SNAPs DETAILS
+        if list_all_snapshots:
+            header= ('snapshot', 'referenced','written')
+        else:
+            header= ('the_most_recent_snapshot', 'referenced','written')
+        fields= ('name', 'referenced','written')
+        # TO-DO
+        print_san_snapshots_details(header,fields)
+
 
 def get_pool_details(node, pool_name):
     api = interface()
@@ -3458,4 +3556,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    #print_README_md_for_GitHub()
