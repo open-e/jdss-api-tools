@@ -38,7 +38,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-08-08  add create_vip
 2018-08-27  add create storage resources and scrub and help-in-color
 2018-09-05  add batch_setup, create_factory_setup_files, scrub, set_scrub_scheduler, node-ip requires --nodes prefix
-2018-09-08  add volumes details in info 
+2018-09-08  add volumes details in info
+2018-10-10  info lists snapshot
 """
     
 from __future__ import print_function
