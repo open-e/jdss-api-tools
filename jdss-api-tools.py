@@ -40,6 +40,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-09-05  add batch_setup, create_factory_setup_files, scrub, set_scrub_scheduler, node-ip requires --nodes prefix
 2018-09-08  add volumes details in info
 2018-10-10  info lists snapshot
+2018-10-12  the info show snapshot age
 """
     
 from __future__ import print_function
@@ -464,6 +465,7 @@ def get_args(batch_args_line=None):
     For cluster, both cluster nodes, so it will create setup file for every node.
 
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
+    {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
 
 
 29. {BOLD}Execute factory setup files for batch setup.{END}
@@ -1178,6 +1180,42 @@ def human2bytes(s):
     return int(num * prefix[letter])
 
 
+def interval_seconds(plan):
+    '''
+    exmple plan: plan='1hours=>5minutes,3days=>15minutes'
+    function returns minimum interval of the plan in seconds
+    '''
+    return min([eval(item.split('=>')[-1].replace(
+          'seconds',          '*'+str(1)).replace(
+          'minutes',         '*'+str(60)).replace(
+          'hours',        '*'+str(60*60)).replace(
+          'days',      '*'+str(60*60*24)).replace(
+          'weeks',   '*'+str(60*60*24*7)).replace(
+          'months', '*'+str(60*60*24*30)).replace(
+          'years', '*'+str(60*60*24*365)) ) for item in plan.split(',')])
+
+
+def snapshot_age_seconds(time_stamp_string):
+    format_string = "%Y-%m-%d-%H%M%S"
+    #time_stamp_string = time_stamp_string.split('.')[0]
+    return time.time() - time.mktime( time.strptime(time_stamp_string, format_string))
+
+
+def seconds2human(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    periods = [('days', days),('hours', hours), ('minutes', minutes), ('seconds', seconds)]
+    for name,value in periods:
+        value = int(value)
+        if value == 0:
+            continue
+        if value == 1:
+            return "{} {}".format(str(value), name[:-1])
+        else:
+            return "{} {}".format(str(value), name)
+    
+
 def consecutive_number_generator():
     i = start_with
     while 1:
@@ -1367,8 +1405,11 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
 
 
 def add_fields_seperator(fields,fields_length,seperator_lenght):
-    for key in fields_length.keys():
+    for key in fields_length:
         fields_length[key] +=  seperator_lenght
+    ## The very first field is aligned to the right,
+    ## and all next fields are aligned to the right.
+    ## It looks like double separator, need to remove it.
     fields_length[fields[0]] -= seperator_lenght
     return fields_length
 
@@ -1485,29 +1526,36 @@ def print_nas_snapshots_details(header,fields):
     global pool_name
     pools = get('/pools')
     is_field_separator_added = False
-    fields_length={}
-    fields_length = fields_length.fromkeys(fields, 0)
+    fields_length = {}.fromkeys(fields, 0)
     for pool in pools:
         snapshot_exist = False
         pool_name = pool['name']
         nas_volumes = get_nas_volumes_names()
-        if not nas_volumes:
-            continue            ##  SKIP if no vol
+        if not nas_volumes: continue    ##  SKIP if no vol
         for nas_volume in nas_volumes:
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=1'.format(POOL=pool_name,DATASET=nas_volume))
-            if snapshots['results'] == 0: continue
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
+            if not snapshots['results'] or snapshots['results']== 0: continue
+            snapshot_exist = True
             for snapshot in snapshots['entries']:
-                for snap_property in snapshot['properties']:
-                    for i,field in enumerate(fields):
-                        value = '-'
-                        if field in ('name',):
-                            value = snapshot['properties'][0]['owner']
-                            snapshot_exist = True
-                        current_max_field_length = max(len(header[i]), len(value)) 
-                        if current_max_field_length > fields_length[field]:
+                snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
+                ## convert list of properties into dict of name:values
+                property_dict = {item['name']:item['value'] for item in snapshot['properties']}
+                for i,field in enumerate(fields):
+                    value = '-'
+                    if field in ('name',):
+                        value = snapshot_name
+                    elif field in ('referenced',):
+                        value = property_dict['referenced']
+                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    elif field in ('written',):
+                        value = property_dict['written']
+                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    elif field in ('age',):
+                        value = 'xx minutes' ## fake value as only few snaps are checked ion the loop
+                    current_max_field_length = max(len(header[i]), len(value))
+                    if current_max_field_length > fields_length[field]:
                             fields_length[field] = current_max_field_length
-        if not snapshot_exist:
-            continue            ##  SKIP if no snap
+        if not snapshot_exist: continue     ##  SKIP if no snap
         if not is_field_separator_added:
             fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
@@ -1520,31 +1568,34 @@ def print_nas_snapshots_details(header,fields):
         
         for nas_volume in nas_volumes:
             snapshot_details = []
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0'.format(POOL=pool_name,DATASET=nas_volume))
-            if snapshots['results'] == 0: continue
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
+            if not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
+                snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
+                ## convert list of properties into dict of name:values
+                property_dict = {item['name']:item['value'] for item in snapshot['properties']}
                 for field in fields:
                     value = '-'
                     if field in ('name',):
-                        #value = snapshot['name']                   ## snap
-                        value = snapshot['properties'][0]['owner']  ## pool/vol@snap
-                    else:
-                        for snap_property in snapshot['properties']:
-                            if snap_property['name'] in field:
-                                value = snap_property['value']
-                            elif value in ('None',):
-                                value = '-'
-                            elif str.isdigit(str(value)):
-                                value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                        value = snapshot_name
+                    elif field in ('referenced',):
+                        value = property_dict['referenced']
+                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    elif field in ('written',):
+                        value = property_dict['written']
+                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
+                    elif field in ('age',):
+                        time_stamp_string = snapshot_name.split('_')[-1]
+                        value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        plan = property_dict['org.znapzend:src_plan']
                     snapshot_details.append(value)
-                if snapshot_details:
-                    print_out = field_format_template.format(*snapshot_details)
-                    if list_all_snapshots:
-                        print(print_out)
-            if not list_all_snapshots:
+            print_out = field_format_template.format(*snapshot_details)
+            if list_all_snapshots:
                 print(print_out)
-        fields_length = fields_length.fromkeys(fields_length, 0)
+        if not list_all_snapshots:
+            print(print_out)
+        fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
 
 
@@ -1561,14 +1612,17 @@ def print_san_snapshots_details(header,fields):
         if not san_volumes:
             continue            ##  SKIP if no vol
         for san_volume in san_volumes:
-            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10'.format(POOL=pool_name,VOLUME=san_volume))
-            if snapshots['results'] == 0: continue
+            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
+            if not snapshots['results'] or snapshots['results']== 0: continue
+            snapshot_exist = True
             for snapshot in snapshots['entries']:
+                snapshot_name = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
                 for i,field in enumerate(fields):
                     value = '-'
                     if field in ('name',):
-                        value = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
-                        snapshot_exist = True
+                        value = snapshot_name
+                    elif field in ('age',):
+                        value = 'xx minutes' ## fake value as only few snaps are checked ion the loop
                     else:
                         value = snapshot[field]
                         if value in ('None',):
@@ -1592,14 +1646,22 @@ def print_san_snapshots_details(header,fields):
         
         for san_volume in san_volumes:
             snapshot_details = []
-            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0'.format(POOL=pool_name,VOLUME=san_volume))
-            if snapshots['results'] == 0: continue
+            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
+            if not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
+                snapshot_name = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
                 for field in fields:
                     value = '-'
                     if field in ('name',):
-                        value = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
+                        value = snapshot_name
+                    elif field in ('age',):
+                        time_stamp_string = snapshot_name.split('_')[-1]
+                        value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        if 'org.znapzend:src_plan' in snapshot.keys():
+                            plan = snapshot['org.znapzend:src_plan']
+                        else:
+                            plan = ""
                     else:
                         value = snapshot[field]
                         if value in ('None',):
@@ -1613,7 +1675,7 @@ def print_san_snapshots_details(header,fields):
                         print(print_out)
             if not list_all_snapshots:
                 print(print_out)
-        fields_length = fields_length.fromkeys(fields_length, 0)
+        fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
     
     
@@ -2596,19 +2658,19 @@ def info():
 
         ## PRINT NAS SNAPs DETAILS
         if list_all_snapshots:
-            header= ('snapshot', 'referenced','written')
+            header= ('snapshot', 'referenced','written','age')
         else:
-            header= ('the_most_recent_snapshot', 'referenced','written')
-        fields= ('name', 'referenced','written')
+            header= ('the_most_recent_snapshot', 'referenced','written','age')
+        fields= ('name', 'referenced','written','age')
         # TO-DO
         print_nas_snapshots_details(header,fields)
         
         ## PRINT SAN SNAPs DETAILS
         if list_all_snapshots:
-            header= ('snapshot', 'referenced','written')
+            header= ('snapshot', 'referenced','written','age')
         else:
-            header= ('the_most_recent_snapshot', 'referenced','written')
-        fields= ('name', 'referenced','written')
+            header= ('the_most_recent_snapshot', 'referenced','written','age')
+        fields= ('name', 'referenced','written','age')
         # TO-DO
         print_san_snapshots_details(header,fields)
 
