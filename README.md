@@ -275,8 +275,15 @@
 30. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
-        jdss-api-tools.exe info --list_all_snapshots --node 192.168.0.220
-    
+
+     The info command lists only the most recent snapshots.
+     In order to list all snapshots use --all_snapshots option.
+
+        jdss-api-tools.exe info --all_snapshots --node 192.168.0.220
+
+     or just --all
+
+        jdss-api-tools.exe info --all --node 192.168.0.220
 
 
 ############################################################################################

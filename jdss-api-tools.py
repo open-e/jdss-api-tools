@@ -483,8 +483,15 @@ def get_args(batch_args_line=None):
 30. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
-    {LG}%(prog)s info --list_all_snapshots --node 192.168.0.220{ENDF}
-    
+
+     The info command lists only the most recent snapshots.
+     In order to list all snapshots use --all_snapshots option.
+
+    {LG}%(prog)s info --all_snapshots --node 192.168.0.220{ENDF}
+
+     or just --all
+
+    {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
 
 
 ############################################################################################
@@ -848,8 +855,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         type=argparse.FileType('r')
     )
     parser.add_argument(
-        '--list_all_snapshots',
-        dest='list_all_snapshots',
+        '--all_snapshots',
+        dest='all_snapshots',
         action='store_true',
         default=False,
         help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only.'
@@ -898,7 +905,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
 
-    global setup_files, list_all_snapshots
+    global setup_files, all_snapshots
     
 
     api_port                = args['port']
@@ -959,7 +966,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     
     menu                    = args['menu']
     setup_files             = args['setup_files']
-    list_all_snapshots      = args['list_all_snapshots']
+    all_snapshots           = args['all_snapshots']
     
     ## scrub scheduler
     ## set default to 1st of every month at 0:15
@@ -1591,9 +1598,9 @@ def print_nas_snapshots_details(header,fields):
                         plan = property_dict['org.znapzend:src_plan']
                     snapshot_details.append(value)
             print_out = field_format_template.format(*snapshot_details)
-            if list_all_snapshots:
+            if all_snapshots:
                 print(print_out)
-        if not list_all_snapshots:
+        if not all_snapshots:
             print(print_out)
         fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
@@ -1671,10 +1678,12 @@ def print_san_snapshots_details(header,fields):
                     snapshot_details.append(value)
                 if snapshot_details:
                     print_out = field_format_template.format(*snapshot_details)
-                    if list_all_snapshots:
+                    if all_snapshots:
                         print(print_out)
-            if not list_all_snapshots:
+            if not all_snapshots:
                 print(print_out)
+            if all_snapshots:
+                print()
         fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
     
@@ -2657,7 +2666,7 @@ def info():
         print_nas_volumes_details(header,fields)
 
         ## PRINT NAS SNAPs DETAILS
-        if list_all_snapshots:
+        if all_snapshots:
             header= ('snapshot', 'referenced','written','age')
         else:
             header= ('the_most_recent_snapshot', 'referenced','written','age')
@@ -2666,7 +2675,7 @@ def info():
         print_nas_snapshots_details(header,fields)
         
         ## PRINT SAN SNAPs DETAILS
-        if list_all_snapshots:
+        if all_snapshots:
             header= ('snapshot', 'referenced','written','age')
         else:
             header= ('the_most_recent_snapshot', 'referenced','written','age')
