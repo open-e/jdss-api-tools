@@ -94,8 +94,8 @@ def get(endpoint):
     api=interface()
     try:
         result = api.driver.get(endpoint)['data']
+        result = natural_list_sort(result)
         result = natural_dict_sort_by_name_key(result)
-        #result = natural_list_sort(result)
     except Exception as e:
         error = str(e[0])
     return result
@@ -1202,10 +1202,17 @@ def interval_seconds(plan):
           'years', '*'+str(60*60*24*365)) ) for item in plan.split(',')])
 
 
-def snapshot_age_seconds(time_stamp_string):
-    format_string = "%Y-%m-%d-%H%M%S"
-    #time_stamp_string = time_stamp_string.split('.')[0]
-    return time.time() - time.mktime( time.strptime(time_stamp_string, format_string))
+def snapshot_age_seconds(creation):
+    '''
+    creation = snapshot creation time in seconds or date-string. Example: 2018-10-14 22:45:3
+    '''
+    if '-' in creation:
+        mytime = creation
+        myformat = "%Y-%m-%d %H:%M:%S" 
+        mydt = datetime.datetime.strptime(mytime, myformat)
+        return time.time() - time.mktime(mydt.timetuple())
+    else:
+        return time.time() - float(creation)
 
 
 def seconds2human(seconds):
@@ -1600,7 +1607,8 @@ def print_nas_snapshots_details(header,fields):
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
-                        value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_age_seconds(property_dict['creation']))
                         plan = property_dict['org.znapzend:src_plan']
                     snapshot_details.append(value)
             print_out = field_format_template.format(*snapshot_details)
@@ -1669,8 +1677,9 @@ def print_san_snapshots_details(header,fields):
                     if field in ('name',):
                         value = snapshot_name
                     elif field in ('age',):
-                        time_stamp_string = snapshot_name.split('_')[-1]
-                        value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        #time_stamp_string = snapshot_name.split('_')[-1]
+                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_age_seconds(snapshot['creation']))
                         if 'org.znapzend:src_plan' in snapshot.keys():
                             plan = snapshot['org.znapzend:src_plan']
                         else:
