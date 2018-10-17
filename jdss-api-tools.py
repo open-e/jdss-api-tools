@@ -3043,10 +3043,10 @@ def attach_volume_to_target(ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
                     auto_target_name,volume_name,node))
         
-        print_with_timestamp('Volume: {} has been successfully attached to target.'.format(
-            volume_name))
+        print_with_timestamp('Volume: {}/{} has been successfully attached to target.'.format(
+            pool_name,volume_name))
         print("\n\tTarget:\t{}".format(auto_target_name))
-        print("\tVolume:\t{}\n".format(volume_name))
+        print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
 
 
 def attach_clone_to_target(ignore_error=None):
