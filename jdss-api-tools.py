@@ -1422,14 +1422,20 @@ def add_fields_seperator(fields,fields_length,seperator_lenght):
 
 
 def natural_dict_sort_by_name_key(items):
-    format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}'   # for natural sorting
-    items.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
+    try:
+        format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}'   # for natural sorting
+        items.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
+    except:
+        pass
     return items
 
     
 def natural_list_sort(items):
-    format_string = '{0:0>'+str(max((len(item) for item in items)))+'}'   # for natural sorting
-    items.sort(key=lambda k : format_string.format(k).lower())            # natural(human) sort
+    try:
+        format_string = '{0:0>'+str(max((len(item) for item in items)))+'}'   # for natural sorting
+        items.sort(key=lambda k : format_string.format(k).lower())            # natural(human) sort
+    except:
+        pass
     return items
 
 
