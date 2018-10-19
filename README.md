@@ -201,7 +201,19 @@
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220
     
 
-26. <b>Scrub</b> start|stop|status.
+26. <b>Modify volumes settings</b>. Modifiy volume(san) or dataset(nas) setting.
+
+    Current version modify only : Write cache logging(sync) settings. 
+
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync=always  --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync=disabled --node 192.168.0.220
+    
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220
+    
+
+27. <b>Scrub</b> start|stop|status.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -221,7 +233,7 @@
         jdss-api-tools.exe scrub --action status --node 192.168.0.220
     
 
-27. <b>Set scrub scheduler</b>.
+28. <b>Set scrub scheduler</b>.
     By default the command search all pools on node or cluster(if configured) and set default schedule: every month at 0:15.
     Every pool will set on diffrent month day.
 
@@ -250,7 +262,7 @@
     https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-28. <b>Generate factory setup files for batch setup.</b>
+29. <b>Generate factory setup files for batch setup.</b>
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -260,7 +272,7 @@
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1
 
 
-29. <b>Execute factory setup files for batch setup.</b>
+30. <b>Execute factory setup files for batch setup.</b>
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
      Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
@@ -272,7 +284,7 @@
         jdss-api-tools.exe batch_setup  --setup_files  api_test_cluster_80.txt  --node 192.168.0.80
 
 
-30. <b>Print system info</b>.
+31. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 

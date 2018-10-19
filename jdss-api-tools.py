@@ -41,6 +41,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-09-08  add volumes details in info
 2018-10-10  info lists snapshot
 2018-10-12  the info show snapshot age
+2018-10-19  modify_volume
 """
     
 from __future__ import print_function
@@ -94,10 +95,10 @@ def get(endpoint):
     api=interface()
     try:
         result = api.driver.get(endpoint)['data']
-        result = natural_list_sort(result)
-        result = natural_dict_sort_by_name_key(result)
     except Exception as e:
         error = str(e[0])
+    result = natural_list_sort(result)
+    result = natural_sub_dict_sort_by_name_key(result)
     return result
 
 
@@ -409,7 +410,19 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
     
 
-26. {BOLD}Scrub{END} start|stop|status.
+26. {BOLD}Modify volumes settings{END}. Modifiy volume(san) or dataset(nas) setting.
+
+    Current version modify only : Write cache logging(sync) settings. 
+
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync=always  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync=disabled --node 192.168.0.220{ENDF}
+    
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220{ENDF}
+    
+
+27. {BOLD}Scrub{END} start|stop|status.
  
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -429,7 +442,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
     
 
-27. {BOLD}Set scrub scheduler{END}.
+28. {BOLD}Set scrub scheduler{END}.
     By default the command search all pools on node or cluster(if configured) and set default schedule: every month at 0:15.
     Every pool will set on diffrent month day.
 
@@ -458,7 +471,7 @@ def get_args(batch_args_line=None):
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
-28. {BOLD}Generate factory setup files for batch setup.{END}
+29. {BOLD}Generate factory setup files for batch setup.{END}
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
@@ -468,7 +481,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
 
 
-29. {BOLD}Execute factory setup files for batch setup.{END}
+30. {BOLD}Execute factory setup files for batch setup.{END}
      This example run setup for nodes 192.168.0.80, 192.168.0.81.
      Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
      First only one node must be started. Once booted, the REST api must be enabled via GUI.
@@ -480,7 +493,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s batch_setup  --setup_files  api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
 
 
-30. {BOLD}Print system info{END}.
+31. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
@@ -522,8 +535,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     commands = parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'delete_clone',
-                 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
+                 'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes','set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:  %(choices)s.'
@@ -565,6 +578,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default='thin',
         help='Enter thick or thin provisioning option. Thin provisioning is default'
     )
+    parser.add_argument(
+        '--sync',
+        metavar='sync',
+        choices=['always', 'standard', 'disabled'],
+        default='standard',
+        help='Enter Write cache logging(sync): always, standard, disabled'
+    )
+
     parser.add_argument(
         '--target',
         metavar='name',
@@ -888,7 +909,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
 
     
-    global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type, size, sparse, snapshot_name
+    global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type, size, sync, sparse, snapshot_name
     global nodes, ping_nodes, node
     global delay, menu
     global share_name, visible
@@ -917,6 +938,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     storage_type            = args['storage_type']
     sparse                  = args['provisioning'].upper()  ## THICK | THIN, default==THIN
     size                    = args['size']
+    sync                    = args['sync']
     target_name             = args['target']
     quantity                = args['quantity']
     start_with              = args['start_with']
@@ -1428,22 +1450,21 @@ def add_fields_seperator(fields,fields_length,seperator_lenght):
     return fields_length
 
 
-def natural_dict_sort_by_name_key(items):
-    try:
+def natural_sub_dict_sort_by_name_key(items):
+    if items and type(items) is list and type(items[0]) is dict and 'name' in items[0].keys():
         format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}'   # for natural sorting
         items.sort(key=lambda k : format_string.format(k['name']).lower())            # natural(human) sort
-    except:
-        pass
-    return items
-
+        return items
+    else:
+        return items
     
 def natural_list_sort(items):
-    try:
+    if type(items) is list and len(items)>0:
         format_string = '{0:0>'+str(max((len(item) for item in items)))+'}'   # for natural sorting
         items.sort(key=lambda k : format_string.format(k).lower())            # natural(human) sort
-    except:
-        pass
-    return items
+        return items
+    else:
+        return items
 
 
 def print_volumes_details(header,fields):
@@ -2206,10 +2227,11 @@ def set_mirror_path():
     ## POST
     return_code = post('/cluster/remote-disks/paths',data)
     is_all_OK = False
-    for _ in range(20):
-        time.sleep(5)
+    for _ in range(10):
+        time.sleep(1)
         result = get('/cluster/remote-disks/paths')
-        is_all_OK = all(['OK' in interface['status'] for interface in result[0]['interfaces']])
+        if result and len(result)>0:
+            is_all_OK = all(['OK' in interface['status'] for interface in result[0]['interfaces']])
         if is_all_OK:
             print()
             print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(mirror_nics)))
@@ -2686,7 +2708,6 @@ def info():
         else:
             header= ('the_most_recent_snapshot', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
-        # TO-DO
         print_nas_snapshots_details(header,fields)
         
         ## PRINT SAN SNAPs DETAILS
@@ -2695,7 +2716,6 @@ def info():
         else:
             header= ('the_most_recent_snapshot', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
-        # TO-DO
         print_san_snapshots_details(header,fields)
 
 
@@ -2823,7 +2843,7 @@ def create_pool(pool_name,vdev_type,jbods):
         
 
 def create_volume(vol_type):
-    
+    ## POST
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         data=dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
@@ -2834,6 +2854,25 @@ def create_volume(vol_type):
         result=post(endpoint,data)
 
 
+def modify_volume(vol_type):
+    global action_message
+    action_message = 'Sending modify volume request to: {}'.format(node)
+    print_with_timestamp(action_message)
+    ## PUT
+    if vol_type == 'volume':
+        endpoint='/pools/{POOL_NAME}/volumes/{VOLUME_NAME}'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name)
+        data=dict( sync=sync )
+        result=put(endpoint,data)
+    if vol_type == 'dataset':
+        endpoint='/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name)
+        data=dict( sync=sync ) 
+        result=put(endpoint,data)
+    if result['error'] is None:
+        print_with_timestamp('{}/{} Write cache logging(sync) set to: {}.'.format(pool_name,volume_name,sync))
+    else:
+        print_with_timestamp('Error: {}/{} Write cache logging(sync) setting failed.'.format(pool_name,volume_name,sync))
+    
+
 def enable_smb_nfs():
     for service in storage_type:
         endpoint = '/services/{SERVICE}'.format(SERVICE=service.lower())
@@ -2841,7 +2880,7 @@ def enable_smb_nfs():
         if not enabled:
             put(endpoint,dict(enabled=True))
 
-    
+   
 def create_storage_resource():
     global node
     global volume_name
@@ -3231,8 +3270,7 @@ def read_jbods_and_create_pool(choice='0'):
 
     while 1:
 
-        if menu:
-            choice = run_menu(msg)
+        if menu: choice = run_menu(msg)
         if choice in "01234567":
             jbod_number = int(choice)
             ## read disks        
@@ -3273,7 +3311,7 @@ def read_jbods_and_create_pool(choice='0'):
         elif choice in "C":
             if not menu:
                 jbods = remove_disks(jbods)
-                msg = jbods_listing(jbods)
+                #msg = jbods_listing(jbods) 
             ## create pool
             if empty_jbod:
                 msg = 'At least one JBOD is empty. Please press 0,1,... in order to read JBODs disks.'
@@ -3366,7 +3404,15 @@ def command_processor() :
                 sys_exit_with_timestamp( 'Error: inconsisten options.')
         create_storage_resource()
 
-        
+
+    elif action == 'modify_volume':
+        c = count_provided_args( pool_name, volume_name )   ## if all provided (not None), c must be equal 3
+        if c < 2:
+            sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
+        vol_type = check_given_volume_name()
+        modify_volume(vol_type)
+
+
     elif action == 'set_host':
         c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
