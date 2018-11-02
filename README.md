@@ -192,6 +192,10 @@
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb  --node 192.168.0.220
 
+    with quota and reservation
+
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb --quota 100GB --reservation 50GB --node 192.168.0.220
+
     and multi-resource with --quantity option, starting consecutive number from zero (default)
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5  --node 192.168.0.220
@@ -199,7 +203,7 @@
     and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10)
     
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220
-    
+
 
 26. <b>Modify volumes settings</b>. Modifiy volume(san) or dataset(nas) setting.
 
@@ -211,6 +215,10 @@
         jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220
         jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220
         jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220
+
+   modify quota and reservation
+
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220
     
 
 27. <b>Scrub</b> start|stop|status.
