@@ -42,6 +42,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-10-10  info lists snapshot
 2018-10-12  the info show snapshot age
 2018-10-19  modify_volume
+2018-11-02  add quota & reservation
 """
     
 from __future__ import print_function
@@ -401,6 +402,10 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb  --node 192.168.0.220{ENDF}
 
+    with quota and reservation
+
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --quota 100GB --reservation 50GB --node 192.168.0.220{ENDF}
+
     and multi-resource with --quantity option, starting consecutive number from zero (default)
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5  --node 192.168.0.220{ENDF}
@@ -408,7 +413,7 @@ def get_args(batch_args_line=None):
     and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10)
     
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
-    
+
 
 26. {BOLD}Modify volumes settings{END}. Modifiy volume(san) or dataset(nas) setting.
 
@@ -420,6 +425,10 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220{ENDF}
+
+   modify quota and reservation
+
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
     
 
 27. {BOLD}Scrub{END} start|stop|status.
@@ -571,6 +580,16 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='size',
         default='1TB',
         help='Enter SAN(zvol) size in human readable format i.e. 100GB, 1TB, etc. Default = 1TB.'
+    )
+    parser.add_argument(
+        '--quota',
+        metavar='quota',
+        help='Enter NAS(vol) quota size in human readable format i.e. 100MB 100GB, 1TB, etc.'
+    )
+    parser.add_argument(
+        '--reservation',
+        metavar='reservation',
+        help='Enter NAS(vol) reservation size in human readable format i.e. 100MB 100GB, 1TB, etc.'
     )
     parser.add_argument(
         '--provisioning',
@@ -909,7 +928,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
 
     
-    global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type, size, sync, sparse, snapshot_name
+    global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
+    global size, quota, reservation, sync, sparse, snapshot_name
     global nodes, ping_nodes, node
     global delay, menu
     global share_name, visible
@@ -938,6 +958,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     storage_type            = args['storage_type']
     sparse                  = args['provisioning'].upper()  ## THICK | THIN, default==THIN
     size                    = args['size']
+    quota                   = args['quota']
+    reservation             = args['reservation']
     sync                    = args['sync']
     target_name             = args['target']
     quantity                = args['quantity']
@@ -1027,9 +1049,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         s = dict(THIN=True,THICK=False)
         sparse = s[sparse]
         
-    ## size: human to bytes (default=1TB)
-    size = size.strip('Bb')    
-    size = str(human2bytes(size))
+    ## size,quota,reservation: human to bytes
+    def human_to_bytes(value):
+        if value:
+            value = value.strip('Bb')
+            return str(human2bytes(value))
+        return value
+    size =          human_to_bytes(size)
+    quota =         human_to_bytes(quota)
+    reservation =   human_to_bytes(reservation)
 
     ## change default share name from "auto" to "auto_api_backup_share"
     if 'clone' in action and share_name == 'auto':
@@ -2844,20 +2872,28 @@ def create_pool(pool_name,vdev_type,jbods):
 
 def create_volume(vol_type):
     ## POST
+    quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         data=dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
         result=post(endpoint,data)
     if vol_type == 'dataset':
         endpoint='/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard') 
+        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard', quota=quota, reservation=reservation) 
         result=post(endpoint,data)
+        quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
+        reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
+    if result and (result['error'] is None):
+        print_with_timestamp('{}/{}: Write cache logging(sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
+    else:
+        print_with_timestamp('Error: {}/{} Volume create request failed.'.format(pool_name,volume_name,sync))
 
 
 def modify_volume(vol_type):
     global action_message
     action_message = 'Sending modify volume request to: {}'.format(node)
     print_with_timestamp(action_message)
+    quota_text, reservation_text = ('','')
     ## PUT
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes/{VOLUME_NAME}'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name)
@@ -2865,12 +2901,14 @@ def modify_volume(vol_type):
         result=put(endpoint,data)
     if vol_type == 'dataset':
         endpoint='/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name)
-        data=dict( sync=sync ) 
+        data=dict( sync=sync, quota=quota, reservation=reservation ) 
         result=put(endpoint,data)
-    if result['error'] is None:
-        print_with_timestamp('{}/{} Write cache logging(sync) set to: {}.'.format(pool_name,volume_name,sync))
+        quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
+        reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
+    if result and (result['error'] is None):
+        print_with_timestamp('{}/{}: Write cache logging(sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
     else:
-        print_with_timestamp('Error: {}/{} Write cache logging(sync) setting failed.'.format(pool_name,volume_name,sync))
+        print_with_timestamp('Error: {}/{} Modify volume request failed.'.format(pool_name,volume_name,sync))
     
 
 def enable_smb_nfs():
