@@ -222,8 +222,8 @@ def get_args(batch_args_line=None):
     The example is using default password and port.
     Tools automatically recognize the volume type. If given volume is iSCSI volume,
     the clone of the iSCSI volume will be attached to iSCSI target.
-    If given volume is NAS dataset, the created clone will be exported via network share
-    as shown in the next example.
+    If given volume is NAS dataset, the created clone will be exported via network share.
+    The example is using default password and port.
 
     {LG}%(prog)s clone --pool=Pool-0 --volume=zvol00 --node=192.168.0.220{ENDF}
 
@@ -231,12 +231,12 @@ def get_args(batch_args_line=None):
  2. {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
-    The example is using default password and port and make the share visible with default share name.
+    The example is using default password and port and makes the share {BOLD}visible{END} with default share name.
 
     {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --visible --node=192.168.0.220{ENDF}
 
-    The examples are using default password and port and make the shares invisible.
-     
+    The following examples are using default password and port and make the shares {BOLD}invisible{END}.
+
     {LG}%(prog)s clone --pool=Pool-0 --volume=vol00 --share_name=vol00_backup --node=192.168.0.220{ENDF}
     {LG}%(prog)s clone --pool=Pool-0 --volume=vol01 --share_name=vol01_backup --node=192.168.0.220{ENDF}
 
@@ -276,13 +276,13 @@ def get_args(batch_args_line=None):
 
 
  9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
-    Pool-0 with 2 * raidz1(3 disks) total 6 disks 
+    Pool-0 with 2 * raidz1(3 disks) total 6 disks.
 
     {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=raidz1 --vdev_disks=3 --node=192.168.0.220{ENDF}
 
 
  10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
-    Pool-0 with 2 * mirrors(4 disks) total 8 disks 
+    Pool-0 with 2 * mirrors(4 disks) total 8 disks.
 
     {LG}%(prog)s create_pool --pool=Pool-0 --vdevs=2 --vdev=mirror --vdev_disks=4 --node=192.168.0.220{ENDF}
 
@@ -291,16 +291,16 @@ def get_args(batch_args_line=None):
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-    Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
+    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "c" from the menu.
 
     {LG}%(prog)s create_pool --pool=Pool-0 --jbods=4 --vdevs=60 --vdev=raidz2 --vdev_disks=4 --node=192.168.0.220{ENDF}
 
 
- 12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
+ 12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
     {LG}%(prog)s --pswd password shutdown --nodes=192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
-    or with IP range syntax ".."
+    or with IP range syntax "..".
 
     {LG}%(prog)s --pswd password shutdown --node=192.168.0.220..222{ENDF}
 
@@ -324,7 +324,7 @@ def get_args(batch_args_line=None):
 
 
  16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
-    Missing netmask option will set default 255.255.255.0
+    Missing netmask option will set default 255.255.255.0.
 
     {LG}%(prog)s network --nic=eth0 --new_ip=192.168.0.80 --new_gw=192.168.0.1 --node=192.168.0.220{ENDF}
 
@@ -338,7 +338,7 @@ def get_args(batch_args_line=None):
 
 
  17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-    Default = active-backup
+    Default = active-backup.
 
     {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --node=192.168.0.80{ENDF}
     {LG}%(prog)s create_bond --bond_nics=eth0,eth1 --new_ip=192.168.0.80 --new_gw=192.168.0.1 --node=192.168.0.80{ENDF}
@@ -350,18 +350,18 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s delete_bond --nic=bond0 --node=192.168.0.80{ENDF}
 
 
- 19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80
-    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin
+ 19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80.
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
 
     {LG}%(prog)s bind_cluster --user=admin --pswd=password --bind_node_password=admin --node=192.168.0.80 192.168.0.81{ENDF}
 
 
  20. {BOLD}Set HA-cluster ping nodes{END}.
-    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0
+    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
     {LG}%(prog)s set_ping_nodes --user=administrator --pswd=password --netmask=255.255.0.0 --ping_nodes=192.168.0.240 192.168.0.241 192.168.0.242 --node=192.168.0.80{ENDF}
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0
+    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0.
 
     {LG}%(prog)s set_ping_nodes --ping_nodes=192.168.0.240 192.168.0.241 192.168.0.242 --node=192.168.0.80{ENDF}
 
@@ -379,7 +379,7 @@ def get_args(batch_args_line=None):
     If cluster is configured both vip_nics must be provided.
     With single node (no cluster) only first vip_nic specified will be used.
     The second vip_nic (if specified) will be ignored.
-    Default vip_mask = 255.255.255.0
+    Default vip_mask = 255.255.255.0.
 
 
  23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
@@ -394,45 +394,45 @@ def get_args(batch_args_line=None):
 
 
  25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
-    Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto
-    Example for iSCSI target with specified volume, target_name, size and provisioning
+    Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
+    Example for iSCSI target with specified volume, target_name, size and provisioning.
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --volume=zvol00 --target_name=iqn.2018-09:ha-00.target0 --size=1TB --provisioning=thin --node=192.168.0.220{ENDF}
 
     If target_name = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
-    In the next example target name will also be: "iqn.2018-09:ha-00.target0",
-    so if "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01"
+    In the next example target name will also be: "iqn.2018-09:ha-00.target0".
+    If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --cluster=ha-00 --node=192.168.0.220{ENDF}
 
-    with missing --cluster=ha-00, it will produce same result as "ha-00" is default cluster name
+    With missing --cluster=ha-00, it will produce same result as "ha-00" is default cluster name.
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --node=192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto)
+    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto).
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --node=192.168.0.220{ENDF}
 
-    with specified volume and share_name
+    Example for SMB share with dataset, using specified volume and share_name.
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --volume=vol00 --share_name=data --node=192.168.0.220{ENDF}
 
-    with quota and reservation
+    Example with specified quota and reservation.
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=smb --quota=100GB --reservation=50GB --node=192.168.0.220{ENDF}
 
-    Example for multi-resource with --quantity option, starting consecutive number from zero (default)
+    Example for multi-resource with --quantity option, starting consecutive number from zero (default),
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --node=192.168.0.220{ENDF}
 
-    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with=10)
+    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with=10).
 
     {LG}%(prog)s create_storage_resource --pool=Pool-0 --storage_type=iscsi --quantity=5 --start_with=10 --node=192.168.0.220{ENDF}
 
 
  26. {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
-    Current version modify only: Write cache logging (sync) settings
+    Current version modify only: Write cache logging (sync) settings.
 
     {LG}%(prog)s modify_volume --pool=Pool-0 --volume=zvol00 --sync=always --node=192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool=Pool-0 --volume=zvol00 --sync=disabled --node=192.168.0.220{ENDF}
@@ -441,50 +441,50 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool=Pool-0 --volume=vol00 --sync=standard --node=192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool=Pool-0 --volume=vol00 --sync=disabled --node=192.168.0.220{ENDF}
 
-    Modify quota and reservation
+    Modify quota and reservation.
 
     {LG}%(prog)s modify_volume --pool=Pool-0 --volume=vol00 --quota=200GB --reservation=80GB --node=192.168.0.220{ENDF}
 
 
  27. {BOLD}Scrub{END} start|stop|status.
 
-    Scrub all pools. If the node belongs to cluster, scrub all pools in cluster
+    Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
     {LG}%(prog)s scrub --node=192.168.0.220{ENDF}
 
-    Scrub on specified pools only
+    Scrub on specified pools only.
 
     {LG}%(prog)s scrub --pool=Pool-0 --node=192.168.0.220{ENDF}
     {LG}%(prog)s scrub --pool=Pool-0 --pool=Pool-1 --pool=Pool-2 --node=192.168.0.220{ENDF}
 
-    Stop scrub on all pools
+    Stop scrub on all pools.
 
     {LG}%(prog)s scrub --action=stop --node=192.168.0.220{ENDF}
 
-    Scrub status on all pools
+    Scrub status on all pools.
 
     {LG}%(prog)s scrub --action=status --node=192.168.0.220{ENDF}
 
 
  28. {BOLD}Set scrub scheduler{END}.
     By default the command searches all pools on node or cluster(if configured) and set default schedule: every month at 0:15 AM.
-    Every pool will be set on different month day
+    Every pool will be set on different month day.
 
     {LG}%(prog)s set_scrub_scheduler --node=192.168.0.220{ENDF}
 
-    Set default schedule on Pool-0 and Pool-1 only
+    Set default schedule on Pool-0 and Pool-1 only.
 
     {LG}%(prog)s set_scrub_scheduler --pool=Pool-0 Pool-1 --node=192.168.0.220{ENDF}
 
-    Set schedule every week on Monday at 1:10 AM on Pool-0 only
+    Set schedule every week on Monday at 1:10 AM on Pool-0 only.
 
     {LG}%(prog)s set_scrub_scheduler --pool=Pool-0 --day_of_the_month=* --day_of_the_week=1 --hour=1 --minute=10 --node=192.168.0.220{ENDF}
 
-    Set schedule every day at 2:30 AM on Pool-0 only
+    Set schedule every day at 2:30 AM on Pool-0 only.
 
     {LG}%(prog)s set_scrub_scheduler --pool=Pool-0 --day_of_the_month=* --hour=2 --minute=30 --node=192.168.0.220{ENDF}
 
-    Set schedule every second day at 21:00 (9:00 PM) on Pool-0 only
+    Set schedule every second day at 21:00 (9:00 PM) on Pool-0 only.
 
     {LG}%(prog)s set_scrub_scheduler --pool=Pool-0 --day_of_the_month=*/2 --hour=21 --minute=0 --node=192.168.0.220{ENDF}
 
@@ -497,7 +497,7 @@ def get_args(batch_args_line=None):
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
-    For cluster, both cluster nodes ip addresses, so it will create setup file for every node
+    For cluster, both cluster nodes ip addresses, so it will create setup file for every node.
 
     {LG}%(prog)s create_factory_setup_files --nodes=192.168.0.80 192.168.0.81{ENDF}
     {LG}%(prog)s create_factory_setup_files --nodes=192.168.0.80 192.168.0.81 --ping_nodes=192.168.0.30 192.168.0.40 --mirror_nics=bond1 bond1{ENDF}
@@ -507,8 +507,9 @@ def get_args(batch_args_line=None):
     This example run setup for nodes 192.168.0.80, 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
     First only one node must be started. Once booted, the RESTapi must be enabled via GUI.
-    The batch setup will start to configure first node. Now, the second node can be booted.
-    Once the second node is up, the RESTapi must also be enabled via GUI
+    The batch setup will start to configure first node.
+    Now, the second node can be booted.
+    Once the second node is up, the RESTapi must also be enabled via GUI.
 
 
     {LG}%(prog)s batch_setup --setup_files=api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node=192.168.0.80{ENDF}
@@ -520,11 +521,11 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s info --node=192.168.0.220{ENDF}
 
     The info command lists only the most recent snapshots.
-    In order to list all snapshots use --all_snapshots option.
+    In order to list all snapshots use --all_snapshots option,
 
     {LG}%(prog)s info --all_snapshots --node 192.168.0.220{ENDF}
 
-    or just --all
+    or just --all.
 
     {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
 
