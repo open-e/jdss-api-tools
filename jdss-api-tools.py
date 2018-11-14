@@ -1603,7 +1603,8 @@ def print_nas_snapshots_details(header,fields):
         if not nas_volumes: continue    ##  SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
-            if (not snapshots) or (not snapshots['results']) or (snapshots['results']== 0): continue
+            if not snapshots : continue
+            if not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
@@ -1683,7 +1684,8 @@ def print_san_snapshots_details(header,fields):
             continue            ##  SKIP if no vol
         for san_volume in san_volumes:
             snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
-            if (not snapshots) or (not snapshots['results']) or (snapshots['results']== 0): continue
+            if not snapshots : continue
+            if not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
