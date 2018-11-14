@@ -209,12 +209,12 @@
 
     Current version modify only : Write cache logging(sync) settings. 
 
-        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync=always  --node 192.168.0.220
-        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync=disabled --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync always  --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume zvol00 --sync disabled --node 192.168.0.220
     
-        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220
-        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220
-        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync always   --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync standard --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0  --volume vol00 --sync disabled --node 192.168.0.220
 
    modify quota and reservation
 

@@ -419,12 +419,12 @@ def get_args(batch_args_line=None):
 
     Current version modify only : Write cache logging(sync) settings. 
 
-    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync=always  --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync=disabled --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync always  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync disabled --node 192.168.0.220{ENDF}
     
-    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=always   --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=standard --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync=disabled --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync always   --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync standard --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync disabled --node 192.168.0.220{ENDF}
 
    modify quota and reservation
 
@@ -1603,7 +1603,7 @@ def print_nas_snapshots_details(header,fields):
         if not nas_volumes: continue    ##  SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
-            if not snapshots['results'] or snapshots['results']== 0: continue
+            if (not snapshots) or (not snapshots['results']) or (snapshots['results']== 0): continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
@@ -1683,7 +1683,7 @@ def print_san_snapshots_details(header,fields):
             continue            ##  SKIP if no vol
         for san_volume in san_volumes:
             snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
-            if not snapshots['results'] or snapshots['results']== 0: continue
+            if (not snapshots) or (not snapshots['results']) or (snapshots['results']== 0): continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + san_volume + '@' + snapshot['name']  ## pool/vol@snap
