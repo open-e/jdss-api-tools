@@ -2773,13 +2773,17 @@ def check_given_volume_name(ignore_error=None):
             sys.exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface()
-        pool = api.storage.pools[pool_name]
-        for vol in pool.datasets:
-            if vol.name == volume_name:
+        ## GET /pools/<pool_name>/nas-volumes
+        datasets = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
+        if datasets:
+            datasets_names = [dataset['name'] for dataset in datasets]
+            if volume_name in datasets_names:
                 return 'dataset'
-        for zvol in pool.volumes:
-            if zvol.name == volume_name:
+        ## GET /pools/<pool_name>/volumes
+        volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
+        if volumes:
+            volumes_names = [volume['name'] for volume in volumes]
+            if volume_name in volumes_names:
                 return 'volume'
         if ignore_error is None:
             sys_exit_with_timestamp( 'Error: {} does not exist on {} Node: {}'.format(volume_name,pool_name,node))
