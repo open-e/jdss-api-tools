@@ -217,114 +217,109 @@ def get_args(batch_args_line=None):
 {LG}EXAMPLES:{ENDF}
 
  1. {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the target exports most recent data every run.
     The example is using default password and port.
     Tools automatically recognize the volume type. If given volume is iSCSI volume,
     the clone of the iSCSI volume will be attached to iSCSI target.
-    If given volume is NAS dataset, the created clone will be exported via network share.
-    The example is using default password and port.
+    If given volume is NAS dataset, the created clone will be exported via network share
+    as shown in the next example.
 
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
-
  2. {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
+
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
-    The example is using default password and port and makes the share {BOLD}visible{END} with default share name.
+    The example is using default password and port and make the share visible with default share name.
 
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --node 192.168.0.220{ENDF}
 
-    The following examples are using default password and port and make the shares {BOLD}invisible{END}.
-
+    The examples are using default password and port and make the shares invisible.
+     
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220{ENDF}
     {LG}%(prog)s clone --pool Pool-0 --volume vol01 --share_name vol01_backup --node 192.168.0.220{ENDF}
-
 
  3. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
 
     {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
-
  4. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
 
     {LG}%(prog)s delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220{ENDF}
 
-
  5. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
-
  6. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
-
  7. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
+
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
-
  8. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
+
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
-
  9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
-    Pool-0 with 2 * raidz1(3 disks) total 6 disks.
+
+    Pool-0 with 2 * raidz1(3 disks) total 6 disks 
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
+10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
- 10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
-    Pool-0 with 2 * mirrors(4 disks) total 8 disks.
+    Pool-0 with 2 * mirrors(4 disks) total 8 disks 
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
+11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
 
- 11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "c" from the menu.
+    Repeat the procedure until all JBODs disk are read. Finally, create the pool selecting "c" from the menu.
 
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
-
- 12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
+12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password.
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
-    or with IP range syntax "..".
+    or with IP range syntax ".."
 
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
-
- 13. {BOLD}Reboot{END} single JovianDSS server.
+13. {BOLD}Reboot{END} single JovianDSS server.
 
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
-
- 14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
+14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
     {LG}%(prog)s set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220{ENDF}
 
-
- 15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
+15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
     {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
+16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
- 16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
-    Missing netmask option will set default 255.255.255.0.
+    Missing netmask option will set default 255.255.255.0
 
     {LG}%(prog)s network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
@@ -336,201 +331,192 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
-
- 17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
-    Default = active-backup.
+17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
+    Default   active-backup
 
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
-
- 18. {BOLD}Delete bond{END}.
+18. {BOLD}Delete bond{END}.
 
     {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
+19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80{ENDF}
 
- 19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80.
-    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+    RESTapi user   admin, RESTapi password   password, node-b GUI password   admin
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
+20. {BOLD}Set HA-cluster ping nodes{END}. 
 
- 20. {BOLD}Set HA-cluster ping nodes{END}.
-    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
+    {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80 {ENDF}
 
-    {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0 --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
+    Same, but with defaults (user: admin, password: admin and netmask: 255.255.255.0)
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0.
+    {LG}%(prog)s set_ping_nodes  --ping-nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
-    {LG}%(prog)s set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
-
-
- 21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
 
     {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
+22. {BOLD}Create VIP (Virtual IP){END} examples. 
 
- 22. {BOLD}Create VIP (Virtual IP){END} examples. 
-
-    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
-    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2,eth2 --vip_ip 192.168.21.100  --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2      --vip_ip 192.168.31.100  --node 192.168.0.80{ENDF}
 
     If cluster is configured both vip_nics must be provided.
     With single node (no cluster) only first vip_nic specified will be used.
-    The second vip_nic (if specified) will be ignored.
-    Default vip_mask = 255.255.255.0.
+    The second nic (if specified) will be ignored. Default vip_mask 255.255.255.0
 
-
- 23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
+23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
     {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
+24. {BOLD}Move (failover){END} given pool.
 
- 24. {BOLD}Move (failover){END} given pool.
     The current active node of given pool will be found and pool will be moved to passive node.
 
     {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
+25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume or SMB share with dataset.
 
- 25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
-    Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
-    Example for iSCSI target with specified volume, target_name, size and provisioning.
+    iSCSI target with volume
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target_name iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target_name iqn.2018-08:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    If target_name = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
-    In the next example target name will also be: "iqn.2018-09:ha-00.target0".
-    If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
+    with defaults: size 1TB, provisioning thin volume auto target_name auto
+    if target_name auto(default), the cluster name "ha-00" will be used in the auto-target_name. In this example target name will be: iqn.2018-09:ha-00.target000
+    if iqn.2018-09:ha-00.target000 and zvol000 already exist program will use next one: if iqn.2018-09:ha-00.target1 and zvol001
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
 
-    With missing --cluster ha-00, it will produce same result as "ha-00" is default cluster name.
+    with missing --cluster ha-00, it will produce same result as "ha-00" is default cluster name.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
+       
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol000 --share_name data  --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto).
+    with defaults: volume auto share_name auto
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb  --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using specified volume and share_name.
-
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --share_name data --node 192.168.0.220{ENDF}
-
-    Example with specified quota and reservation.
+    with quota and reservation
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --quota 100GB --reservation 50GB --node 192.168.0.220{ENDF}
 
-    Example for multi-resource with --quantity option, starting consecutive number from zero (default),
+    and multi-resource with --quantity option, starting consecutive number from zero (default)
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5  --node 192.168.0.220{ENDF}
 
-    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10).
-
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
-
-
- 26. {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
-
-    Current version modify only: Write cache logging (sync) settings.
-
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync always --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync disabled --node 192.168.0.220{ENDF}
-
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --sync always --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --sync standard --node 192.168.0.220{ENDF}
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --sync disabled --node 192.168.0.220{ENDF}
-
-    Modify quota and reservation.
-
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
+    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10)
+    
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10  --node 192.168.0.220{ENDF}
 
 
- 27. {BOLD}Scrub{END} start|stop|status.
+26. {BOLD}Modify volumes settings{END}. Modifiy volume(san) or dataset(nas) setting.
 
+    Current version modify only : Write cache logging(sync) settings. 
+
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync always  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume zvol00 --sync disabled --node 192.168.0.220{ENDF}
+    
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync always   --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync standard --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --sync disabled --node 192.168.0.220{ENDF}
+
+   modify quota and reservation
+
+    {LG}%(prog)s modify_volume --pool Pool-0  --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
+    
+
+27. {BOLD}Scrub{END} start|stop|status.
+ 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
-    {LG}%(prog)s scrub --node 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub 192.168.0.220{ENDF}
 
     Scrub on specified pools only.
-
+    
     {LG}%(prog)s scrub --pool Pool-0 --node 192.168.0.220{ENDF}
     {LG}%(prog)s scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220{ENDF}
 
     Stop scrub on all pools.
-
+    
     {LG}%(prog)s scrub --action stop --node 192.168.0.220{ENDF}
 
     Scrub status on all pools.
-
+    
     {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
+    
 
-
- 28. {BOLD}Set scrub scheduler{END}.
-    By default the command searches all pools on node or cluster(if configured) and set default schedule: every month at 0:15 AM.
-    Every pool will be set on different month day.
+28. {BOLD}Set scrub scheduler{END}.
+    By default the command search all pools on node or cluster(if configured) and set default schedule: every month at 0:15.
+    Every pool will set on diffrent month day.
 
     {LG}%(prog)s set_scrub_scheduler --node 192.168.0.220{ENDF}
 
-    Set default schedule on Pool-0 and Pool-1 only.
+    set default schedule on Pool-0 and Pool-1 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
 
-    {LG}%(prog)s set_scrub_scheduler --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
+    set schedule on every week on Monday at 1:10 AM on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --day_of_the_week 1 --hour 1 --minute 10 --node 192.168.0.220{ENDF}
 
-    Set schedule every week on Monday at 1:10 AM on Pool-0 only.
+    set schedule on every day at 2:30 AM on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month * --hour 2 --minute 30 --node 192.168.0.220{ENDF}
 
-    {LG}%(prog)s set_scrub_scheduler --pool Pool-0 --day_of_the_month * --day_of_the_week 1 --hour 1 --minute 10 --node 192.168.0.220{ENDF}
-
-    Set schedule every day at 2:30 AM on Pool-0 only.
-
-    {LG}%(prog)s set_scrub_scheduler --pool Pool-0 --day_of_the_month * --hour 2 --minute 30 --node 192.168.0.220{ENDF}
-
-    Set schedule every second day at 21:00 (9:00 PM) on Pool-0 only.
-
-    {LG}%(prog)s set_scrub_scheduler --pool Pool-0 --day_of_the_month */2 --hour 21 --minute 0 --node 192.168.0.220{ENDF}
+    set schedule on every second day at 21:00 (9:00 PM))on Pool-0 only.
+    
+    {LG}%(prog)s set_scrub_scheduler  --pool Pool-0 --day_of_the_month */2 --hour 20 --minute 0 --node 192.168.0.220{ENDF}
 
     {BOLD}TIP:{END}
+    
     Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
+    
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
- 29. {BOLD}Generate factory setup files for batch setup{END}.
+29. {BOLD}Generate factory setup files for batch setup.{END}
     It creates and overwrite(if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
-    For cluster, both cluster nodes ip addresses, so it will create setup file for every node.
+    For cluster, both cluster nodes, so it will create setup file for every node.
 
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
 
 
- 30. {BOLD}Execute factory setup files for batch setup{END}.
-    This example run setup for nodes 192.168.0.80, 192.168.0.81.
-    Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
-    First only one node must be started. Once booted, the RESTapi must be enabled via GUI.
-    The batch setup will start to configure first node.
-    Now, the second node can be booted.
-    Once the second node is up, the RESTapi must also be enabled via GUI.
+30. {BOLD}Execute factory setup files for batch setup.{END}
+     This example run setup for nodes 192.168.0.80, 192.168.0.81.
+     Both nodes need to be fresh rebooted with factory defaults eth0=192.168.0.220.
+     First only one node must be started. Once booted, the REST api must be enabled via GUI.
+     The batch setup will start to configure first node. Now, the second node can be booted.
+     Once the second node is up, also the REST api must be enabled via GUI.
 
 
-    {LG}%(prog)s batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80{ENDF}
-    {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt --node 192.168.0.80{ENDF}
+    {LG}%(prog)s batch_setup  --setup_files  api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80{ENDF}
+    {LG}%(prog)s batch_setup  --setup_files  api_test_cluster_80.txt  --node 192.168.0.80{ENDF}
 
 
- 31. {BOLD}Print system info{END}.
+31. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
-    The info command lists only the most recent snapshots.
-    In order to list all snapshots use --all_snapshots option,
+     The info command lists only the most recent snapshots.
+     In order to list all snapshots use --all_snapshots option.
 
     {LG}%(prog)s info --all_snapshots --node 192.168.0.220{ENDF}
 
-    or just --all.
+     or just --all
 
     {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
 
 
-#############################################################################################<br>
+############################################################################################
+
 After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
@@ -549,7 +535,6 @@ Missing Python modules need to be installed with pip, e.g.:
 NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-
 '''
 .format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## END->End-Style, ENDF->End-Foreground
