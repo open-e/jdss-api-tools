@@ -2753,15 +2753,17 @@ def check_given_pool_name(ignore_error=None):
             exit with ERROR     '''
     global node
     for node in nodes:
-        api = interface()
-        try:
-            api.storage.pools[pool_name]
-        except:
+        pools = None
+        pools = get('/pools')
+        if pools :
+            pools_names = [ pool['name'] for pool in pools]
+        if pool_name in pools_names:
+            return True
+        else:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
             return False
-    return True
-
+    
 
 def check_given_volume_name(ignore_error=None):
     ''' If given volume_name exist, return volume type:
