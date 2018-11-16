@@ -2144,15 +2144,16 @@ def get_ring_interface_of_first_node():
 def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
+    result = get('/cluster/nodes')
     if result:
-        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result]
+        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result ]
     else:
         cluster_nodes_addresses = []
     if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
         is_cluster = True
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
-    return cluster_nodes_addresses
+    return cluster_nodes_addresses 
 
 
 def get_cluster_node_id(node):
@@ -3610,7 +3611,7 @@ scrub                           --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # SET SCRUB SCHEDULER to all pools (also on other cluster node)
 #------------------------------------------------------------------------------------------------------------------------
-set_scrub_scheduler             --node node-a-ip-address
+set_scrub_scheduler             --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # MOVE
 #------------------------------------------------------------------------------------------------------------------------
