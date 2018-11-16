@@ -2228,7 +2228,7 @@ def create_vip():
 
 def set_mirror_path():
     global action_message
-    action_message = 'Sending mirror path setting request to: {}'.format(node)
+    action_message = 'Sending Mirror Path Set request to: {}'.format(node)
 
     interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
@@ -2241,7 +2241,6 @@ def set_mirror_path():
         interfaces_items.append(dict(interface=mirror_nics[i], node_id=node_id))
     data = dict(interfaces=interfaces_items)
     return_code = {}
-
     ## POST
     return_code = post('/cluster/remote-disks/paths',data)
     is_all_OK = False
@@ -2463,14 +2462,16 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     global node    ## the node IP can be changed
     global nic_name
     global action_message
-    action_message = 'Sending create bond request to: {}'.format(node)
+    action_message = 'Sending Create Bond request to: {}'.format(node)
 
     timeouted = False
 
     if len(bond_nics) <2:
-        sys_exit_with_timestamp( 'Error: at least two NICs required')
+        sys_exit_with_timestamp( 'Error: at least two nics required')
     ip_addr = new_ip_addr if new_ip_addr else node
+
     endpoint='/network/interfaces'
+
     if 'active-backup' in bond_type.lower():
         data = dict(type = 'bonding',
                 configuration = 'static',
@@ -2480,6 +2481,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
                 bond_mode = bond_type.lower(),
                 primary_interface = bond_nics[0],
                 bond_primary_reselect = 'failure')
+
     if 'balance-rr' in bond_type.lower():
         data = dict(type = 'bonding',
                 configuration = 'static',
@@ -2494,13 +2496,14 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     ## POST
     post(endpoint,data)
     if error:
-        ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-        ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
+        # in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
+        # e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
         if timeouted:
             node = ip_addr  ## the node IP was changed (ip_addr set above & not new_ip_addr)
         time.sleep(1)
-        nic_name = get_nic_name_of_given_ip_address(ip_addr)  ## global nic_name
+    ##
+    nic_name = get_nic_name_of_given_ip_address(ip_addr)  # global nic_name
     if nic_name and ('bond' in nic_name):
         print_with_timestamp( '{} created with IP: {}'.format(nic_name, new_ip_addr))
     else:
@@ -2509,7 +2512,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     if new_gw:
         set_default_gateway()
 
-    ## set DNS
+    ## set dns
     dns = convert_comma_separated_to_list(new_dns)
     if dns is not None:
         set_dns(dns)
