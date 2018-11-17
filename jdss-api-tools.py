@@ -2791,8 +2791,8 @@ def check_given_pool_name(ignore_error=None):
         pools = get('/pools')
         if pools:
             pools_names = [ pool['name'] for pool in pools]
-        if pool_name in pools_names:
-            return True
+            if pool_name in pools_names:
+                return True
         else:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
