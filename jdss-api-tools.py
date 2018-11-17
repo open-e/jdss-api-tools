@@ -283,19 +283,19 @@ def get_args(batch_args_line=None):
 
  9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
-    Pool-0 with 2 * raidz1(3 disks) total 6 disks.
+    Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
 
 10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
-    Pool-0 with 2 * mirrors(4 disks) total 8 disks.
+    Pool-0 with 2 * mirrors (4 disks) total 8 disks.
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
-11. {BOLD}Create pool{END} with raidz2(4 disks each) over 4 JBODs with 60 HDD each.
+11. {BOLD}Create pool{END} with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
 
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
@@ -347,13 +347,13 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
 
-17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup, balance-xor, broadcast, 802.3ad, balance-tlb, balance-alb.
+17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
 
-    Default: active-backup.
+    Default = active-backup.
 
-    {LG}%(prog)s create_bond --bond_nics eth0,eth1 --new_ip 192.168.0.80 --node 192.168.0.80{ENDF}
-    {LG}%(prog)s create_bond --bond_nics eth0,eth1 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
-    {LG}%(prog)s create_bond --bond_nics eth0,eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
 
 18. {BOLD}Delete bond{END}.
@@ -361,38 +361,38 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
 
-19. {BOLD}Bind cluster{END}. Bind node-b: 192.168.0.81 with node-a: 192.168.0.80.
+19. {BOLD}Bind cluster{END}. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
 
-    RESTapi user: admin, RESTapi password: password, node-b GUI password: admin.
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
 20. {BOLD}Set HA-cluster ping nodes{END}.
 
-    RESTapi user: administrator, RESTapi password: password, netmask: 255.255.0.0.
+    RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
     {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0 --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
-    Same, but with defaults: user: admin, password: admin and netmask: 255.255.255.0.
+    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0.
 
     {LG}%(prog)s set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
 
-21. {BOLD}Set HA-cluster mirror path{END}. Please enter comma separated NICs, the first NIC must be from the same node as the specified access IP.
+21. {BOLD}Set HA-cluster mirror path{END}. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
 
-    {LG}%(prog)s set_mirror_path --mirror_nics eth4,eth4 --node 192.168.0.82{ENDF}
+    {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
 
 22. {BOLD}Create VIP (Virtual IP){END} examples. 
 
-    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2,eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
+    {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80{ENDF}
 
     If cluster is configured both vip_nics must be provided.
     With single node (no cluster) only first vip_nic specified will be used.
     The second vip_nic (if specified) will be ignored.
-    Default vip_mask: 255.255.255.0.
+    Default vip_mask = 255.255.255.0.
 
 
 23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
@@ -409,13 +409,13 @@ def get_args(batch_args_line=None):
 
 25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
 
-    Defaults are: size: 1TB, provisioning: thin, volume: auto, target_name: auto, share_name: auto.
+    Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
     Example for iSCSI target with specified volume, target_name, size and provisioning.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target_name iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    If target_name: auto (default), the cluster name "ha-00" will be used in the auto-target_name.
-    In the next example target name will also be: "iqn.2018-09:ha-00.target0".
+    If target_name = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
+    In the next example target name will also be "iqn.2018-09:ha-00.target0".
     If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
@@ -424,7 +424,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using defaults (volume: auto, share_name: auto).
+    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto).
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --node 192.168.0.220{ENDF}
 
@@ -483,7 +483,7 @@ def get_args(batch_args_line=None):
 
 28. {BOLD}Set scrub scheduler{END}.
 
-    By default the command searches all pools on node or cluster(if configured) and set default schedule: every month at 0:15 AM.
+    By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
 
     {LG}%(prog)s set_scrub_scheduler --node 192.168.0.220{ENDF}
@@ -511,7 +511,7 @@ def get_args(batch_args_line=None):
 
 29. {BOLD}Generate factory setup files for batch setup{END}.
 
-    It creates and overwrite(if previously created) batch setup files.
+    It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
     For single node setup single node ip address can be specified.
     For cluster, both cluster nodes ip addresses, so it will create setup file for every node.
@@ -522,8 +522,8 @@ def get_args(batch_args_line=None):
 
 30. {BOLD}Execute factory setup files for batch setup{END}.
 
-    This example run setup for nodes 192.168.0.80, 192.168.0.81.
-    Both nodes need to be fresh rebooted with factory defaults eth0 192.168.0.220.
+    This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
+    Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
     First only one node must be started. Once booted, the RESTapi must be enabled via GUI.
     The batch setup will start to configure first node.
     Now, the second node can be booted.
