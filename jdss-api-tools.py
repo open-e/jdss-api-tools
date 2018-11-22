@@ -43,6 +43,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-10-12  info show snapshot age
 2018-10-19  add modify_volume
 2018-11-02  add quota & reservation
+2018-11-22  online help improve
 """
     
 from __future__ import print_function
@@ -203,6 +204,7 @@ def wait_for_node():
 def get_args(batch_args_line=None):
 
     global parser
+
     parser = argparse.ArgumentParser(
         prog='jdss-api-tools',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -229,7 +231,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
 
- 2. {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
+    {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
@@ -530,8 +532,8 @@ def get_args(batch_args_line=None):
     Once the second node is up, the RESTapi must also be enabled via GUI.
 
 
-    {LG}%(prog)s batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80{ENDF}
-    {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt --node 192.168.0.80{ENDF}
+    {LG}%(prog)s batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt{ENDF}
+    {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
 
 
 31. {BOLD}Print system info{END}.
@@ -547,8 +549,8 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
 
-
-#############################################################################################<br>
+    
+#############################################################################################
 After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
@@ -563,11 +565,10 @@ Missing Python modules need to be installed with pip, e.g.:
 	C:\Python27\Scripts>pip install ping
 	C:\Python27\Scripts>pip install colorama
 
-
 NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-
+#############################################################################################
 '''
 .format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## END->End-Style, ENDF->End-Foreground
@@ -582,10 +583,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 				 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:   %(choices)s.'
     )
+    parser.epilog =  parser.epilog + nice_print(commands.choices)
     parser.add_argument(
         '--nodes',
         metavar='ip-addr',
-		required=True,
+	#required=True,
         nargs='+',
         help='Enter nodes IP(s). Some commands work with multi nodes. Enter space separated IP or with .. range of IPs'
     )
@@ -984,16 +986,28 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     pool_name               = args['pool']
     volume_name             = args['volume']
     storage_type            = args['storage_type']
+
     sparse                  = args['provisioning'].upper()	## THICK | THIN, default==THIN
+    sparse                  = True if sparse in 'THIN' else False
+
     size                    = args['size']
+    size                    = human_to_bytes(size)
+
     quota                   = args['quota']
+    quota                   = human_to_bytes(quota)
+
     reservation             = args['reservation']
+    reservation             = human_to_bytes(reservation)
+
     sync                    = args['sync']
     target_name             = args['target']
     quantity                = args['quantity']
     start_with              = args['start_with']
     cluster_name            = args['cluster']
-    share_name              = args['share_name']
+
+    share_name              = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
+    share_name              = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
+        
     visible                 = args['visible']
     snapshot_name           = args['snapshot']
     jbod_disks_num          = args['jbod_disks']
@@ -1051,7 +1065,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     if pool_name:
         pool_name = pool_name[0]
 
-	## start menu if multi-JBODs
+    ## start menu if multi-JBODs
     if jbods_num > 1: 
         menu = True
     
@@ -1068,58 +1082,46 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
 
-    ## THIN=True, THICK=False
-    if sparse:
-        sparse.upper()
-        s = dict(THIN=True,THICK=False)
-        sparse = s[sparse]
 
-    ## size, quota, reservation: human to bytes
-    def human_to_bytes(value):
-        if value:
-            value = value.strip('Bb')
-            return str(human2bytes(value))
-        return value
-    size =          human_to_bytes(size)
-    quota =         human_to_bytes(quota)
-    reservation =   human_to_bytes(reservation)
-
-    ## change default share name from "auto" to "auto_api_backup_share"
-    if 'clone' in action and share_name == 'auto':
-        share_name = 'auto_api_backup_share'
-
-
-	## expand nodes list if IP range provided in args
+    ## expand nodes list if IP range provided in args
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
-    expanded_nodes = []
-    for ip in nodes:
-        if ".." in ip:
-            expanded_nodes += expand_ip_range(ip)
-        else:
-            expanded_nodes.append(ip)
-    nodes = expanded_nodes
-
-    ## first node
-    node    = nodes[0]
-
-    ## True if action msg need to be printed
-    to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
     waiting_dots_printed = False
-            
-    ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
-    all_ip_addr = nodes[:]  ## copy
-    all_ip_addr = all_ip_addr + ping_nodes if ping_nodes else all_ip_addr
-    for ip in new_ip_addr, new_gw, new_dns, new_mask:
-        if ip:
-            all_ip_addr.append(ip)
-    for ip in all_ip_addr :
-        if not valid_ip(ip) :
-            sys_exit( 'IP address {} is invalid'.format(ip))
+    expanded_nodes = []
+    
+    if not nodes and not setup_files:
+        if action :
+            print_help_item(action)
+            sys_exit('')
+        else:
+            sys_exit_with_timestamp('--nodes with valid ip_addr is required.')
 
-    ## detect doubles
-    doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
-    if doubles:
-        sys_exit( 'Double IP address: {}'.format(', '.join(doubles)))
+    ## to not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
+    caller = sys._getframe(1).f_code.co_name      ## caller is  <module>  or  main() function
+    if not(caller in '<module>' and action in 'batch_setup'):
+        for ip in nodes:
+            if ".." in ip:
+                expanded_nodes += expand_ip_range(ip)
+            else:
+                expanded_nodes.append(ip)
+        nodes = expanded_nodes
+        ## first node
+        node    = nodes[0]
+        ## True if action msg need to be printed
+        to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
+        waiting_dots_printed = False
+        ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
+        all_ip_addr = nodes[:]  ## copy
+        all_ip_addr = all_ip_addr + ping_nodes if ping_nodes else all_ip_addr
+        for ip in new_ip_addr, new_gw, new_dns, new_mask:
+            if ip:
+                all_ip_addr.append(ip)
+        for ip in all_ip_addr :
+            if not valid_ip(ip) :
+                sys_exit( 'IP address {} is invalid'.format(ip))
+        ## detect doubles
+        doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
+        if doubles:
+            sys_exit( 'Double IP address: {}'.format(', '.join(doubles)))
 
     ## validate port
     if not 22 <= api_port <= 65535:
@@ -1162,6 +1164,13 @@ def wait_for_zero_unmanaged_pools():
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
             exit_with_timestamp( 'Unmanaged pools: {}'.format(','.join(unmanaged_pools_names)))
+
+
+def human_to_bytes(value):
+    if value:
+        value = value.strip('Bb')
+        return str(human2bytes(value))
+    return value
 
 
 def bytes2human(n, format='%(value).1f %(symbol)s', symbols='customary'):
@@ -2277,8 +2286,8 @@ def set_mirror_path():
     ## POST
     return_code = post('/cluster/remote-disks/paths',data)
     is_all_OK = False
-    for _ in range(10):
-        time.sleep(1)
+    for _ in range(50):
+        time.sleep(10)
         result = get('/cluster/remote-disks/paths')
         if result and len(result)>0:
             is_all_OK = all(['OK' in interface['status'] for interface in result[0]['interfaces']])
@@ -2649,7 +2658,7 @@ def bind_cluster(bind_ip_addr):
     ## GET
     bind_node_address = get('/cluster/nodes')[0]['address']
 
-    if bind_node_address != '127.0.0.1':
+    if '127.0.0.1' not in bind_node_address:
         sys_exit_with_timestamp('Error: cluster bind was already set')
     result = None
 
@@ -2658,7 +2667,7 @@ def bind_cluster(bind_ip_addr):
 
     ## GET and check 
     bind_node_address = get('/cluster/nodes')[0]['address']
-    if bind_node_address != '127.0.0.1':
+    if '127.0.0.1' not in bind_node_address:
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
@@ -3443,6 +3452,7 @@ def command_processor() :
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
+        ##c = count_provided_args( pool_name)
         read_jbods_and_create_pool()
 
     elif action == 'scrub':
@@ -3721,6 +3731,49 @@ def main() :
         command_processor()
 
 
+def print_help_item(item):
+    title = ''
+    next_help_item_line = None
+    found= False
+    for line in parser.epilog.splitlines():
+        starts_with_number = line.split('.')[0].strip().isdigit()
+        if item in line and not starts_with_number:   
+            found= True   
+        if starts_with_number and found:
+            next_help_item_line = line
+            if title not in line.split('\x1b[22m')[0].split('\x1b[1m')[1]: break
+        if starts_with_number and not found:
+            first_help_item_line = line
+            title= line.split('\x1b[22m')[0].split('\x1b[1m')[1]
+    found=False
+    print()
+    for line in parser.epilog.splitlines():
+        if next_help_item_line and (next_help_item_line in line) or ('########' in line):
+            break
+        if not found and first_help_item_line in line:
+            found = True 
+        if found and len(line)>0:
+            if line.split('.')[0].strip().isdigit():
+                line = '   ' + line.split('.')[1]
+            line = line.replace('%(prog)s','    jdss-api-tools')
+            print(line)
+
+
+def nice_print(a_list):
+    bold_on = '\x1b[1m'
+    bold_off = '\x1b[22m'
+    green_on = '\x1b[92m'
+    green_off = '\x1b[92m'
+    nice = '\n\n{BOLD_ON}COMMANDS:{BOLD_OFF}\n{GREEN_ON}'.format(
+        BOLD_ON=bold_on,BOLD_OFF=bold_off,GREEN_ON=green_on)
+    for idx, key in enumerate(a_list):
+        if (idx + 1) % 3:
+            nice = nice + '{:30}'.format(key) + '\t'
+        else:
+            nice = nice + key + '\n'
+    return nice  + green_off
+
+		
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
@@ -3735,10 +3788,11 @@ if __name__ == '__main__':
 
     init()          ## colorama
     get_args()      ## args
-
+    #print_README_md_for_GitHub()
+    
     try:
         main()
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    

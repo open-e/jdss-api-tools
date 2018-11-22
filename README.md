@@ -20,7 +20,7 @@
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
 
 
- 2. <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
+    <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
@@ -321,8 +321,8 @@
     Once the second node is up, the RESTapi must also be enabled via GUI.
 
 
-        jdss-api-tools.exe batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt --node 192.168.0.80
-        jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt --node 192.168.0.80
+        jdss-api-tools.exe batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt
+        jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
 31. <b>Print system info</b>.
@@ -338,8 +338,8 @@
 
         jdss-api-tools.exe info --all --node 192.168.0.220
 
-
-#############################################################################################<br>
+    
+#############################################################################################
 After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
 	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
@@ -354,8 +354,19 @@ Missing Python modules need to be installed with pip, e.g.:
 	C:\Python27\Scripts>pip install ping
 	C:\Python27\Scripts>pip install colorama
 
-
 NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+#############################################################################################
 
+
+<b>COMMANDS:</b>
+ clone                         	clone_existing_snapshot       	create_pool
+scrub                         	set_scrub_scheduler           	create_storage_resource
+modify_volume                 	delete_clone                  	delete_clone_existing_snapshot
+set_host                      	set_time                      	network
+create_bond                   	delete_bond                   	bind_cluster
+set_ping_nodes                	set_mirror_path               	create_vip
+start_cluster                 	move                          	info
+shutdown                      	reboot                        	batch_setup
+create_factory_setup_files    	 
