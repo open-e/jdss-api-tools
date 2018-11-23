@@ -358,6 +358,12 @@ NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
+
+<b>To print usage example of an single command:</b>
+         jdss-api-tools.exe create_factory_setup_files
+         jdss-api-tools.exe batch_setup
+         jdss-api-tools.exe create_pool
+
 <b>COMMANDS:</b> 
 <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource

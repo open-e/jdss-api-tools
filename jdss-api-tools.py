@@ -569,6 +569,12 @@ NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
+
+{BOLD}To print usage example of an single command:{END}
+     {LG}%(prog)s create_factory_setup_files{ENDF}
+     {LG}%(prog)s batch_setup{ENDF}
+     {LG}%(prog)s create_pool{ENDF}
+
 {BOLD}COMMANDS:{END}{LG}
 {COMMANDS}{ENDF}
 '''
@@ -585,8 +591,10 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 				 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:   %(choices)s.'
     )
+
     ## add commands into help text
     parser.epilog =  parser.epilog.format(COMMANDS=nice_print(commands.choices))
+
     parser.add_argument(
         '--nodes',
         metavar='ip-addr',
@@ -3762,14 +3770,14 @@ def print_help_item(item):
             print(line)
 
 
-def nice_print(a_list):
+def nice_print(a_list,html=None):
     nice_txt = ''
     for i, item in enumerate(a_list):
         if (i + 1) % 3:
             nice_txt += '{:30}\t'.format(item)
         else:
             nice_txt += '{}\n'.format(item)
-    return nice_txt
+    return '<pre>{}</pre>'.format(nice_txt) if html else nice_txt
 
 		
 def print_README_md_for_GitHub():
@@ -3779,7 +3787,8 @@ def print_README_md_for_GitHub():
             '\x1b[22m','</b>').replace(
             '\x1b[92m%(prog)s','    jdss-api-tools.exe').replace(
             '\x1b[92m',' ').replace(
-            '\x1b[39m',''))
+            '\x1b[39m','').replace(
+            nice_print(commands.choices),nice_print(commands.choices,'html')))
 
 
 if __name__ == '__main__':
