@@ -571,6 +571,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 #############################################################################################
 
 {BOLD}To print usage example of an single command:{END}
+
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
@@ -3802,4 +3803,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    #print_README_md_for_GitHub()
+    print_README_md_for_GitHub()
