@@ -569,8 +569,10 @@ NOTE:
 In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
+{BOLD}COMMANDS:{END}{LG}
+{COMMANDS}{ENDF}
 '''
-.format(BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
+.format(COMMANDS="{COMMANDS}",BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
     ## END->End-Style, ENDF->End-Foreground
 
     global commands    
@@ -583,7 +585,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 				 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:   %(choices)s.'
     )
-    parser.epilog =  parser.epilog + nice_print(commands.choices)
+    ## add commands into help text
+    parser.epilog =  parser.epilog.format(COMMANDS=nice_print(commands.choices))
     parser.add_argument(
         '--nodes',
         metavar='ip-addr',
@@ -3760,18 +3763,13 @@ def print_help_item(item):
 
 
 def nice_print(a_list):
-    bold_on = '\x1b[1m'
-    bold_off = '\x1b[22m'
-    green_on = '\x1b[92m'
-    green_off = '\x1b[92m'
-    nice = '\n\n{BOLD_ON}COMMANDS:{BOLD_OFF}\n{GREEN_ON}'.format(
-        BOLD_ON=bold_on,BOLD_OFF=bold_off,GREEN_ON=green_on)
-    for idx, key in enumerate(a_list):
-        if (idx + 1) % 3:
-            nice = nice + '{:30}'.format(key) + '\t'
+    nice_txt = ''
+    for i, item in enumerate(a_list):
+        if (i + 1) % 3:
+            nice_txt += '{:30}\t'.format(item)
         else:
-            nice = nice + key + '\n'
-    return nice  + green_off
+            nice_txt += '{}\n'.format(item)
+    return nice_txt
 
 		
 def print_README_md_for_GitHub():
@@ -3788,11 +3786,11 @@ if __name__ == '__main__':
 
     init()          ## colorama
     get_args()      ## args
-    #print_README_md_for_GitHub()
+    
     
     try:
         main()
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    
+    #print_README_md_for_GitHub()
