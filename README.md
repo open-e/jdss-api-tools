@@ -359,7 +359,7 @@ In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
 <b>COMMANDS:</b> 
-clone                         	clone_existing_snapshot       	create_pool
+<pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	delete_clone                  	delete_clone_existing_snapshot
 set_host                      	set_time                      	network
@@ -367,4 +367,4 @@ create_bond                   	delete_bond                   	bind_cluster
 set_ping_nodes                	set_mirror_path               	create_vip
 start_cluster                 	move                          	info
 shutdown                      	reboot                        	batch_setup
-create_factory_setup_files    	
+create_factory_setup_files    	</pre>
