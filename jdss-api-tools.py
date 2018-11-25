@@ -44,6 +44,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-10-19  add modify_volume
 2018-11-02  add quota & reservation
 2018-11-22  online help improve
+2018-11-25  add disk_size_range
 """
 
 from __future__ import print_function
@@ -288,8 +289,18 @@ def get_args(batch_args_line=None):
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
+    Command create_pool creates data-groups only and use disks within provided disk_size_range:
+
+    {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --disk_size_range 900GB 2TB --node 192.168.0.220{ENDF}
+
+    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB
+    
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
+    The default size difference 5GB can be changed with tolerance option:
+    
+    {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220{ENDF}
+    
 
  9. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
@@ -581,6 +592,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 {COMMANDS}{ENDF}
 '''
 .format(COMMANDS="{COMMANDS}",BOLD=Style.BRIGHT,END=Style.NORMAL,LG=Fore.LIGHTGREEN_EX ,ENDF=Fore.RESET))
+    ## COMMANDS="{COMMANDS}"  this is required for next .format call to include commands in the help text.
     ## END->End-Style, ENDF->End-Foreground
 
     global commands    
@@ -613,7 +625,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--volume',
         metavar='name',
-		default='auto',
+	default='auto',
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -798,7 +810,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--mirror_nics',
         metavar='nics',
-		nargs='+',
+	nargs='+',
         default=None,
         help='Enter space separated mirror path NICs'
     )
@@ -817,8 +829,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--vip_nics',
         metavar='nics',
-		nargs='+',
-		default=None,
+	nargs='+',
+	default=None,
         help='Enter space separated NICs of both cluster nodes, or single NIC for single node'
     )
     parser.add_argument(
@@ -860,11 +872,16 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         help='User defined reboot/shutdown delay, default=30 sec'
     )
     parser.add_argument(
+        '--disk_size_range',
+        metavar='size',
+        nargs='+',
+        help='Enter disk size range in human readable format i.e. 100GB, 1TB'
+    )
+    parser.add_argument(
         '--tolerance',
-        metavar='GiB',
-        default=5,
-        type=int,
-        help='Disk size tolerance. Treat smaller disks still as equal in size, default=5 GiB'
+        metavar='tolerance',
+        default='5GB',
+        help='Disk size tolerance in human readable format i.e. 50GB. Treat smaller disks still as equal in size, default=5GB'
     )
     parser.add_argument(
         '--share_name',
@@ -952,8 +969,10 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line = 'start_cluster --node 192.168.0.80'
+    test_command_line = 'start_cluster --node 192.168.0.80'
     test_command_line = 'info --node 192.168.0.80'
+    test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3  --disk_size_range 20GB 20GB --node 192.168.0.80'
+    test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1   --node 192.168.0.80'
 
 
     ## ARGS
@@ -977,7 +996,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global nodes, ping_nodes, node
     global delay, menu
     global share_name, visible
-    global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance
+    global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
@@ -992,79 +1011,85 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global setup_files, all_snapshots
 
 
-    api_port                = args['port']
-    api_user                = args['user']
-    api_password            = args['pswd']
-    action                  = args['cmd']					## the command
-    pool_name               = args['pool']
-    volume_name             = args['volume']
-    storage_type            = args['storage_type']
+    api_port            = args['port']
+    api_user            = args['user']
+    api_password        = args['pswd']
+    action              = args['cmd']					## the command
+    pool_name           = args['pool']
+    volume_name         = args['volume']
+    storage_type        = args['storage_type']
 
-    sparse                  = args['provisioning'].upper()	## THICK | THIN, default==THIN
-    sparse                  = True if sparse in 'THIN' else False
+    sparse              = args['provisioning'].upper()	## THICK | THIN, default==THIN
+    sparse              = True if sparse in 'THIN' else False
 
-    size                    = args['size']
-    size                    = human_to_bytes(size)
+    size                = args['size']
+    size                = human_to_bytes(size)
 
-    quota                   = args['quota']
-    quota                   = human_to_bytes(quota)
+    quota               = args['quota']
+    quota               = human_to_bytes(quota)
 
-    reservation             = args['reservation']
-    reservation             = human_to_bytes(reservation)
+    reservation         = args['reservation']
+    reservation         = human_to_bytes(reservation)
 
-    sync                    = args['sync']
-    target_name             = args['target']
-    quantity                = args['quantity']
-    start_with              = args['start_with']
-    cluster_name            = args['cluster']
+    sync                = args['sync']
+    target_name         = args['target']
+    quantity            = args['quantity']
+    start_with          = args['start_with']
+    cluster_name        = args['cluster']
 
-    share_name              = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
-    share_name              = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
+    share_name          = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
+    share_name          = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
+        
+    visible             = args['visible']
+    snapshot_name       = args['snapshot']
+    jbod_disks_num      = args['jbod_disks']
+    vdev_disks_num      = args['vdev_disks']
+    jbods_num           = args['jbods']
+    vdevs_num           = args['vdevs']
+    vdev_type           = args['vdev']
 
-    visible                 = args['visible']
-    snapshot_name           = args['snapshot']
-    jbod_disks_num          = args['jbod_disks']
-    vdev_disks_num          = args['vdev_disks']
-    jbods_num               = args['jbods']
-    vdevs_num               = args['vdevs']
-    vdev_type               = args['vdev']
-    disk_size_tolerance     = args['tolerance'] * GiB
-    host_name               = args['host']
-    server_name             = args['server']
-    server_description      = args['description']
-    timezone                = args['timezone']
-    ntp                     = args['ntp'].upper()			## ON | OFF, default=ON
-    ntp_servers             = args['ntp_servers']
+    disk_size_tolerance = args['tolerance']
+    disk_size_tolerance = int(human_to_bytes(disk_size_tolerance))
 
-    nic_name                = args['nic']
-    new_ip_addr             = args['new_ip']
-    new_mask                = args['new_mask']
-    new_gw                  = args['new_gw']
-    new_dns                 = args['new_dns']
-    bond_type               = args['bond_type']
-    bond_nics               = args['bond_nics']
-    bind_node_password      = args['bind_node_password']
-    mirror_nics             = args['mirror_nics']
+    disk_size_range     = args['disk_size_range']
+    disk_size_range     = map(int, map(human_to_bytes, disk_size_range)) if disk_size_range else disk_size_range
 
-    vip_name                = args['vip_name']
-    vip_nics                = args['vip_nics']
-    vip_ip                  = args['vip_ip']
-    vip_mask                = args['vip_mask']
+    host_name           = args['host']
+    server_name         = args['server']
+    server_description  = args['description']
+    timezone            = args['timezone']
+    ntp                 = args['ntp'].upper()			## ON | OFF, default=ON
+    ntp_servers         = args['ntp_servers']
+    
+    nic_name            = args['nic']
+    new_ip_addr         = args['new_ip']
+    new_mask            = args['new_mask']
+    new_gw              = args['new_gw']
+    new_dns             = args['new_dns']
+    bond_type           = args['bond_type']
+    bond_nics           = args['bond_nics']
+    bind_node_password  = args['bind_node_password']
+    mirror_nics         = args['mirror_nics']
 
-    delay                   = args['delay']
-    nodes                   = args['nodes']
-    ping_nodes              = args['ping_nodes']
+    vip_name            = args['vip_name']
+    vip_nics            = args['vip_nics']
+    vip_ip              = args['vip_ip']
+    vip_mask            = args['vip_mask']
 
-    scrub_action            = args['scrub_action']
-    day_of_the_month        = args['day_of_the_month']
-    month_of_the_year       = args['month_of_the_year']
-    day_of_the_week         = args['day_of_the_week']
-    hour                    = args['hour']
-    minute                  = args['minute']
+    delay               = args['delay']
+    nodes               = args['nodes']
+    ping_nodes          = args['ping_nodes']
 
-    menu                    = args['menu']
-    setup_files             = args['setup_files']
-    all_snapshots           = args['all_snapshots']
+    scrub_action        = args['scrub_action']
+    day_of_the_month    = args['day_of_the_month']
+    month_of_the_year   = args['month_of_the_year']
+    day_of_the_week     = args['day_of_the_week']
+    hour                = args['hour']
+    minute              = args['minute']
+
+    menu                = args['menu']
+    setup_files         = args['setup_files']
+    all_snapshots       = args['all_snapshots']
 
     ## scrub scheduler
     ## set default to 1st of every month at 0:15 AM
@@ -1079,7 +1104,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         pool_name = pool_name[0]
 
     ## start menu if multi-JBODs
-    if jbods_num > 1:
+    if jbods_num > 1: 
         menu = True
     
     ## storage_type   list  ISCSI, FC, SMB, NFS or SMB,NFS
@@ -1090,25 +1115,25 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
             if not ('SMB' in storage_type and 'NFS' in storage_type):
                 sys_exit_with_timestamp('Error: Only SMB with NFS combination is allowed.')
             else:
-                if 'FC' in storage_type:
+                if 'FC' in storage_type :
                     sys_exit_with_timestamp('Error: FC setup automation not implemented yet.')
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
 
 
-    ## expand nodes list if IP range provided in args
-    ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     waiting_dots_printed = False
     expanded_nodes = []
-
+    
     if not nodes and not setup_files:
-        if action:
+        if action :
             print_help_item(action)
             sys_exit('')
         else:
             sys_exit_with_timestamp('--nodes with valid ip_addr is required.')
 
-    ## do not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
+    ## to not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
+    ## expand nodes list if IP range provided in args
+    ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     caller = sys._getframe(1).f_code.co_name      ## caller is  <module>  or  main() function
     if not(caller in '<module>' and action in 'batch_setup'):
         for ip in nodes:
@@ -1118,7 +1143,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 expanded_nodes.append(ip)
         nodes = expanded_nodes
         ## first node
-        node    = nodes[0]
+        node = nodes[0]
         ## True if action msg need to be printed
         to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
         waiting_dots_printed = False
@@ -1128,8 +1153,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         for ip in new_ip_addr, new_gw, new_dns, new_mask:
             if ip:
                 all_ip_addr.append(ip)
-        for ip in all_ip_addr:
-            if not valid_ip(ip):
+        for ip in all_ip_addr :
+            if not valid_ip(ip) :
                 sys_exit( 'IP address {} is invalid'.format(ip))
         ## detect doubles
         doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
@@ -3294,17 +3319,25 @@ def remove_disks(jbods):
     if available_disks:
         jbods_disks_size = [ [disk[0] for disk in jbod]  for jbod in jbods ]
         all_disks_size = merge_sublists( jbods_disks_size ) ## convert lists of JBODs to single disks list
-        average_disk_size = float(sum(all_disks_size)) / len(all_disks_size)  ## 
-        return [ [ disk for disk in jbod if disk[0]>= (average_disk_size - disk_size_tolerance)] for jbod in jbods ] ## >= do not remove if all drives are same size
-    
+        average_disk_size = float(sum(all_disks_size)) / len(all_disks_size)
+        if disk_size_range:
+            ## do not remove if drives are in provided range
+            return [[disk for disk in jbod if (min(disk_size_range) <= disk[0] <= max(disk_size_range))] for jbod in jbods]
+        else:
+            ## do not remove if all drives are same size
+            return [[disk for disk in jbod if disk[0] >= (average_disk_size - disk_size_tolerance)] for jbod in jbods]  
 
-def check_all_disks_size_equal(jbods):
+
+def check_all_disks_size_equal_or_in_provided_range(jbods):
     jbods_disks_size  = [ [disk[0] for disk in jbod]  for jbod in jbods ]
-    all_disks_size = merge_sublists( jbods_disks_size ) ## convert lists of JBODs to single disks list
-    if (max(all_disks_size) - min(all_disks_size)) < disk_size_tolerance:
-        return True
+    ## convert lists of JBODs to single disks list
+    all_disks_size = merge_sublists( jbods_disks_size )
+    if disk_size_range:
+            in_range = max(all_disks_size) <= max(disk_size_range) and min(all_disks_size) >= min(disk_size_range)
+            return True if in_range else False
     else:
-        return False
+        within_tolerance = (max(all_disks_size) - min(all_disks_size)) <= disk_size_tolerance
+        return True if within_tolerance else False
 
 
 def user_choice():
@@ -3395,7 +3428,7 @@ def read_jbods_and_create_pool(choice='0'):
             if empty_jbod:
                 msg = 'At least one JBOD is empty. Please press 0,1,... in order to read JBODs disks.'
             else:
-                if check_all_disks_size_equal(jbods) == False:
+                if check_all_disks_size_equal_or_in_provided_range(jbods) == False:
                     msg = 'Disks with different size present. Please press "r" in order to remove smaller disks.'
                 else:
                     jbods_id_only = convert_jbods_to_id_only(jbods)
@@ -3750,8 +3783,8 @@ def print_help_item(item):
     found= False
     for line in parser.epilog.splitlines():
         starts_with_number = line.split('.')[0].strip().isdigit()
-        if item in line and not starts_with_number:
-            found= True
+        if item in line and not starts_with_number:   
+            found= True   
         if starts_with_number and found:
             next_help_item_line = line
             if title not in line.split('\x1b[22m')[0].split('\x1b[1m')[1]: break
@@ -3781,7 +3814,7 @@ def nice_print(a_list,html=None):
             nice_txt += '{}\n'.format(item)
     return '<pre>{}</pre>'.format(nice_txt) if html else nice_txt
 
-
+		
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
@@ -3797,11 +3830,11 @@ if __name__ == '__main__':
 
     init()          ## colorama
     get_args()      ## args
-
-
+    
+    
     try:
         main()
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    #print_README_md_for_GitHub()

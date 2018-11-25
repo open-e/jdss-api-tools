@@ -76,8 +76,18 @@
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
+    Command create_pool creates data-groups only and use disks within provided disk_size_range:
+
+        jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --disk_size_range 900GB 2TB --node 192.168.0.220
+
+    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB
+    
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220
 
+    The default size difference 5GB can be changed with tolerance option:
+    
+        jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220
+    
 
  9. <b>Create pool</b> on Metro Cluster with single JBOD with 4-way mirrors:
 
