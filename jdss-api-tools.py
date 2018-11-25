@@ -45,7 +45,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-02  add quota & reservation
 2018-11-22  online help improve
 """
-    
+
 from __future__ import print_function
 import sys
 import time
@@ -201,6 +201,7 @@ def wait_for_node():
         if counter == repeat:   ## Connection timed out
             exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
+
 def get_args(batch_args_line=None):
 
     global parser
@@ -245,59 +246,59 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s clone --pool Pool-0 --volume vol01 --share_name vol01_backup --node 192.168.0.220{ENDF}
 
 
- 3. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
+ 2. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
 
     {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
 
- 4. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
+ 3. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
 
     {LG}%(prog)s delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220{ENDF}
 
 
- 5. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+ 4. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
- 6. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+ 5. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
- 7. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
+ 6. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
- 8. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
+ 7. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
- 9. {BOLD}Create pool{END} on single node or cluster with single JBOD:
+ 8. {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
 
-10. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
+ 9. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
     Pool-0 with 2 * mirrors (4 disks) total 8 disks.
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
-11. {BOLD}Create pool{END} with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
+10. {BOLD}Create pool{END} with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
 
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
@@ -307,7 +308,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
-12. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
+11. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
@@ -316,17 +317,17 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
 
-13. {BOLD}Reboot{END} single JovianDSS server.
+12. {BOLD}Reboot{END} single JovianDSS server.
 
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
 
-14. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
+13. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
     {LG}%(prog)s set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220{ENDF}
 
 
-15. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
+14. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
     {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
@@ -334,7 +335,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
 
-16. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
+15. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
     Missing netmask option will set default 255.255.255.0.
 
@@ -349,7 +350,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
 
-17. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
+16. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
 
     Default = active-backup.
 
@@ -358,19 +359,19 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
 
-18. {BOLD}Delete bond{END}.
+17. {BOLD}Delete bond{END}.
 
     {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
 
-19. {BOLD}Bind cluster{END}. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
+18. {BOLD}Bind cluster{END}. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
 
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
-20. {BOLD}Set HA-cluster ping nodes{END}.
+19. {BOLD}Set HA-cluster ping nodes{END}.
 
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
@@ -381,12 +382,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
 
-21. {BOLD}Set HA-cluster mirror path{END}. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
+20. {BOLD}Set HA-cluster mirror path{END}. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
 
     {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
 
-22. {BOLD}Create VIP (Virtual IP){END} examples. 
+21. {BOLD}Create VIP (Virtual IP){END} examples. 
 
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80{ENDF}
@@ -397,19 +398,19 @@ def get_args(batch_args_line=None):
     Default vip_mask = 255.255.255.0.
 
 
-23. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
+22. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
     {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
 
-24. {BOLD}Move (failover){END} given pool.
+23. {BOLD}Move (failover){END} given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node.
 
     {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
 
-25. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
+24. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
 
     Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
     Example for iSCSI target with specified volume, target_name, size and provisioning.
@@ -447,7 +448,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
 
 
-26. {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
+25. {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
     Current version modify only: Write cache logging (sync) settings.
 
@@ -463,7 +464,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
 
 
-27. {BOLD}Scrub{END} start|stop|status.
+26. {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -483,7 +484,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
 
 
-28. {BOLD}Set scrub scheduler{END}.
+27. {BOLD}Set scrub scheduler{END}.
 
     By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
@@ -511,7 +512,7 @@ def get_args(batch_args_line=None):
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
-29. {BOLD}Generate factory setup files for batch setup{END}.
+28. {BOLD}Generate factory setup files for batch setup{END}.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -522,7 +523,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
 
 
-30. {BOLD}Execute factory setup files for batch setup{END}.
+29. {BOLD}Execute factory setup files for batch setup{END}.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -536,7 +537,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
 
 
-31. {BOLD}Print system info{END}.
+30. {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
@@ -549,7 +550,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
 
-    
+
 #############################################################################################
 After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
 
@@ -587,9 +588,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-				 'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
-				 'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
-				 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
+                 'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+                 'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
+                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:   %(choices)s.'
     )
 
@@ -1019,7 +1020,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     share_name              = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
     share_name              = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
-        
+
     visible                 = args['visible']
     snapshot_name           = args['snapshot']
     jbod_disks_num          = args['jbod_disks']
@@ -1034,7 +1035,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     timezone                = args['timezone']
     ntp                     = args['ntp'].upper()			## ON | OFF, default=ON
     ntp_servers             = args['ntp_servers']
-    
+
     nic_name                = args['nic']
     new_ip_addr             = args['new_ip']
     new_mask                = args['new_mask']
@@ -1078,7 +1079,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         pool_name = pool_name[0]
 
     ## start menu if multi-JBODs
-    if jbods_num > 1: 
+    if jbods_num > 1:
         menu = True
     
     ## storage_type   list  ISCSI, FC, SMB, NFS or SMB,NFS
@@ -1089,7 +1090,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
             if not ('SMB' in storage_type and 'NFS' in storage_type):
                 sys_exit_with_timestamp('Error: Only SMB with NFS combination is allowed.')
             else:
-                if 'FC' in storage_type :
+                if 'FC' in storage_type:
                     sys_exit_with_timestamp('Error: FC setup automation not implemented yet.')
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
@@ -1099,15 +1100,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     waiting_dots_printed = False
     expanded_nodes = []
-    
+
     if not nodes and not setup_files:
-        if action :
+        if action:
             print_help_item(action)
             sys_exit('')
         else:
             sys_exit_with_timestamp('--nodes with valid ip_addr is required.')
 
-    ## to not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
+    ## do not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
     caller = sys._getframe(1).f_code.co_name      ## caller is  <module>  or  main() function
     if not(caller in '<module>' and action in 'batch_setup'):
         for ip in nodes:
@@ -1127,8 +1128,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         for ip in new_ip_addr, new_gw, new_dns, new_mask:
             if ip:
                 all_ip_addr.append(ip)
-        for ip in all_ip_addr :
-            if not valid_ip(ip) :
+        for ip in all_ip_addr:
+            if not valid_ip(ip):
                 sys_exit( 'IP address {} is invalid'.format(ip))
         ## detect doubles
         doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
@@ -3749,8 +3750,8 @@ def print_help_item(item):
     found= False
     for line in parser.epilog.splitlines():
         starts_with_number = line.split('.')[0].strip().isdigit()
-        if item in line and not starts_with_number:   
-            found= True   
+        if item in line and not starts_with_number:
+            found= True
         if starts_with_number and found:
             next_help_item_line = line
             if title not in line.split('\x1b[22m')[0].split('\x1b[1m')[1]: break
@@ -3780,7 +3781,7 @@ def nice_print(a_list,html=None):
             nice_txt += '{}\n'.format(item)
     return '<pre>{}</pre>'.format(nice_txt) if html else nice_txt
 
-		
+
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
@@ -3796,8 +3797,8 @@ if __name__ == '__main__':
 
     init()          ## colorama
     get_args()      ## args
-    
-    
+
+
     try:
         main()
     except KeyboardInterrupt:
