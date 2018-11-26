@@ -3822,7 +3822,7 @@ def nice_print(a_list,html=None):
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
-            '{LG}jdss-api-tools{ENDF}','{LG}# jdss-api-tools{ENDF}').replace(
+            '\x1b[92mjdss-api-tools','\x1b[92m# jdss-api-tools').replace(
             '\x1b[1m','<b>').replace(
             '\x1b[22m','</b>').replace(
             '\x1b[92m%(prog)s','    jdss-api-tools.exe').replace(
