@@ -1,5 +1,5 @@
 
- # jdss-api-tools
+ jdss-api-tools
 
 
 <b>Execute given JovianDSS command for automated setup and to control JovianDSS remotely.</b>
