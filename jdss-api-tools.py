@@ -240,38 +240,39 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s clone --pool Pool-0 --volume vol01 --share_name vol01_backup --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
-
-    {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
-
-
-{:2d}. {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
-
-    {LG}%(prog)s delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220{ENDF}
-
-
-{:2d}. {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+    {BOLD}Create clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
-{:2d}. {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+    {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
-{:2d}. {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
+
+{:2d}. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
+
+    {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
+
+
+    {BOLD}Delete clone{END} of NAS volume vol00 from Pool-0.
+
+    {LG}%(prog)s delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220{ENDF}
+
+
+    {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
-{:2d}. {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
+    {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
@@ -295,14 +296,14 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220{ENDF}
     
 
-{:2d}. {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
+    {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
     Pool-0 with 2 * mirrors (4 disks) total 8 disks.
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Create pool{END} with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
+    {BOLD}Create pool{END} with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
 
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
@@ -3822,7 +3823,7 @@ def nice_print(a_list,html=None):
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
-            '\x1b[92mjdss-api-tools','\x1b[92m# jdss-api-tools').replace(
+            '\x1b[92mjdss-api-tools','\x1b[92m# jdss-api-tools').replace(   ## start first line with '#'
             '\x1b[1m','<b>').replace(
             '\x1b[22m','</b>').replace(
             '\x1b[92m%(prog)s','    jdss-api-tools.exe').replace(

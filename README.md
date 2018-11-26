@@ -34,45 +34,46 @@
         jdss-api-tools.exe clone --pool Pool-0 --volume vol01 --share_name vol01_backup --node 192.168.0.220
 
 
- 2. <b>Delete clone</b> of iSCSI volume zvol00 from Pool-0.
-
-        jdss-api-tools.exe delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
-
-
- 3. <b>Delete clone</b> of NAS volume vol00 from Pool-0.
-
-        jdss-api-tools.exe delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220
-
-
- 4. <b>Create clone</b> of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+    <b>Create clone</b> of existing snapshot on iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
     The example is using password 12345 and default port.
 
         jdss-api-tools.exe clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
- 5. <b>Create clone</b> of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
+    <b>Create clone</b> of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     The example is using password 12345 and default port.
 
         jdss-api-tools.exe clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
- 6. <b>Delete clone</b> of existing snapshot on iSCSI volume zvol00 from Pool-0.
+
+ 2. <b>Delete clone</b> of iSCSI volume zvol00 from Pool-0.
+
+        jdss-api-tools.exe delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
+
+
+    <b>Delete clone</b> of NAS volume vol00 from Pool-0.
+
+        jdss-api-tools.exe delete_clone --pool Pool-0 --volume vol00 --node 192.168.0.220
+
+
+    <b>Delete clone</b> of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
         jdss-api-tools.exe delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
- 7. <b>Delete clone</b> of existing snapshot on NAS volume vol00 from Pool-0.
+    <b>Delete clone</b> of existing snapshot on NAS volume vol00 from Pool-0.
 
     The example is using password 12345 and default port.
 
         jdss-api-tools.exe delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
- 8. <b>Create pool</b> on single node or cluster with single JBOD:
+ 3. <b>Create pool</b> on single node or cluster with single JBOD:
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
@@ -89,14 +90,14 @@
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220
     
 
- 9. <b>Create pool</b> on Metro Cluster with single JBOD with 4-way mirrors:
+    <b>Create pool</b> on Metro Cluster with single JBOD with 4-way mirrors:
 
     Pool-0 with 2 * mirrors (4 disks) total 8 disks.
 
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev mirror --vdev_disks 4 --node 192.168.0.220
 
 
-10. <b>Create pool</b> with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
+    <b>Create pool</b> with raidz2 (4 disks each) over 4 JBODs with 60 HDD each.
 
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
@@ -106,7 +107,7 @@
         jdss-api-tools.exe create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220
 
 
-11. <b>Shutdown</b> three JovianDSS servers using default port but non default password,
+ 4. <b>Shutdown</b> three JovianDSS servers using default port but non default password,
 
         jdss-api-tools.exe --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222
 
@@ -115,17 +116,17 @@
         jdss-api-tools.exe --pswd password shutdown --node 192.168.0.220..222
 
 
-12. <b>Reboot</b> single JovianDSS server.
+ 5. <b>Reboot</b> single JovianDSS server.
 
         jdss-api-tools.exe reboot --node 192.168.0.220
 
 
-13. <b>Set host name</b> to "node220", server name to "server220" and server description to "jdss220".
+ 6. <b>Set host name</b> to "node220", server name to "server220" and server description to "jdss220".
 
         jdss-api-tools.exe set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220
 
 
-14. <b>Set timezone and NTP-time</b> with default NTP servers.
+ 7. <b>Set timezone and NTP-time</b> with default NTP servers.
 
         jdss-api-tools.exe set_time --timezone America/New_York --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone America/Chicago --node 192.168.0.220
@@ -133,7 +134,7 @@
         jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
 
 
-15. <b>Set new IP settings</b> for eth0 and set gateway-IP and set eth0 as default gateway.
+ 8. <b>Set new IP settings</b> for eth0 and set gateway-IP and set eth0 as default gateway.
 
     Missing netmask option will set default 255.255.255.0.
 
@@ -148,7 +149,7 @@
         jdss-api-tools.exe network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220
 
 
-16. <b>Create bond</b> examples. Bond types: balance-rr, active-backup.
+ 9. <b>Create bond</b> examples. Bond types: balance-rr, active-backup.
 
     Default = active-backup.
 
@@ -157,19 +158,19 @@
         jdss-api-tools.exe create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80
 
 
-17. <b>Delete bond</b>.
+10. <b>Delete bond</b>.
 
         jdss-api-tools.exe delete_bond --nic bond0 --node 192.168.0.80
 
 
-18. <b>Bind cluster</b>. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
+11. <b>Bind cluster</b>. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
 
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
 
         jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81
 
 
-19. <b>Set HA-cluster ping nodes</b>.
+12. <b>Set HA-cluster ping nodes</b>.
 
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
@@ -180,12 +181,12 @@
         jdss-api-tools.exe set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80
 
 
-20. <b>Set HA-cluster mirror path</b>. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
+13. <b>Set HA-cluster mirror path</b>. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
 
         jdss-api-tools.exe set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82
 
 
-21. <b>Create VIP (Virtual IP)</b> examples. 
+14. <b>Create VIP (Virtual IP)</b> examples. 
 
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80
@@ -196,19 +197,19 @@
     Default vip_mask = 255.255.255.0.
 
 
-22. <b>Start HA-cluster</b>. Please enter first node IP address only.
+15. <b>Start HA-cluster</b>. Please enter first node IP address only.
 
         jdss-api-tools.exe start_cluster --node 192.168.0.82
 
 
-23. <b>Move (failover)</b> given pool.
+16. <b>Move (failover)</b> given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node.
 
         jdss-api-tools.exe move --pool Pool-0 --node 192.168.0.82
 
 
-24. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB share with dataset.
+17. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB share with dataset.
 
     Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
     Example for iSCSI target with specified volume, target_name, size and provisioning.
@@ -246,7 +247,7 @@
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220
 
 
-25. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
+18. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
 
     Current version modify only: Write cache logging (sync) settings.
 
@@ -262,7 +263,7 @@
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220
 
 
-26. <b>Scrub</b> start|stop|status.
+19. <b>Scrub</b> start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -282,7 +283,7 @@
         jdss-api-tools.exe scrub --action status --node 192.168.0.220
 
 
-27. <b>Set scrub scheduler</b>.
+20. <b>Set scrub scheduler</b>.
 
     By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
@@ -310,7 +311,7 @@
     https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-28. <b>Generate factory setup files for batch setup</b>.
+21. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -321,7 +322,7 @@
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1
 
 
-29. <b>Execute factory setup files for batch setup</b>.
+22. <b>Execute factory setup files for batch setup</b>.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -335,7 +336,7 @@
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-30. <b>Print system info</b>.
+23. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
