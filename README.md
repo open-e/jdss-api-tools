@@ -131,7 +131,11 @@
         jdss-api-tools.exe set_time --timezone America/New_York --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone America/Chicago --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone America/Los_Angeles --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Asia/Tokyo --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
+
+    Set NTP servers only:
+        jdss-api-tools.exe set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220
 
 
  8. <b>Set new IP settings</b> for eth0 and set gateway-IP and set eth0 as default gateway.
@@ -140,9 +144,13 @@
 
         jdss-api-tools.exe network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220
 
-    Setting new DNS only.
+    Setting new DNS only:
 
         jdss-api-tools.exe network --new_dns 192.168.0.1 --node 192.168.0.220
+
+    With 2 DNS servers:
+    
+        jdss-api-tools.exe network --new_dns 192.168.0.1 192.168.100.254 --node 192.168.0.220
 
     Setting new gateway only. The default gateway will be set automatically.
 

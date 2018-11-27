@@ -45,6 +45,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-02  add quota & reservation
 2018-11-22  online help improve
 2018-11-25  add disk_size_range
+2018-11-27  new_dns & ntp_servers are list now
 """
 
 from __future__ import print_function
@@ -213,7 +214,7 @@ def get_args(batch_args_line=None):
 
 {LG}EXAMPLES:{ENDF}
 
-{:2d}. {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
+{} {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the target exports most recent data every run.
@@ -255,7 +256,7 @@ def get_args(batch_args_line=None):
 
 
 
-{:2d}. {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
+{} {BOLD}Delete clone{END} of iSCSI volume zvol00 from Pool-0.
 
     {LG}%(prog)s delete_clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
@@ -279,7 +280,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
-{:2d}. {BOLD}Create pool{END} on single node or cluster with single JBOD:
+{} {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
@@ -313,7 +314,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
+{} {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
 
@@ -322,40 +323,48 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
 
-{:2d}. {BOLD}Reboot{END} single JovianDSS server.
+{} {BOLD}Reboot{END} single JovianDSS server.
 
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
+{} {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
 
     {LG}%(prog)s set_host --host node220 --server server220 --description jdss220 --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Set timezone and NTP-time{END} with default NTP servers.
+{} {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
     {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Asia/Tokyo --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
+    Set NTP servers only:
+    {LG}%(prog)s set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220{ENDF}
 
-{:2d}. {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
+
+{} {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
     Missing netmask option will set default 255.255.255.0.
 
     {LG}%(prog)s network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
-    Setting new DNS only.
+    Setting new DNS only:
 
     {LG}%(prog)s network --new_dns 192.168.0.1 --node 192.168.0.220{ENDF}
+
+    With 2 DNS servers:
+    
+    {LG}%(prog)s network --new_dns 192.168.0.1 192.168.100.254 --node 192.168.0.220{ENDF}
 
     Setting new gateway only. The default gateway will be set automatically.
 
     {LG}%(prog)s network --nic eth0 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
+{} {BOLD}Create bond{END} examples. Bond types: balance-rr, active-backup.
 
     Default = active-backup.
 
@@ -364,19 +373,19 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_bond --bond_nics eth0 eth1 --bond_type active-backup --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.80{ENDF}
 
 
-{:2d}. {BOLD}Delete bond{END}.
+{} {BOLD}Delete bond{END}.
 
     {LG}%(prog)s delete_bond --nic bond0 --node 192.168.0.80{ENDF}
 
 
-{:2d}. {BOLD}Bind cluster{END}. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
+{} {BOLD}Bind cluster{END}. Bind node-b (192.168.0.81) with node-a (192.168.0.80).
 
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
 
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
-{:2d}. {BOLD}Set HA-cluster ping nodes{END}.
+{} {BOLD}Set HA-cluster ping nodes{END}.
 
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
@@ -387,12 +396,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
 
-{:2d}. {BOLD}Set HA-cluster mirror path{END}. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
+{} {BOLD}Set HA-cluster mirror path{END}. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
 
     {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
 
-{:2d}. {BOLD}Create VIP (Virtual IP){END} examples. 
+{} {BOLD}Create VIP (Virtual IP){END} examples. 
 
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80{ENDF}
@@ -403,19 +412,19 @@ def get_args(batch_args_line=None):
     Default vip_mask = 255.255.255.0.
 
 
-{:2d}. {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
+{} {BOLD}Start HA-cluster{END}. Please enter first node IP address only.
 
     {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
 
-{:2d}. {BOLD}Move (failover){END} given pool.
+{} {BOLD}Move (failover){END} given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node.
 
     {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
 
-{:2d}. {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
+{} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
 
     Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
     Example for iSCSI target with specified volume, target_name, size and provisioning.
@@ -453,7 +462,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
+{} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
     Current version modify only: Write cache logging (sync) settings.
 
@@ -469,7 +478,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Scrub{END} start|stop|status.
+{} {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -489,7 +498,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
 
 
-{:2d}. {BOLD}Set scrub scheduler{END}.
+{} {BOLD}Set scrub scheduler{END}.
 
     By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
@@ -517,7 +526,7 @@ def get_args(batch_args_line=None):
     https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
 
 
-{:2d}. {BOLD}Generate factory setup files for batch setup{END}.
+{} {BOLD}Generate factory setup files for batch setup{END}.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -528,7 +537,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
 
 
-{:2d}. {BOLD}Execute factory setup files for batch setup{END}.
+{} {BOLD}Execute factory setup files for batch setup{END}.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -542,7 +551,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
 
 
-{:2d}. {BOLD}Print system info{END}.
+{} {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
@@ -593,7 +602,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         prog='jdss-api-tools',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description='The %(prog)s remotely execute given command.'
-        )
+    )
     commands = parser.add_argument(
         'cmd',
         metavar='command',
@@ -604,9 +613,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         help='Commands:   %(choices)s.'
     )
     
-    ## parser.epilog : THIS IS get_arg help
-    parser.epilog=get_args.__doc__.format(
-        *range(1,get_args.__doc__.count('{:2d}')+1),    ## auto numbering 
+    help_content     = get_args.__doc__
+    help_items_count = help_content.count('{}')
+    help_content     = help_content.replace('{}','{:2d}.')
+    ## parser.epilog 
+    parser.epilog    = help_content.format(
+        *range(1,help_items_count+1),                   ## auto numbering 
         COMMANDS = nice_print(commands.choices),        ## commands set printed in columns
         BOLD     = Style.BRIGHT,
         END      = Style.NORMAL,                        ## END->End-Style
@@ -624,7 +636,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--pool',
         metavar='name',
-		action='append',
+	action='append',
         help='Enter pool name. If command require more pools, enter one more --pool name option'
     )
     parser.add_argument(
@@ -766,7 +778,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--ntp_servers',
         metavar='servers',
-        default='0.pool.ntp.org,1.pool.ntp.org,2.pool.ntp.org',
+        nargs='+',
+        default=['0.pool.ntp.org','1.pool.ntp.org','2.pool.ntp.org'],
         help='Enter NTP servers(s)'
     )
     parser.add_argument(
@@ -796,8 +809,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--new_dns',
         metavar='address',
+        nargs='+',
         default=None,   ## default None, empty string "" will clear DNS
-        help='Enter new DNS address or comma separated list'
+        help='Enter new DNS address or space separated list'
     )
     parser.add_argument(
         '--bond_type',
@@ -1057,7 +1071,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     disk_size_tolerance = int(human_to_bytes(disk_size_tolerance))
 
     disk_size_range     = args['disk_size_range']
-    disk_size_range     = map(int, map(human_to_bytes, disk_size_range)) if disk_size_range else disk_size_range
+    disk_size_range     = map(int, map(human_to_bytes, disk_size_range)) \
+                            if disk_size_range else disk_size_range
 
     host_name           = args['host']
     server_name         = args['server']
@@ -1155,7 +1170,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
         all_ip_addr = nodes[:]  ## copy
         all_ip_addr = all_ip_addr + ping_nodes if ping_nodes else all_ip_addr
-        for ip in new_ip_addr, new_gw, new_dns, new_mask:
+        for ip in [new_ip_addr, new_gw, new_mask] + new_dns if new_dns else []:   ## new_dns is a list
             if ip:
                 all_ip_addr.append(ip)
         for ip in all_ip_addr :
@@ -1522,7 +1537,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     if ntp == "ON":
         data["daemon"] = True
     if ntp_servers:
-        data["servers"] = ntp_servers.split(",")
+        data["servers"] = ntp_servers
 
     ## exit if DNS is missing
     dns = get_dns()
@@ -1540,7 +1555,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     if ntp is 'ON':
         print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))
     if ntp_servers:
-        print_with_timestamp( 'Set NTP servers: {}'.format(ntp_servers))
+        print_with_timestamp( 'Set NTP servers: {}'.format(' '.join(ntp_servers)))
 
 
 def add_fields_seperator(fields,fields_length,seperator_length):
@@ -2495,7 +2510,8 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     timeouted = False
 
     ## list_of_ip
-    dns = convert_comma_separated_to_list(new_dns)
+    #dns = convert_comma_separated_to_list(new_dns)
+    dns = new_dns  ## it is list NOW and not string !!!
     ## validate all IPs, exit if no valid IP found
     for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
         if ip:
@@ -2595,9 +2611,8 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
         set_default_gateway()
 
     ## set DNS
-    dns = convert_comma_separated_to_list(new_dns)
-    if dns is not None:
-        set_dns(dns)
+    if new_dns is not None:
+        set_dns(new_dns)
 
 
 def delete_bond(bond_name):
@@ -3342,7 +3357,14 @@ def check_all_disks_size_equal_or_in_provided_range(jbods):
             return True if in_range else False
     else:
         within_tolerance = (max(all_disks_size) - min(all_disks_size)) <= disk_size_tolerance
-        return True if within_tolerance else False
+        if within_tolerance:
+            return True
+        else:
+            print_with_timestamp(
+            'Error:\tAvaialable disks size (Max: {} Min: {})\n\t\t\t\tare not within provided size tolerance: {}.'.format(
+                        *map(bytes2human,(max(all_disks_size),min(all_disks_size),disk_size_tolerance)))
+            )
+            return False
 
 
 def user_choice():
@@ -3788,7 +3810,7 @@ def print_help_item(item):
     found= False
     for line in parser.epilog.splitlines():
         starts_with_number = line.split('.')[0].strip().isdigit()
-        if item in line and not starts_with_number:   
+        if '--' in line and item in line:
             found= True   
         if starts_with_number and found:
             next_help_item_line = line
