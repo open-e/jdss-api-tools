@@ -342,6 +342,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
     Set NTP servers only:
+    
     {LG}%(prog)s set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220{ENDF}
 
 

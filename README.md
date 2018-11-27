@@ -135,6 +135,7 @@
         jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
 
     Set NTP servers only:
+    
         jdss-api-tools.exe set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220
 
 
