@@ -318,7 +318,7 @@
     <b>TIP:</b>
     Quick schedule params check via browser on <b>Pool-0</b> on <b>192.168.0.220</b>:
     
-        <par>https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler<>/par
+        <par>https://<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler</par>
 
 
 21. <b>Generate factory setup files for batch setup</b>.
