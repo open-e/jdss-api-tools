@@ -65,7 +65,12 @@ from colorama import Fore, Back, Style
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
 
-## Script global variables - to be updated in parse_args():
+## Script global variables 
+BOLD     = Style.BRIGHT         ## '\x1b[1m'
+END      = Style.NORMAL         ## '\x1b[22m'
+LG       = Fore.LIGHTGREEN_EX   ## '\x1b[92m'
+ENDF     = Fore.RESET           ## '\x1b[39m'
+
 line_separator          = '='*62
 action                  = ''
 action_message          = ''
@@ -524,7 +529,8 @@ def get_args(batch_args_line=None):
 
     {BOLD}TIP:{END}
     Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
-    https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler
+    
+    {LG}https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
 
 
 {} {BOLD}Generate factory setup files for batch setup{END}.
@@ -3811,10 +3817,10 @@ def print_help_item(item):
             found= True   
         if starts_with_number and found:
             next_help_item_line = line
-            if title not in line.split('\x1b[22m')[0].split('\x1b[1m')[1]: break
+            if title not in line.split(END)[0].split(BOLD)[1]: break
         if starts_with_number and not found:
             first_help_item_line = line
-            title= line.split('\x1b[22m')[0].split('\x1b[1m')[1]
+            title= line.split(END)[0].split(BOLD)[1]
     found=False
     print()
     for line in parser.epilog.splitlines():
@@ -3842,12 +3848,12 @@ def nice_print(a_list,html=None):
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
-            '\x1b[92mjdss-api-tools','\x1b[92m# jdss-api-tools').replace(   ## start first line with '#'
-            '\x1b[1m','<b>').replace(
-            '\x1b[22m','</b>').replace(
-            '\x1b[92m%(prog)s','    jdss-api-tools.exe').replace(
-            '\x1b[92m',' ').replace(
-            '\x1b[39m','').replace(
+            LG+'jdss-api-tools',LG+'# jdss-api-tools').replace(   ## start first line with '#'
+            BOLD,'<b>').replace(
+            END,'</b>').replace(
+            LG+'%(prog)s','    jdss-api-tools.exe').replace(
+            LG,' ').replace(
+            ENDF,'').replace(
             nice_print(commands.choices),nice_print(commands.choices,'html')))
 
 
@@ -3862,4 +3868,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    #print_README_md_for_GitHub()
+    print_README_md_for_GitHub()
