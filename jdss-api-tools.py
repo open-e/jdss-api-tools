@@ -164,7 +164,7 @@ def wait_for_node():
             waiting_dots_printed = True
         counter += 1
         if counter == repeat:   ## Connection timed out
-            exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
     waiting_dots_printed = False
 
@@ -178,12 +178,12 @@ def wait_for_node():
             api.driver.get(endpoint)['data']  ## GET
         except Exception as e:
             error = str(e[0])
-            if counter in (1,2):
+            if counter in (2,3):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
-            elif counter == 3:
+            elif counter == 4:
                     print_with_timestamp(
                     'Please enable REST API on {} in GUI: System Settings -> Administration -> REST access, or check access credentials.'.format(node))
-            elif counter > 3:
+            elif counter > 4:
                 print('.',end='')
                 waiting_dots_printed = True
         else:
@@ -199,9 +199,9 @@ def wait_for_node():
                 pass
             break
         counter += 1
-        time.sleep(4)
+        time.sleep(3)
         if counter == repeat:   ## Connection timed out
-            exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
 
 
 def get_args(batch_args_line=None):
@@ -849,8 +849,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--vip_nics',
         metavar='nics',
-	nargs='+',
-	default=None,
+        nargs='+',
+        default=None,
         help='Enter space separated NICs of both cluster nodes, or single NIC for single node'
     )
     parser.add_argument(
@@ -1208,7 +1208,7 @@ def wait_for_move_destination_node(test_node):
         time.sleep(30)
         print_with_timestamp( 'Waiting for : {}.'.format(test_node))
         if counter == repeat:   ## timed out
-            exit_with_timestamp( 'Time out of waiting for : {}.'.format(test_node))
+            sys_exit_with_timestamp( 'Time out of waiting for : {}.'.format(test_node))
 
 
 def wait_for_zero_unmanaged_pools():
@@ -1222,7 +1222,7 @@ def wait_for_zero_unmanaged_pools():
         print_with_timestamp( 'Unmanaged pools: {}. Wait for managed state.'.format(','.join(unmanaged_pools_names)))
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
-            exit_with_timestamp( 'Unmanaged pools: {}'.format(','.join(unmanaged_pools_names)))
+            sys_exit_with_timestamp( 'Unmanaged pools: {}'.format(','.join(unmanaged_pools_names)))
 
 
 def human_to_bytes(value):
@@ -2511,10 +2511,8 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     timeouted = False
 
     ## list_of_ip
-    #dns = convert_comma_separated_to_list(new_dns)
-    dns = new_dns  ## it is list NOW and not string !!!
     ## validate all IPs, exit if no valid IP found
-    for ip in [new_ip_addr, new_mask, new_gw] + dns if dns else []:
+    for ip in [new_ip_addr, new_mask, new_gw] + new_dns if new_dns else []:
         if ip:
             if not valid_ip(ip):
                 sys_exit( 'IP address {} is invalid'.format(new_ip_addr))
@@ -2528,8 +2526,8 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     if new_ip_addr is None:
         if new_gw:
             set_default_gateway()
-        if dns is not None:
-            set_dns(dns)
+        if new_dns is not None:
+            set_dns(new_dns)
         return
         #sys_exit( 'Error: Expected, but not specified --new_ip for {}'.format(nic_name))
 
@@ -2556,8 +2554,8 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     if new_gw:
         set_default_gateway()
 
-    if dns is not None:
-        set_dns(dns)
+    if new_dns is not None:
+        set_dns(new_dns)
 
 
 def create_bond(bond_type, bond_nics, new_gw, new_dns):
@@ -2952,8 +2950,8 @@ def create_pool(pool_name,vdev_type,jbods):
         if check_given_pool_name(ignore_error=True):
             print_with_timestamp("New storage pool: {} created".format(pool_name))
             break
-        else:
-            time.sleep(5)
+        #else:
+        time.sleep(10)
     else:
         sys_exit_with_timestamp( 'Error: Cannot create {}.'.format(pool_name))
 
@@ -3477,18 +3475,16 @@ def read_jbods_and_create_pool(choice='0'):
                             create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
-            ##
+            ## 
             break
         ## exit
         elif choice in "Q":
             break
-
-    ## display pools details 
-    api = interface()
-    pools = [pool.name for pool in api.storage.pools]
-    print("\n")
-    for pool in sorted(pools):
-        print("\tNode {} {}: {}*{}[{} disk]".format(node, pool, *get_pool_details(node, pool)))
+        ## end-of-while loop
+    ## display pool details
+    pools_names = get_pools_names()
+    if pool_name in pools_names:
+        print("\n\tNode {} {}: {}*{}[{} disk]".format(node, pool_name, *get_pool_details(node, pool_name)))
         
 
 def command_processor() :
@@ -3634,7 +3630,7 @@ factory_setup_files_content = dict(
 # The '#' comments-out the rest of the line
 #
 #------------------------------------------------------------------------------------------------------------------------
-network     --nic eth0	  --new_ip _node-a-ip-address_   --node 192.168.0.220        # SET ETH
+network     --nic eth0	  --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
 network     --nic eth1	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
 #------------------------------------------------------------------------------------------------------------------------
