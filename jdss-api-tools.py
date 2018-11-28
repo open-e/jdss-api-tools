@@ -3852,6 +3852,7 @@ def print_README_md_for_GitHub():
             BOLD,'<b>').replace(
             END,'</b>').replace(
             LG+'%(prog)s','    jdss-api-tools.exe').replace(
+            LG+'https:'  ,'    https:').replace(
             LG,' ').replace(
             ENDF,'').replace(
             nice_print(commands.choices),nice_print(commands.choices,'html')))
@@ -3868,4 +3869,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    print_README_md_for_GitHub()
+    #print_README_md_for_GitHub()
