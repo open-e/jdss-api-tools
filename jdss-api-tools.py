@@ -530,7 +530,7 @@ def get_args(batch_args_line=None):
     {BOLD}TIP:{END}
     Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
     
-    {LG}https://{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
+    {LG}{BOLD}https:{END}//{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
 
 
 {} {BOLD}Generate factory setup files for batch setup{END}.
@@ -3852,7 +3852,6 @@ def print_README_md_for_GitHub():
             BOLD,'<b>').replace(
             END,'</b>').replace(
             LG+'%(prog)s','    jdss-api-tools.exe').replace(
-            LG+'https:'  ,'    https:').replace(
             LG,' ').replace(
             ENDF,'').replace(
             nice_print(commands.choices),nice_print(commands.choices,'html')))
