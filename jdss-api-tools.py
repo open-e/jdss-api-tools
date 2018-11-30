@@ -467,6 +467,9 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
 
+    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.    
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
+
 
 {} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
@@ -706,6 +709,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default=0,
         type=int,
         help='Enter starting number of the consecutive number, default=0'
+    )
+    parser.add_argument(
+        '--zvols_per_target',
+        metavar='number',
+        default=1,
+        type=int,
+        help='Enter number of zvols attached to a single target, default=1'
     )
     parser.add_argument(
         '--cluster',
@@ -996,9 +1006,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    test_command_line = 'info --node 192.168.0.80'
+    #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3  --disk_size_range 20GB 20GB --node 192.168.0.80'
-    #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1   --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
     ## ARGS
@@ -1031,7 +1041,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global pool_based_consecutive_number_generator
     global cluster_pool_names
     global target_name, cluster_name
-    global quantity, start_with
+    global quantity, start_with, zvols_per_target
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
     global setup_files, all_snapshots
@@ -1059,8 +1069,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     sync                = args['sync']
     target_name         = args['target']
-    quantity            = args['quantity']
+
     start_with          = args['start_with']
+    quantity            = args['quantity']
+    zvols_per_target    = args['zvols_per_target']
+    
     cluster_name        = args['cluster']
 
     share_name          = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
@@ -1380,7 +1393,9 @@ def seconds2human(seconds):
 def consecutive_number_generator():
     i = start_with
     while 1:
-        yield i
+        #return example if start_with=10 and zvols_per_target=2
+        # (10,10) next (11,10) next (12,11) next (13,11) next (14,12) next (15,12)...
+        yield (i, ((i - ((i - start_with) % zvols_per_target) - start_with)/zvols_per_target) + start_with)
         i+=1
 
 
@@ -2168,17 +2183,20 @@ def unmanaged_pools():
 
 def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
-    consecutive_integer = pool_based_consecutive_number_generator[pool_name].next()
-    consecutive_string = "{:0>3}".format(consecutive_integer)
-    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name, consecutive_string)
+    consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
+    consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
+    consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
+    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name, consecutive_string_target)
     if is_cluster_configured():
         iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
-    volume_name = "zvol{}".format(consecutive_string)
+    volume_name = "zvol{}".format(consecutive_string_volume)
     return (iscsi_target_name, volume_name)
 
 
 def generate_share_and_volume_name(pool_name):
-    consecutive_integer = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_integer = consecutive_integer_tuple[0]
     consecutive_string = "{:0>3}".format(consecutive_integer)
     share_name = "data{}".format(consecutive_string)
     volume_name = "vol{}".format(consecutive_string)
@@ -3028,24 +3046,29 @@ def create_storage_resource():
         True if share_name  == 'auto' else False)
 
     while quantity:
-        if generate_automatic_name:
+        _zvols_per_target = zvols_per_target
+        while _zvols_per_target:
+            if generate_automatic_name:
+                if 'ISCSI' in storage_type:
+                    target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                if 'SMB' in storage_type:
+                    share_name,volume_name = generate_share_and_volume_name(pool_name)
+            else:
+                quantity = 1
+            ## volume or dataset
+            #if _zvols_per_target == zvols_per_target:
+            create_volume(storage_volume_type)
             if 'ISCSI' in storage_type:
-                target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
-            if 'SMB' in storage_type:
-                share_name,volume_name = generate_share_and_volume_name(pool_name)
-        else:
-            quantity = 1
-        ## volume or dataset
-        create_volume(storage_volume_type)
-        if 'ISCSI' in storage_type:
-            auto_target_name = target_name
-            ## target
-            create_target()
-            ## attach
-            attach_volume_to_target()
-        if 'SMB' in storage_type or 'NFS' in storage_type:
-            create_share()
-            enable_smb_nfs()
+                auto_target_name = target_name
+                ## target
+                if _zvols_per_target == zvols_per_target:
+                    create_target()
+                ## attach
+                attach_volume_to_target()
+            if 'SMB' in storage_type or 'NFS' in storage_type:
+                create_share()
+                enable_smb_nfs()
+            _zvols_per_target -= 1
         quantity -= 1
 
 
@@ -3868,4 +3891,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         sys_exit('Interrupted             ')
     print()
-    #print_README_md_for_GitHub()
+    print_README_md_for_GitHub()
