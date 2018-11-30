@@ -255,7 +255,8 @@
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220
 
-    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.    
+    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
+
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220
 
 

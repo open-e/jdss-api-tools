@@ -46,6 +46,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-22  online help improve
 2018-11-25  add disk_size_range
 2018-11-27  new_dns & ntp_servers are list now
+2018-11-30  add --zvols_per_target option
 """
 
 from __future__ import print_function
@@ -467,7 +468,8 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
 
-    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.    
+    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
+
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
 
 
