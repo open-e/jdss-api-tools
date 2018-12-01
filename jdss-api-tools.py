@@ -66,7 +66,7 @@ from colorama import Fore, Back, Style
 __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.0
 
-## Script global variables 
+## Script global variables
 BOLD     = Style.BRIGHT         ## '\x1b[1m'
 END      = Style.NORMAL         ## '\x1b[22m'
 LG       = Fore.LIGHTGREEN_EX   ## '\x1b[92m'
@@ -290,18 +290,18 @@ def get_args(batch_args_line=None):
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
-    Command create_pool creates data-groups only and use disks within provided disk_size_range:
+    Command create_pool creates data-groups only and use disks within provided disk_size_range,
 
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --disk_size_range 900GB 2TB --node 192.168.0.220{ENDF}
 
-    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB
-    
+    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB.
+
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220{ENDF}
 
-    The default size difference 5GB can be changed with tolerance option:
-    
+    The default size difference of 5GB can be changed with tolerance option.
+
     {LG}%(prog)s create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220{ENDF}
-    
+
 
     {BOLD}Create pool{END} on Metro Cluster with single JBOD with 4-way mirrors:
 
@@ -347,8 +347,8 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_time --timezone Asia/Tokyo --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
-    Set NTP servers only:
-    
+    Set NTP servers only.
+
     {LG}%(prog)s set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220{ENDF}
 
 
@@ -358,12 +358,12 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220{ENDF}
 
-    Setting new DNS only:
+    Setting new DNS only,
 
     {LG}%(prog)s network --new_dns 192.168.0.1 --node 192.168.0.220{ENDF}
 
-    With 2 DNS servers:
-    
+    or with 2 DNS servers.
+
     {LG}%(prog)s network --new_dns 192.168.0.1 192.168.100.254 --node 192.168.0.220{ENDF}
 
     Setting new gateway only. The default gateway will be set automatically.
@@ -468,7 +468,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
 
-    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
+    If more than single zvol needs to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
 
@@ -534,7 +534,7 @@ def get_args(batch_args_line=None):
 
     {BOLD}TIP:{END}
     Quick schedule params check via browser on {BOLD}Pool-0{END} on {BOLD}192.168.0.220{END}:
-    
+
     {LG}{BOLD}https:{END}//{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
 
 
@@ -609,7 +609,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     global parser
     global commands
-    
+
     parser = argparse.ArgumentParser(
         prog='jdss-api-tools',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -624,20 +624,20 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
         help='Commands:   %(choices)s.'
     )
-    
+
     help_content     = get_args.__doc__
     help_items_count = help_content.count('{}')
     help_content     = help_content.replace('{}','{:2d}.')
-    ## parser.epilog 
+    ## parser.epilog
     parser.epilog    = help_content.format(
-        *range(1,help_items_count+1),                   ## auto numbering 
+        *range(1,help_items_count+1),                   ## auto numbering
         COMMANDS = nice_print(commands.choices),        ## commands set printed in columns
         BOLD     = Style.BRIGHT,
         END      = Style.NORMAL,                        ## END->End-Style
         LG       = Fore.LIGHTGREEN_EX,
         ENDF     = Fore.RESET                           ## ENDF->End-Foreground
     )
-    
+
     parser.add_argument(
         '--nodes',
         metavar='ip-addr',
@@ -654,7 +654,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--volume',
         metavar='name',
-	default='auto',
+        default='auto',
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -717,7 +717,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='number',
         default=1,
         type=int,
-        help='Enter number of zvols attached to a single target, default=1'
+        help='Enter number of zvols to be attached to a single target, default=1'
     )
     parser.add_argument(
         '--cluster',
@@ -848,7 +848,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--mirror_nics',
         metavar='nics',
-	nargs='+',
+        nargs='+',
         default=None,
         help='Enter space separated mirror path NICs'
     )
@@ -1009,7 +1009,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
-    #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3  --disk_size_range 20GB 20GB --node 192.168.0.80'
+    #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -1075,12 +1075,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     start_with          = args['start_with']
     quantity            = args['quantity']
     zvols_per_target    = args['zvols_per_target']
-    
+
     cluster_name        = args['cluster']
 
     share_name          = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
     share_name          = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
-        
+
     visible             = args['visible']
     snapshot_name       = args['snapshot']
     jbod_disks_num      = args['jbod_disks']
@@ -1102,7 +1102,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     timezone            = args['timezone']
     ntp                 = args['ntp'].upper()			## ON | OFF, default=ON
     ntp_servers         = args['ntp_servers']
-    
+
     nic_name            = args['nic']
     new_ip_addr         = args['new_ip']
     new_mask            = args['new_mask']
@@ -1146,7 +1146,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         pool_name = pool_name[0]
 
     ## start menu if multi-JBODs
-    if jbods_num > 1: 
+    if jbods_num > 1:
         menu = True
     
     ## storage_type   list  ISCSI, FC, SMB, NFS or SMB,NFS
@@ -1157,7 +1157,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
             if not ('SMB' in storage_type and 'NFS' in storage_type):
                 sys_exit_with_timestamp('Error: Only SMB with NFS combination is allowed.')
             else:
-                if 'FC' in storage_type :
+                if 'FC' in storage_type:
                     sys_exit_with_timestamp('Error: FC setup automation not implemented yet.')
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
@@ -1165,15 +1165,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     waiting_dots_printed = False
     expanded_nodes = []
-    
+
     if not nodes and not setup_files:
-        if action :
+        if action:
             print_help_item(action)
             sys_exit('')
         else:
             sys_exit_with_timestamp('--nodes with valid ip_addr is required.')
 
-    ## to not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
+    ## do not validate ip if batch_setup and first ARGS call (second ARGS call is from batch command processor)
     ## expand nodes list if IP range provided in args
     ## i.e. 192.168.0.220..221 will be expanded to: ["192.168.0.220","192.168.0.221"]
     caller = sys._getframe(1).f_code.co_name      ## caller is  <module>  or  main() function
@@ -1195,8 +1195,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         for ip in [new_ip_addr, new_gw, new_mask] + new_dns if new_dns else []:   ## new_dns is a list
             if ip:
                 all_ip_addr.append(ip)
-        for ip in all_ip_addr :
-            if not valid_ip(ip) :
+        for ip in all_ip_addr:
+            if not valid_ip(ip):
                 sys_exit( 'IP address {} is invalid'.format(ip))
         ## detect doubles
         doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
@@ -3375,7 +3375,7 @@ def remove_disks(jbods):
             return [[disk for disk in jbod if (min(disk_size_range) <= disk[0] <= max(disk_size_range))] for jbod in jbods]
         else:
             ## do not remove if all drives are same size
-            return [[disk for disk in jbod if disk[0] >= (average_disk_size - disk_size_tolerance)] for jbod in jbods]  
+            return [[disk for disk in jbod if disk[0] >= (average_disk_size - disk_size_tolerance)] for jbod in jbods]
 
 
 def check_all_disks_size_equal_or_in_provided_range(jbods):
@@ -3506,7 +3506,7 @@ def read_jbods_and_create_pool(choice='0'):
                             create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
-            ## 
+            ##
             break
         ## exit
         elif choice in "Q":
@@ -3516,7 +3516,7 @@ def read_jbods_and_create_pool(choice='0'):
     pools_names = get_pools_names()
     if pool_name in pools_names:
         print("\n\tNode {} {}: {}*{}[{} disk]".format(node, pool_name, *get_pool_details(node, pool_name)))
-        
+
 
 def command_processor() :
 
@@ -3839,13 +3839,13 @@ def print_help_item(item):
     for line in parser.epilog.splitlines():
         starts_with_number = line.split('.')[0].strip().isdigit()
         if '--' in line and item in line:
-            found= True   
+            found= True
         if starts_with_number and found:
             next_help_item_line = line
             if title not in line.split(END)[0].split(BOLD)[1]: break
         if starts_with_number and not found:
             first_help_item_line = line
-            title= line.split(END)[0].split(BOLD)[1]
+            title = line.split(END)[0].split(BOLD)[1]
     found=False
     print()
     for line in parser.epilog.splitlines():
@@ -3869,7 +3869,7 @@ def nice_print(a_list,html=None):
             nice_txt += '{}\n'.format(item)
     return '<pre>{}</pre>'.format(nice_txt) if html else nice_txt
 
-		
+
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
         f.write(parser.epilog.replace(
@@ -3886,8 +3886,8 @@ if __name__ == '__main__':
 
     init()          ## colorama
     get_args()      ## args
-    
-    
+
+
     try:
         main()
     except KeyboardInterrupt:
