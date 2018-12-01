@@ -77,18 +77,18 @@
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
 
-    Command create_pool creates data-groups only and use disks within provided disk_size_range:
+    Command create_pool creates data-groups only and use disks within provided disk_size_range,
 
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --disk_size_range 900GB 2TB --node 192.168.0.220
 
-    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB
-    
+    if disk_size_range is omitted it takes disks with size near to avarage-disks-size. Default size difference is 5GB.
+
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --node 192.168.0.220
 
-    The default size difference 5GB can be changed with tolerance option:
-    
+    The default size difference of 5GB can be changed with tolerance option.
+
         jdss-api-tools.exe create_pool --pool Pool-0 --vdevs 2 --vdev raidz1 --vdev_disks 3 --tolerance 50GB --node 192.168.0.220
-    
+
 
     <b>Create pool</b> on Metro Cluster with single JBOD with 4-way mirrors:
 
@@ -134,8 +134,8 @@
         jdss-api-tools.exe set_time --timezone Asia/Tokyo --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
 
-    Set NTP servers only:
-    
+    Set NTP servers only.
+
         jdss-api-tools.exe set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220
 
 
@@ -145,12 +145,12 @@
 
         jdss-api-tools.exe network --nic eth0 --new_ip 192.168.0.80 --new_gw 192.168.0.1 --node 192.168.0.220
 
-    Setting new DNS only:
+    Setting new DNS only,
 
         jdss-api-tools.exe network --new_dns 192.168.0.1 --node 192.168.0.220
 
-    With 2 DNS servers:
-    
+    or with 2 DNS servers.
+
         jdss-api-tools.exe network --new_dns 192.168.0.1 192.168.100.254 --node 192.168.0.220
 
     Setting new gateway only. The default gateway will be set automatically.
@@ -255,7 +255,7 @@
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220
 
-    if more than single zvol to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
+    If more than single zvol needs to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220
 
@@ -321,7 +321,7 @@
 
     <b>TIP:</b>
     Quick schedule params check via browser on <b>Pool-0</b> on <b>192.168.0.220</b>:
-    
+
      <b>https:</b>//<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
