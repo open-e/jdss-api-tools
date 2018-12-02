@@ -83,6 +83,7 @@ auto_scsiid             = time.strftime("%Yi%mi%di%Hi%M")  #"1234567890123456"
 auto_snap_name          = "auto_api_backup_snap"
 auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
+increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
 
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
@@ -733,7 +734,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--increment',
         metavar='number',
-        choices=[1,5,10,15,20,50,100,150,200,500,1000],
+        choices=increment_options,
         default=100,
         type=int,
         help='Enter the target auto-numbering incremental, default=100'
@@ -1415,10 +1416,6 @@ def seconds2human(seconds):
 def consecutive_number_generator(increment):
     i = j = start_with
     z = zvols_per_target
-    ## get increment choices of from the parser
-    increment_options = (
-        action_item.choices for action_item in parser.__dict__["_actions"] if action_item.dest in 'increment'
-        ).next()
     for increment_option in increment_options:
         if increment < zvols_per_target:
             increment = increment_option
@@ -3723,7 +3720,7 @@ network     --nic eth5	  --new_ip:nic      --node _node-a-ip-address_       # SE
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE BOND: nodes bind and ring: with default --bond_type active-backup 
 #------------------------------------------------------------------------------------------------------------------------
-create_bond --bond_nics eth0 eth1   --new_ip:bond   --new_gw 192.168.0.1   --new_dns 192.168.0.1   --node _node-a-ip-address_
+create_bond --bond_nics eth0 eth1  --new_ip:bond  --new_gw 192.168.0.1  --new_dns 192.168.0.1  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE BOND: mirror path: active-backup or balance-rr (round-robin) 
 #------------------------------------------------------------------------------------------------------------------------
@@ -3748,48 +3745,48 @@ bind_cluster        --nodes _node-a-ip-address_ _node-b-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # PING NODES  
 #------------------------------------------------------------------------------------------------------------------------
-set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                          --node _node-a-ip-address_
+set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                     --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # MIRROR PATH
 #------------------------------------------------------------------------------------------------------------------------
-set_mirror_path     --mirror_nics bond1 bond1                                                       --node _node-a-ip-address_
+set_mirror_path     --mirror_nics bond1 bond1                                                  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # START CLUSTER
 #------------------------------------------------------------------------------------------------------------------------
-start_cluster                                                                                       --node _node-a-ip-address_
+start_cluster                                                                                  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4                            --node _node-a-ip-address_
+create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4  --tolerance 20GB     --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip21    --vip_ip 192.168.21.100   --vip_nics eth2 eth2  --node _node-a-ip-address_
+create_vip      --pool Pool-0   --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-0
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip31    --vip_ip 192.168.31.100   --vip_nics eth3 eth3  --node _node-a-ip-address_
+create_vip      --pool Pool-0   --vip_name vip31 --vip_ip 192.168.31.100 --vip_nics eth3 eth3  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4                          --node _node-a-ip-address_
+create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1   --vip_name vip22    --vip_ip 192.168.22.100   --vip_nics eth2 eth2  --node _node-a-ip-address_
+create_vip      --pool Pool-1  --vip_name vip22 --vip_ip 192.168.22.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # VIP FOR Pool-1
 #------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1   --vip_name vip32    --vip_ip 192.168.32.100   --vip_nics eth3 eth3  --node _node-a-ip-address_
+create_vip      --pool Pool-1  --vip_name vip32 --vip_ip 192.168.32.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
 #------------------------------------------------------------------------------------------------------------------------
 # CREATE ZVOLS
-#------------------------------------------------------------------------------------------------------------------------
-create_storage_resource     --pool Pool-0   --storage_type iscsi    --quantity 2                    --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
+create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 2 --node _node-a-ip-address_
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
 # CREATE VOLs
-#------------------------------------------------------------------------------------------------------------------------
-create_storage_resource     --pool Pool-0   --storage_type smb nfs  --quantity 2 --start_with 100   --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------------------
+create_storage_resource --pool Pool-0 --storage_type smb nfs  --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
+#-------------------------------------------------------------------------------------------------------------------------------------
 # SCRUB ALL
 #------------------------------------------------------------------------------------------------------------------------
 scrub                           --node _node-a-ip-address_
