@@ -47,6 +47,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-25  add disk_size_range
 2018-11-27  new_dns & ntp_servers are list now
 2018-11-30  add --zvols_per_target option
+2018-12-02  add increment option
 """
 
 from __future__ import print_function
@@ -463,15 +464,25 @@ def get_args(batch_args_line=None):
     Example for multi-resource with --quantity option, starting consecutive number from zero (default),
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5  --node 192.168.0.220{ENDF}
 
-    and multi-resource with --quantity option, but starting consecutive number from 5 (--start_with 10).
+    and multi-resource with --quantity option, but starting consecutive number with 50 and incrment 10.
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-1 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
 
-    If more than single zvol needs to be attached to a target, use --zvols_per_target option. This example will create 2 targets with 4 zvols each.
+    If more than single zvol to be attached to a target, use --zvols_per_target option. 
+    This example will create 3 targets with 2 zvols each with following auto-numbering:
+    (vol 10,target 10),(vol 11,target 10),(vol 12,target 11),(vol 13,target 11),(vol 14,target 12),(vol 15,target 12)
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 10 --zvols_per_target 2 --node 192.168.0.220{ENDF}
 
+    This example will create 2 targets with 4 volumes each with following auto-numbering:
+    (vol 100,target 100),(vol 101,target 100),(vol 102,target 100),(vol 103,target 100),
+    (vol 200,target 200),(vol 201,target 200),(vol 202,target 200),(vol 203,target 200)
+
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
+    
 
 {} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
@@ -718,6 +729,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default=1,
         type=int,
         help='Enter number of zvols to be attached to a single target, default=1'
+    )
+    parser.add_argument(
+        '--increment',
+        metavar='number',
+        choices=[1,5,10,15,20,50,100,150,200,500,1000],
+        default=100,
+        type=int,
+        help='Enter the target auto-numbering incremental, default=100'
     )
     parser.add_argument(
         '--cluster',
@@ -1043,7 +1062,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global pool_based_consecutive_number_generator
     global cluster_pool_names
     global target_name, cluster_name
-    global quantity, start_with, zvols_per_target
+    global quantity, start_with, zvols_per_target,increment
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
     global setup_files, all_snapshots
@@ -1075,6 +1094,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     start_with          = args['start_with']
     quantity            = args['quantity']
     zvols_per_target    = args['zvols_per_target']
+    increment           = args['increment']
 
     cluster_name        = args['cluster']
 
@@ -1392,13 +1412,31 @@ def seconds2human(seconds):
             return "{} {}".format(str(value), name)
 
 
-def consecutive_number_generator():
-    i = start_with
+def consecutive_number_generator(increment):
+    i = j = start_with
+    z = zvols_per_target
+    ## get increment choices of from the parser
+    increment_options = (
+        action_item.choices for action_item in parser.__dict__["_actions"] if action_item.dest in 'increment'
+        ).next()
+    for increment_option in increment_options:
+        if increment < zvols_per_target:
+            increment = increment_option
     while 1:
-        #return example if start_with=10 and zvols_per_target=2
-        # (10,10) next (11,10) next (12,11) next (13,11) next (14,12) next (15,12)...
-        yield (i, ((i - ((i - start_with) % zvols_per_target) - start_with)/zvols_per_target) + start_with)
-        i+=1
+        if increment == 1:
+            #return example if start_with=10 and zvols_per_target=2
+            # (10,10) next (11,10) next (12,11) next (13,11) next (14,12) next (15,12)...
+            yield (i, ((i - ((i - start_with) % zvols_per_target) - start_with)/zvols_per_target) + start_with)
+        else:
+            #return example if start_with=10 and zvols_per_target=2
+            # (10,10) next (11,10) next (20,20) next (21,20) next (30,30) next (31,30)...
+            yield i, j
+        z -= 1
+        if z < 1:
+            i += (increment - zvols_per_target)
+            j = i + 1
+            z = zvols_per_target
+        i += 1
 
 
 def initialize_pool_based_consecutive_number_generator():
@@ -1407,7 +1445,7 @@ def initialize_pool_based_consecutive_number_generator():
     cluster_pool_names = get_cluster_pools_names()
     for cluster_pool_name in cluster_pool_names:
         ## add generator for every cluster pool
-        pool_based_consecutive_number_generator[cluster_pool_name] = consecutive_number_generator()
+        pool_based_consecutive_number_generator[cluster_pool_name] = consecutive_number_generator(increment)
 
 
 def convert_comma_separated_to_list(arg):
@@ -3563,6 +3601,9 @@ def command_processor() :
         set_scrub_scheduler()
 
     elif action == 'create_storage_resource':
+        if zvols_per_target> 15:
+            sys_exit_with_timestamp('Error the zvols_per_target must be in range 1..15.')
+
         c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
         if c < 5:
             sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
