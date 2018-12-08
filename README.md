@@ -250,25 +250,25 @@
     Example for multi-resource with --quantity option, starting consecutive number from zero (default),
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --node 192.168.0.220
-        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5  --node 192.168.0.220
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5 --node 192.168.0.220
 
-    and multi-resource with --quantity option, but starting consecutive number with 50 and incrment 10.
+    and multi-resource with --quantity option, but starting consecutive number with 50 and increment 10.
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220
         jdss-api-tools.exe create_storage_resource --pool Pool-1 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220
 
-    If more than single zvol to be attached to a target, use --zvols_per_target option. 
+    To attach more than single zvol to a target, use --zvols_per_target option.
     This example will create 3 targets with 2 zvols each with following auto-numbering:
-    (vol 10,target 10),(vol 11,target 10),(vol 12,target 11),(vol 13,target 11),(vol 14,target 12),(vol 15,target 12)
+    (vol 10,target 10),(vol 11,target 10),(vol 12,target 11),(vol 13,target 11),(vol 14,target 12),(vol 15,target 12).
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 10 --zvols_per_target 2 --node 192.168.0.220
 
     This example will create 2 targets with 4 volumes each with following auto-numbering:
     (vol 100,target 100),(vol 101,target 100),(vol 102,target 100),(vol 103,target 100),
-    (vol 200,target 200),(vol 201,target 200),(vol 202,target 200),(vol 203,target 200)
+    (vol 200,target 200),(vol 201,target 200),(vol 202,target 200),(vol 203,target 200).
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 4 --node 192.168.0.220
-    
+
 
 18. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
 

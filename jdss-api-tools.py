@@ -465,25 +465,25 @@ def get_args(batch_args_line=None):
     Example for multi-resource with --quantity option, starting consecutive number from zero (default),
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --node 192.168.0.220{ENDF}
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5 --node 192.168.0.220{ENDF}
 
-    and multi-resource with --quantity option, but starting consecutive number with 50 and incrment 10.
+    and multi-resource with --quantity option, but starting consecutive number with 50 and increment 10.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
     {LG}%(prog)s create_storage_resource --pool Pool-1 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
 
-    If more than single zvol to be attached to a target, use --zvols_per_target option. 
+    To attach more than single zvol to a target, use --zvols_per_target option.
     This example will create 3 targets with 2 zvols each with following auto-numbering:
-    (vol 10,target 10),(vol 11,target 10),(vol 12,target 11),(vol 13,target 11),(vol 14,target 12),(vol 15,target 12)
+    (vol 10,target 10),(vol 11,target 10),(vol 12,target 11),(vol 13,target 11),(vol 14,target 12),(vol 15,target 12).
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 10 --zvols_per_target 2 --node 192.168.0.220{ENDF}
 
     This example will create 2 targets with 4 volumes each with following auto-numbering:
     (vol 100,target 100),(vol 101,target 100),(vol 102,target 100),(vol 103,target 100),
-    (vol 200,target 200),(vol 201,target 200),(vol 202,target 200),(vol 203,target 200)
+    (vol 200,target 200),(vol 201,target 200),(vol 202,target 200),(vol 203,target 200).
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 4 --node 192.168.0.220{ENDF}
-    
+
 
 {} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
@@ -660,7 +660,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--pool',
         metavar='name',
-	action='append',
+        action='append',
         help='Enter pool name. If command require more pools, enter one more --pool name option'
     )
     parser.add_argument(
@@ -679,7 +679,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--size',
         metavar='size',
         default='1TB',
-        help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc. Default=1TB'
+        help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
     )
     parser.add_argument(
         '--quota',
@@ -857,13 +857,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='type',
         choices=['active-backup', 'balance-rr'],
         default='active-backup',
-        help='Enter bond type: balance-rr, active-backup. Default=active-backup'
+        help='Enter bond type (balance-rr, active-backup), default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
         metavar='nics',
         nargs='+',
-        help='Enter at least two NICs names, space separated bond NICs.'
+        help='Enter at least two NICs names, space separated bond NICs'
     )
     parser.add_argument(
         '--mirror_nics',
@@ -882,7 +882,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--ping_nodes',
         metavar='ip-addr',
         nargs='+',
-        help='Enter ping nodes IPs. Enter at least 2 space separated IPs.'
+        help='Enter ping nodes IPs. Enter at least 2 space separated IPs'
     )
     parser.add_argument(
         '--vip_nics',
@@ -972,35 +972,35 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,32)],
-        help='Enter the day of a month of schedule plan. Default=1.'
+        help='Enter the day of a month of schedule plan, default=1'
     )
     parser.add_argument(
         '--month_of_the_year',
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,13)],
-        help='Enter the month or months (space separated) of the year of schedule plan. Default=1 2 3 4 5 6 7 8 9 10 11 12 (every month).'
+        help='Enter the month or months (space separated) of the year of schedule plan. Default=1 2 3 4 5 6 7 8 9 10 11 12 (every month)'
     )
     parser.add_argument(
         '--day_of_the_week',
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,8)],
-        help='Enter the day or days (space separated) of the week of schedule plan.'
+        help='Enter the day or days (space separated) of the week of schedule plan'
     )
     parser.add_argument(
         '--hour',
         metavar='hour',
         nargs = '*',
         choices=[str(i) for i in range(24)],
-        help='Enter the hour of schedule plan. Default=0.'
+        help='Enter the hour of schedule plan, default=0'
     )
     parser.add_argument(
         '--minute',
         metavar='minute',
         nargs = '*',
         choices=[str(i) for i in range(60)],
-        help='Enter the minute of schedule plan. Default=15.'
+        help='Enter the minute of schedule plan, default=15'
     )
     parser.add_argument(
         '--menu',
@@ -1020,7 +1020,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         dest='all_snapshots',
         action='store_true',
         default=False,
-        help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only.'
+        help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only'
     )
 
     test_mode = False
@@ -1063,7 +1063,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global pool_based_consecutive_number_generator
     global cluster_pool_names
     global target_name, cluster_name
-    global quantity, start_with, zvols_per_target,increment
+    global quantity, start_with, zvols_per_target, increment
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
     global setup_files, all_snapshots
@@ -1421,11 +1421,11 @@ def consecutive_number_generator(increment):
             increment = increment_option
     while 1:
         if increment == 1:
-            #return example if start_with=10 and zvols_per_target=2
+            # return example if start_with=10 and zvols_per_target=2
             # (10,10) next (11,10) next (12,11) next (13,11) next (14,12) next (15,12)...
             yield (i, ((i - ((i - start_with) % zvols_per_target) - start_with)/zvols_per_target) + start_with)
         else:
-            #return example if start_with=10 and zvols_per_target=2
+            # return example if start_with=10 and zvols_per_target=2
             # (10,10) next (11,10) next (20,20) next (21,20) next (30,30) next (31,30)...
             yield i, j
         z -= 1
@@ -3599,7 +3599,7 @@ def command_processor() :
 
     elif action == 'create_storage_resource':
         if zvols_per_target> 15:
-            sys_exit_with_timestamp('Error the zvols_per_target must be in range 1..15.')
+            sys_exit_with_timestamp('Error: the zvols_per_target must be in range 1..15.')
 
         c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
         if c < 5:
