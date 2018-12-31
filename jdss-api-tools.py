@@ -48,6 +48,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-27  new_dns & ntp_servers are list now
 2018-11-30  add --zvols_per_target option
 2018-12-02  add increment option
+2018-12-31  add number_of_disks_in_jbod for raidz2 & raidz3
 """
 
 from __future__ import print_function
@@ -1055,6 +1056,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global delay, menu
     global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
+    global number_of_disks_in_jbod
+
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
@@ -1153,6 +1156,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     menu                = args['menu']
     setup_files         = args['setup_files']
     all_snapshots       = args['all_snapshots']
+
+    ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
+    ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
+    number_of_disks_in_jbod = 1
+    if vdev_type == 'raidz2' and vdev_disks_num/jbods_num == 2 :
+        number_of_disks_in_jbod = 2
+    if vdev_type == 'raidz3' and vdev_disks_num/jbods_num == 3 :
+        number_of_disks_in_jbod = 3
 
     ## scrub scheduler
     ## set default to 1st of every month at 0:15 AM
@@ -2986,6 +2997,15 @@ def read_jbod(n):
     return jbod 
 
 
+def zip_n(number_of_items_a_time,*args):
+    ''' zip_n zips with given number of items a time
+        (the orginal zip function take single item a time only)
+    ''' 
+    iter_args = map(iter,args)
+    while 1:
+        yield tuple([next(item) for item in iter_args for _ in range(number_of_items_a_time)])
+
+
 def create_pool(pool_name,vdev_type,jbods):
     timeouted = False
     
@@ -2998,10 +3018,11 @@ def create_pool(pool_name,vdev_type,jbods):
 
     ## CREATE
     error = ''
+        
     try:
         pool = api.storage.pools.create(
             name = pool_name,
-            vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip(*jbods)) ) ## zip disks over JBODs
+            vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)) ) ## zip disks over JBODs
     except Exception as e:
         error = str(e[0])
         if 'timeout' not in error:
@@ -3373,7 +3394,7 @@ def merge_sublists(list_of_lists):
     """
     merge list of sub_lists into single list
     """
-    return [ item for sub_list in list_of_lists for item in sub_list]  
+    return [ item for sub_list in list_of_lists for item in sub_list]
 
 
 def convert_jbods_to_id_only(jbods):
@@ -3513,6 +3534,69 @@ def read_jbods_and_create_pool(choice='0'):
             msg = jbods_listing(jbods)
 
         elif choice in "C":
+            '''
+            THIS IS FOR MULTI-JBOD TESTS ONLY
+            empty_jbod=False  
+            jbods = [[(17179869184L, u'sdk', u'wwn-0x6000c2900d9d4b8ad978e58cbeb69ec0', u'local'),
+                          (32212254720L, u'sdc', u'wwn-0x6000c2986862e791e2f6a3b3caf812ea', u'local'),
+                          (17179869184L, u'sdam', u'wwn-0x6000c29dc9c757892bc52737dfbb514f', u'local'),
+                          (17179869184L, u'sdo', u'wwn-0x6000c29bfa933b7440799713fada1fff', u'local'),
+                          (17179869184L, u'sdac', u'wwn-0x6000c29f7112633f908c03f6ef8eefe4', u'local'),
+                          (17179869184L, u'sdbe', u'wwn-0x6000c29854805e7bbac41c4ce3ffb8e8', u'local'),
+                          (21474836480L, u'sdd', u'wwn-0x6000c29de582985eefa78d632794cc4b', u'local'),
+                          (17179869184L, u'sdaw', u'wwn-0x6000c299210e5602e8403dea289a5928', u'local'),
+                          (17179869184L, u'sdau', u'wwn-0x6000c29f717e083f8d6be2eb39f8e74f', u'local'),
+                          (17179869184L, u'sdh', u'wwn-0x6000c290dba4fba83d8d884c9fb9842c', u'local'),
+                          (21474836480L, u'sde', u'wwn-0x6000c293f13d726d45d4f4326f64355f', u'local'),
+                          (17179869184L, u'sdx', u'wwn-0x6000c29468b1e4cd493a19bdcfcce6f2', u'local'),
+                          (17179869184L, u'sdl', u'wwn-0x6000c296268358c7c8147a0903b5a5fb', u'local'),
+                          (17179869184L, u'sdbg', u'wwn-0x6000c29a0bee64560f0feee77e63521e', u'local'),
+                          (17179869184L, u'sdbb', u'wwn-0x6000c29781d7c00dbac4ee4eed25d912', u'local'),
+                          (17179869184L, u'sdaq', u'wwn-0x6000c29b587e6f90be9b0f1b8c67005e', u'local'),
+                          (17179869184L, u'sdy', u'wwn-0x6000c296df02bc1596cbd18ab662d849', u'local'),
+                          (17179869184L, u'sdax', u'wwn-0x6000c29ec4950ff52bf3e64272d6fd9c', u'local'),
+                          (17179869184L, u'sdao', u'wwn-0x6000c2971e1450958e706560f48dec0a', u'local'),
+                          (17179869184L, u'sdak', u'wwn-0x6000c29cb591895a94331622c1c64939', u'local'),
+                          (17179869184L, u'sds', u'wwn-0x6000c29d6eb8c1e890be8e1b686ac372', u'local'),
+                          (17179869184L, u'sdaf', u'wwn-0x6000c296596cb4ee2e734309b54bcff8', u'local'),
+                          (17179869184L, u'sdbf', u'wwn-0x6000c299f603587a5d830d4c7b4dd68b', u'local'),
+                          (17179869184L, u'sdav', u'wwn-0x6000c29b3580f052ecc3e30873514d72', u'local'),
+                          (17179869184L, u'sdal', u'wwn-0x6000c29b78b864c3b5b7c70b2fe9eeef', u'local'),
+                          (17179869184L, u'sdbh', u'wwn-0x6000c2909e9e2aaad13f7704cc002d47', u'local'),
+                          (17179869184L, u'sdah', u'wwn-0x6000c2989a0a32dad5d40ba5776f8df4', u'local'),
+                          (17179869184L, u'sdat', u'wwn-0x6000c2995e16830ce57a0d9413daf7d0', u'local'),
+                          (17179869184L, u'sdv', u'wwn-0x6000c29f4d2c68c01e3b6a455a162201', u'local')   ],
+                         [(17179869184L, u'sdbd', u'wwn-0x6000c29f00824e15649b0351963dc27c', u'local'),
+                          (17179869184L, u'sdu', u'wwn-0x6000c29007b2ae35b63cc05047013ef6', u'local'),
+                          (17179869184L, u'sdar', u'wwn-0x6000c29ddc7b37aed467d5a3cf33daf4', u'local'),
+                          (17179869184L, u'sdap', u'wwn-0x6000c292ce0a319183e7fb9c40fc19c3', u'local'),
+                          (17179869184L, u'sdbc', u'wwn-0x6000c2915460fc60ccd67d16fd0d8ef4', u'local'),
+                          (17179869184L, u'sdaz', u'wwn-0x6000c29b56b450debdeb7d1209059062', u'local'),
+                          (17179869184L, u'sdm', u'wwn-0x6000c299e4c638aa23752db9445d4a36', u'local'),
+                          (21474836480L, u'sdb', u'wwn-0x6000c29a7c6d0b97a1c4cf1b203de7ed', u'local'),
+                          (17179869184L, u'sdae', u'wwn-0x6000c2993ef8671f5807b30bdf4a5413', u'local'),
+                          (17179869184L, u'sdag', u'wwn-0x6000c29e083d0608e7019404fde4e9cd', u'local'),
+                          (17179869184L, u'sdaj', u'wwn-0x6000c2926bee6c46e4fca43e00e5205b', u'local'),
+                          (17179869184L, u'sdp', u'wwn-0x6000c29db7121eaa7d4ae894003d2bbc', u'local'),
+                          (17179869184L, u'sdaa', u'wwn-0x6000c29d79893c1ef84a9908b56c2d03', u'local'),
+                          (17179869184L, u'sdf', u'wwn-0x6000c29328576616cffc6ab83548f72a', u'local'),
+                          (17179869184L, u'sdi', u'wwn-0x6000c29f188cd60fb61e94ccbf5b9866', u'local'),
+                          (17179869184L, u'sdan', u'wwn-0x6000c2953556855f7b7fd44c1c9cf24a', u'local'),
+                          (17179869184L, u'sdq', u'wwn-0x6000c29d09265ac946b7f356d416bdb9', u'local'),
+                          (17179869184L, u'sdw', u'wwn-0x6000c290e44574da1c5dea8c26d37ad3', u'local'),
+                          (17179869184L, u'sdab', u'wwn-0x6000c29181403197752d3e5770108536', u'local'),
+                          (17179869184L, u'sdr', u'wwn-0x6000c292626888dd90670565df3b4140', u'local'),
+                          (17179869184L, u'sdz', u'wwn-0x6000c29c2620ed48313cf2160f38d830', u'local'),
+                          (17179869184L, u'sdai', u'wwn-0x6000c293a72aa3e73c22fa57294180ab', u'local'),
+                          (17179869184L, u'sdad', u'wwn-0x6000c2998e7b43c2f6d88c15f595c71a', u'local'),
+                          (17179869184L, u'sdj', u'wwn-0x6000c2903eab1bd60c4e88ccde16e2f2', u'local'),
+                          (17179869184L, u'sdt', u'wwn-0x6000c29bc36b9cc348dc762c32396315', u'local'),
+                          (17179869184L, u'sdba', u'wwn-0x6000c299e9d4fcb43bdb5eecb7cb0a55', u'local'),
+                          (17179869184L, u'sday', u'wwn-0x6000c291c86b55a3a398cca93e624f69', u'local'),
+                          (17179869184L, u'sdn', u'wwn-0x6000c29ad0d25a4badcc0d0fd90cb36f', u'local'),
+                          (17179869184L, u'sdas', u'wwn-0x6000c29b4ca5b5bc4af7e354e1e50f28', u'local'),
+                          (17179869184L, u'sdg', u'wwn-0x6000c2955f680ea82af988fd222ce8d9', u'local')]]
+            '''
             if not menu:
                 jbods = remove_disks(jbods)
                 #msg = jbods_listing(jbods)
@@ -3523,6 +3607,7 @@ def read_jbods_and_create_pool(choice='0'):
                 if check_all_disks_size_equal_or_in_provided_range(jbods) == False:
                     msg = 'Disks with different size present. Please press "r" in order to remove smaller disks.'
                 else:
+                    
                     jbods_id_only = convert_jbods_to_id_only(jbods)
                     required_disks_num = vdevs_num * vdev_disks_num
                     available_disks = count_available_disks(jbods_id_only)
@@ -3536,8 +3621,11 @@ def read_jbods_and_create_pool(choice='0'):
                             jbods_id_only = jbods_id_only[: vdev_disks_num]
                             create_pool(pool_name,vdev_type, jbods_id_only)
                         else:
-                            ## limit to given vdevs_num
-                            jbods_id_only = [jbod[:vdevs_num] for jbod in jbods_id_only]
+                            ## limit to given vdevs_num & number_of_disks_in_jbod
+                            ## number_of_disks_in_jbod = 1   : if single disk per jbod
+                            ## number_of_disks_in_jbod = 2   : this is for raidz2 with 2 disk per jbod
+                            ## number_of_disks_in_jbod = 3   : this is for raidz3 with 3 disk per jbod
+                            jbods_id_only = [jbod[:vdevs_num * number_of_disks_in_jbod] for jbod in jbods_id_only]
                             create_pool(pool_name,vdev_type,jbods_id_only)
                         ##### reset
                         jbods = [[] for i in range(jbods_num)]
