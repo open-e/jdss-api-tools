@@ -49,6 +49,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-11-30  add --zvols_per_target option
 2018-12-02  add increment option
 2018-12-31  add number_of_disks_in_jbod for raidz2 & raidz3
+2019-01-13  add new_gw, new_dns for batch setup
 """
 
 from __future__ import print_function
@@ -3937,6 +3938,10 @@ def main() :
                 for i in first_nics_number_of_bonds:
                     _current_node = current_node.replace('0.',str(i)+'.')
                     content = content.replace('--new_ip:bond','--new_ip '+_current_node,1)
+                if new_gw:
+                    content = content.replace('--new_gw 192.168.0.1','--new_gw ' + new_gw)
+                if new_dns:
+                    content = content.replace('--new_dns 192.168.0.1','--new_dns ' + ' '.join(new_dns))
                 trigger = False
             else:
                 current_node = nodes[0]
