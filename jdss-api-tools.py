@@ -561,7 +561,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81{ENDF}
     {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1{ENDF}
-    {LG}%(prog)s create_factory_setup_files --nodes 10.10.10.3 10.10.10.4 --ping_nodes 10.10.10.5 10.10.10.6 --mirror_nics eth4 eth4 --new_gw 10.10.10.1 --new_dns 10.10.10.1{ENDF}
+    {LG}%(prog)s create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1{ENDF}
 
 
 {} {BOLD}Execute factory setup files for batch setup{END}.

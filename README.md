@@ -344,6 +344,7 @@
 
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80 192.168.0.81
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80 192.168.0.81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics bond1 bond1
+        jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1
 
 
 22. <b>Execute factory setup files for batch setup</b>.
