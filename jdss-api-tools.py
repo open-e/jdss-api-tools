@@ -1798,7 +1798,8 @@ def print_nas_snapshots_details(header,fields):
 
         for nas_volume in nas_volumes:
             snapshot_details = []
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
+            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(
+                POOL=pool_name,DATASET=nas_volume))
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
@@ -1819,7 +1820,10 @@ def print_nas_snapshots_details(header,fields):
                         time_stamp_string = snapshot_name.split('_')[-1]
                         #value = seconds2human(snapshot_age_seconds(time_stamp_string))
                         value = seconds2human(snapshot_age_seconds(property_dict['creation']))
-                        plan = property_dict['org.znapzend:src_plan']
+                        if 'src_plan' in property_dict.keys():
+                            plan = property_dict['src_plan']
+                        else:
+                            plan = ""
                     snapshot_details.append(value)
             print_out = field_format_template.format(*snapshot_details)
             if all_snapshots:
