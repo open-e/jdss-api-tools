@@ -174,7 +174,7 @@ def wait_for_node():
             waiting_dots_printed = True
         counter += 1
         if counter == repeat:   ## Connection timed out
-            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
 
     waiting_dots_printed = False
 
@@ -211,7 +211,7 @@ def wait_for_node():
         counter += 1
         time.sleep(3)
         if counter == repeat:   ## Connection timed out
-            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node_ip_address))
+            sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
 
 
 def get_args(batch_args_line=None):
@@ -1031,7 +1031,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --node 192.168.0.80'
+    test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
@@ -2313,11 +2313,19 @@ def get_interface_netmask(interface_name):
 
 
 def get_ring_interface_of_first_node():
-    if get('/cluster/rings'):
-        return get('/cluster/rings')[0]['interfaces'][0]['interface']
-    else:
-        ## get return empty list
-        sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
+    ''' output = get('/cluster/rings') 
+    [{u'status': u'ok', u'interfaces': [{u'interface': u'bond0', u'node_id': u'f46f6d14'},
+                        {u'interface': u'bond0', u'node_id': u'ae4b08ce'}], u'id': 0}]
+    '''
+    n = 5
+    while n:
+        output = get('/cluster/rings')
+        if output:
+            return output[0]['interfaces'][0]['interface']
+        n -= 1
+        time.sleep(1)
+    ## get return empty list  
+    sys_exit_with_timestamp( 'Error getting ring interface: Cluster not bound yet.')
 
 
 def get_cluster_nodes_addresses():
@@ -2338,7 +2346,7 @@ def get_cluster_nodes_addresses():
 def get_cluster_node_id(node):
     if get('/cluster/nodes')[0]['address'] in '127.0.0.1':
         ## cluster not configured yet
-        sys_exit_with_timestamp( 'Error: Cluster not bound yet.')
+        sys_exit_with_timestamp('Error: Cluster not bound yet.')
     else:
         result = get('/cluster/nodes')
         return (cluster_node['id']for cluster_node in result if cluster_node['address'] in node).next()
@@ -2360,7 +2368,7 @@ def cluster_bind_set():
     bind_node_address = '127.0.0.1'
     ## GET
     bind_node_address = get('/cluster/nodes')[0]['address']
-    return False if bind_node_address in '127.0.0.1' else True
+    return False if '127.0.0.1' in bind_node_address  else True
 
 
 def create_vip():
@@ -2785,24 +2793,19 @@ def bind_cluster(bind_ip_addr):
     global action_message
     action_message = 'Sending Cluster Nodes Bind request to: {}'.format(node)
 
-    endpoint = '/cluster/nodes'
-    data = dict(address=bind_ip_addr, password=bind_node_password)
-
-    bind_node_address = '127.0.0.1'
-
-    ## GET
-    bind_node_address = get('/cluster/nodes')[0]['address']
-
-    if '127.0.0.1' not in bind_node_address:
-        sys_exit_with_timestamp('Error: cluster bind was already set')
-    result = None
+    if cluster_bind_set():
+        print_with_timestamp('Cluster bind was already set')
+        print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
+        return
 
     ## POST
+    endpoint = '/cluster/nodes'
+    data = dict(address=bind_ip_addr, password=bind_node_password)
+    result = None
     result = post(endpoint, data)
-
-    ## GET and check 
-    bind_node_address = get('/cluster/nodes')[0]['address']
-    if '127.0.0.1' not in bind_node_address:
+    
+    ## GET and check
+    if cluster_bind_set():
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
