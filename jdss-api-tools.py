@@ -50,6 +50,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-12-02  add increment option
 2018-12-31  add number_of_disks_in_jbod for raidz2 & raidz3
 2019-01-13  add new_gw, new_dns for batch setup
+2019-03-15  add online activation 
 """
 
 from __future__ import print_function
@@ -578,6 +579,14 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
 
 
+{} {BOLD}Product activation{END}.
+
+    {LG}%(prog)s activate --online --node 192.168.0.220{ENDF}
+
+    Sends online Product activation request. On-line activation
+    requires internet connection.
+    Note: The off-line actiavtion is not implemented yet.
+
 {} {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
@@ -636,7 +645,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
-                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files'],
+                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files','activate'],
         help='Commands:   %(choices)s.'
     )
 
@@ -1025,13 +1034,20 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default=False,
         help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only'
     )
+    parser.add_argument(
+        '--online',
+        dest='online',
+        action='store_true',
+        default=False,
+        help='Send Online-Activation request. It requires internet connection'
+    )
 
     test_mode = False
 
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    test_command_line = 'info --node 192.168.0.80'
+    #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
@@ -1072,7 +1088,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
     global setup_files, all_snapshots
-
+    global online
 
     api_port            = args['port']
     api_user            = args['user']
@@ -1159,6 +1175,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     setup_files         = args['setup_files']
     all_snapshots       = args['all_snapshots']
 
+    online              = args['online']
+    
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
     number_of_disks_in_jbod = 1
@@ -2800,7 +2818,7 @@ def bind_cluster(bind_ip_addr):
 
     ## POST
     endpoint = '/cluster/nodes'
-    data = dict(address=bind_ip_addr, password=bind_node_password)
+    data = dict(address=bind_ip_addr, password=bind_ndoe_password)
     result = None
     result = post(endpoint, data)
     
@@ -2809,6 +2827,27 @@ def bind_cluster(bind_ip_addr):
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
+
+def activate():
+    ''' Online activation only
+    '''
+    global node
+    global action_message
+    result = ''
+
+    for node in nodes:
+        action_message = 'Sending Activation request, node: {}'.format(node)
+        if online:
+            ## POST
+            result = post('/product/activation/activate-product',{})
+            # returns {u'data': None, u'error': None} if success
+            if result and not result['error']:
+                print_with_timestamp('Product successfully activated. Node: {}'.format(node))
+            else:
+                sys_exit_with_timestamp('Error: Product activation failed. Node: {}'.format(node))
+                
+        else:
+            sys_exit_with_timestamp('Error: Offline activation not implemented yet. Please use --online option. Node: {}'.format(node))
 
 
 def info():
@@ -3781,6 +3820,9 @@ def command_processor() :
 
     elif action == 'info':
         info()
+
+    elif action == 'activate':
+        activate()
 
     elif action == 'shutdown':
         shutdown_nodes()
