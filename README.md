@@ -361,7 +361,15 @@
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-23. <b>Print system info</b>.
+23. <b>Product activation</b>.
+
+        jdss-api-tools.exe activate --online --node 192.168.0.220
+
+    Sends online Product activation request. On-line activation
+    requires internet connection.
+    Note: The off-line actiavtion is not implemented yet.
+
+24. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -410,4 +418,4 @@ create_bond                   	delete_bond                   	bind_cluster
 set_ping_nodes                	set_mirror_path               	create_vip
 start_cluster                 	move                          	info
 shutdown                      	reboot                        	batch_setup
-create_factory_setup_files    	</pre>
+create_factory_setup_files    	activate                      	</pre>
