@@ -346,11 +346,14 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
-    {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/New_York    --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/Chicago     --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Asia/Tokyo --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Asia/Taipei         --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Asia/Tokyo          --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/Berlin       --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/London       --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/Moscow       --node 192.168.0.220{ENDF}
 
     Set NTP servers only.
 
@@ -3872,6 +3875,10 @@ set_time --timezone Europe/Berlin                  --node _node-a-ip-address_   
 #   set_time  --timezone America/New_York              --node _node-a-ip-address_           # SET TIME
 #   set_time  --timezone America/Chicago               --node _node-a-ip-address_           # SET TIME
 #   set_time  --timezone America/Los_Angeles           --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone Europe/London                 --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone Asia/Tokyo                    --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone Asia/Taipei                   --node _node-a-ip-address_           # SET TIME
+#   set_time  --timezone Europe/Moscow                 --node _node-a-ip-address_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
 info                                               --node _node-a-ip-address_           # PRINT INFO
 #------------------------------------------------------------------------------------------------------------------------

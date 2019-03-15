@@ -128,11 +128,14 @@
 
  7. <b>Set timezone and NTP-time</b> with default NTP servers.
 
-        jdss-api-tools.exe set_time --timezone America/New_York --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone America/Chicago --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone America/New_York    --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone America/Chicago     --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone America/Los_Angeles --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Asia/Tokyo --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Asia/Taipei         --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Asia/Tokyo          --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Europe/Berlin       --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Europe/London       --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Europe/Moscow       --node 192.168.0.220
 
     Set NTP servers only.
 
