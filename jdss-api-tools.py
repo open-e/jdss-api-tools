@@ -2818,7 +2818,7 @@ def bind_cluster(bind_ip_addr):
 
     ## POST
     endpoint = '/cluster/nodes'
-    data = dict(address=bind_ip_addr, password=bind_ndoe_password)
+    data = dict(address=bind_ip_addr, password=bind_node_password)
     result = None
     result = post(endpoint, data)
     
@@ -3874,6 +3874,8 @@ set_time --timezone Europe/Berlin                  --node _node-a-ip-address_   
 #   set_time  --timezone America/Los_Angeles           --node _node-a-ip-address_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
 info                                               --node _node-a-ip-address_           # PRINT INFO
+#------------------------------------------------------------------------------------------------------------------------
+activate                                 --online  --node _node-a-ip-address_           # PRODUCT ACTIVATION
 #------------------------------------------------------------------------------------------------------------------------
 """,
     api_setup_cluster = """
