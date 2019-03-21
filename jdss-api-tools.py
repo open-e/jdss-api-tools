@@ -50,7 +50,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-12-02  add increment option
 2018-12-31  add number_of_disks_in_jbod for raidz2 & raidz3
 2019-01-13  add new_gw, new_dns for batch setup
-2019-03-15  add online activation 
+2019-03-15  add online activation
+2019-03-22  add pool import
 """
 
 from __future__ import print_function
@@ -325,6 +326,41 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Import pool{END}:
+
+    Get list of pools available for import:
+
+    {LG}%(prog)s import --node 192.168.0.220{ENDF}
+
+    Import pools Pool-0 and Pool-1: 
+
+    {LG}%(prog)s import --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
+   
+    Import pools Pool-0 with force option.
+    Forces import, even if the pool appears to be potentially active.
+
+    {LG}%(prog)s import --pool Pool-0 --force --node 192.168.0.220{ENDF}
+    
+    Forced import of Pool-0 with missing write-log device.
+
+    {LG}%(prog)s import --pool Pool-0 --force --ignore_missing_write_log --node 192.168.0.220{ENDF}
+
+    Forced import of Pool-0 in recovery mode for a non-importable pool. 
+    Attempt to return the pool to an importable state by discarding the last few transactions. 
+    Not all damaged pools can be recovered by using this option. 
+    If successful, the data from the discarded transactions is irretrievably lost. 
+
+    {LG}%(prog)s import --pool Pool-0 --force --recovery_import --node 192.168.0.220{ENDF}
+
+    Forced import of Pool-0 in recovery mode and missing write-log device.
+
+    {LG}%(prog)s import --pool Pool-0 --force --recovery_import --ignore_missing_write_log --node 192.168.0.220{ENDF}
+
+    Forced import of Pool-0 in recovery mode and ignore unfinished resilver.
+
+    {LG}%(prog)s import --pool Pool-0 --force --recovery_import --ignore_unfinished_resilver --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
@@ -358,7 +394,7 @@ def get_args(batch_args_line=None):
     Set NTP servers only.
 
     {LG}%(prog)s set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220{ENDF}
-
+    
 
 {} {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
@@ -648,7 +684,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
-                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files','activate'],
+                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files','activate', 'import'],
         help='Commands:   %(choices)s.'
     )
 
@@ -1044,13 +1080,41 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default=False,
         help='Send Online-Activation request. It requires internet connection'
     )
+    parser.add_argument(
+        '--force',
+        dest='force',
+        action='store_true',
+        default=False,
+        help='Force pool import'
+    )
+    parser.add_argument(
+        '--recovery_import',
+        dest='recovery_import',
+        action='store_true',
+        default=False,
+        help='Forced import of pool in recovery mode. It must be used for a non-importable pool.'
+    )
+    parser.add_argument(
+        '--ignore_missing_write_log', 
+        dest='ignore_missing_write_log',
+        action='store_true',
+        default=False,
+        help='Forced import of pool with missing write-log device.'
+    )
+    parser.add_argument(
+        '--ignore_unfinished_resilver', 
+        dest='ignore_unfinished_resilver',
+        action='store_true',
+        default=False,
+        help='Forced import of pool with ignore unfinished resilver.'
+    )
+
 
     test_mode = False
-
-    ## TESTING ONLY!
-    #test_mode = True
+    #test_mode = True   ## TESTING ONLY!
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
+    #gtest_command_line = 'import --pool Pool-2 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
@@ -1092,93 +1156,99 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute
     global setup_files, all_snapshots
     global online
+    global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
+    
+    api_port                    = args['port']
+    api_user                    = args['user']
+    api_password                = args['pswd']
+    action                      = args['cmd']					## the command
+    pool_name                   = args['pool']
+    volume_name                 = args['volume']
+    storage_type                = args['storage_type']
 
-    api_port            = args['port']
-    api_user            = args['user']
-    api_password        = args['pswd']
-    action              = args['cmd']					## the command
-    pool_name           = args['pool']
-    volume_name         = args['volume']
-    storage_type        = args['storage_type']
+    sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
+    sparse                      = True if sparse in 'THIN' else False
 
-    sparse              = args['provisioning'].upper()	## THICK | THIN, default==THIN
-    sparse              = True if sparse in 'THIN' else False
+    size                        = args['size']
+    size                        = human_to_bytes(size)
 
-    size                = args['size']
-    size                = human_to_bytes(size)
+    quota                       = args['quota']
+    quota                       = human_to_bytes(quota)
 
-    quota               = args['quota']
-    quota               = human_to_bytes(quota)
+    reservation                 = args['reservation']
+    reservation                 = human_to_bytes(reservation)
 
-    reservation         = args['reservation']
-    reservation         = human_to_bytes(reservation)
+    sync                        = args['sync']
+    target_name                 = args['target']
 
-    sync                = args['sync']
-    target_name         = args['target']
+    start_with                  = args['start_with']
+    quantity                    = args['quantity']
+    zvols_per_target            = args['zvols_per_target']
+    increment                   = args['increment']
 
-    start_with          = args['start_with']
-    quantity            = args['quantity']
-    zvols_per_target    = args['zvols_per_target']
-    increment           = args['increment']
+    cluster_name                = args['cluster']
 
-    cluster_name        = args['cluster']
+    share_name                  = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
+    share_name                  = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
 
-    share_name          = args['share_name']     ## change default share name from "auto" to "auto_api_backup_share"
-    share_name          = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
+    visible                     = args['visible']
+    snapshot_name               = args['snapshot']
+    jbod_disks_num              = args['jbod_disks']
+    vdev_disks_num              = args['vdev_disks']
+    jbods_num                   = args['jbods']
+    vdevs_num                   = args['vdevs']
+    vdev_type                   = args['vdev']
 
-    visible             = args['visible']
-    snapshot_name       = args['snapshot']
-    jbod_disks_num      = args['jbod_disks']
-    vdev_disks_num      = args['vdev_disks']
-    jbods_num           = args['jbods']
-    vdevs_num           = args['vdevs']
-    vdev_type           = args['vdev']
+    disk_size_tolerance         = args['tolerance']
+    disk_size_tolerance         = int(human_to_bytes(disk_size_tolerance))
 
-    disk_size_tolerance = args['tolerance']
-    disk_size_tolerance = int(human_to_bytes(disk_size_tolerance))
-
-    disk_size_range     = args['disk_size_range']
-    disk_size_range     = map(int, map(human_to_bytes, disk_size_range)) \
+    disk_size_range             = args['disk_size_range']
+    disk_size_range             = map(int, map(human_to_bytes, disk_size_range)) \
                             if disk_size_range else disk_size_range
 
-    host_name           = args['host']
-    server_name         = args['server']
-    server_description  = args['description']
-    timezone            = args['timezone']
-    ntp                 = args['ntp'].upper()			## ON | OFF, default=ON
-    ntp_servers         = args['ntp_servers']
+    host_name                   = args['host']
+    server_name                 = args['server']
+    server_description          = args['description']
+    timezone                    = args['timezone']
+    ntp                         = args['ntp'].upper()			## ON | OFF, default=ON
+    ntp_servers                 = args['ntp_servers']
 
-    nic_name            = args['nic']
-    new_ip_addr         = args['new_ip']
-    new_mask            = args['new_mask']
-    new_gw              = args['new_gw']
-    new_dns             = args['new_dns']
-    bond_type           = args['bond_type']
-    bond_nics           = args['bond_nics']
-    bind_node_password  = args['bind_node_password']
-    mirror_nics         = args['mirror_nics']
+    nic_name                    = args['nic']
+    new_ip_addr                 = args['new_ip']
+    new_mask                    = args['new_mask']
+    new_gw                      = args['new_gw']
+    new_dns                     = args['new_dns']
+    bond_type                   = args['bond_type']
+    bond_nics                   = args['bond_nics']
+    bind_node_password          = args['bind_node_password']
+    mirror_nics                 = args['mirror_nics']
 
-    vip_name            = args['vip_name']
-    vip_nics            = args['vip_nics']
-    vip_ip              = args['vip_ip']
-    vip_mask            = args['vip_mask']
+    vip_name                    = args['vip_name']
+    vip_nics                    = args['vip_nics']
+    vip_ip                      = args['vip_ip']
+    vip_mask                    = args['vip_mask']
 
-    delay               = args['delay']
-    nodes               = args['nodes']
-    ping_nodes          = args['ping_nodes']
+    delay                       = args['delay']
+    nodes                       = args['nodes']
+    ping_nodes                  = args['ping_nodes']
 
-    scrub_action        = args['scrub_action']
-    day_of_the_month    = args['day_of_the_month']
-    month_of_the_year   = args['month_of_the_year']
-    day_of_the_week     = args['day_of_the_week']
-    hour                = args['hour']
-    minute              = args['minute']
+    scrub_action                = args['scrub_action']
+    day_of_the_month            = args['day_of_the_month']
+    month_of_the_year           = args['month_of_the_year']
+    day_of_the_week             = args['day_of_the_week']
+    hour                        = args['hour']
+    minute                      = args['minute']
 
-    menu                = args['menu']
-    setup_files         = args['setup_files']
-    all_snapshots       = args['all_snapshots']
+    menu                        = args['menu']
+    setup_files                 = args['setup_files']
+    all_snapshots               = args['all_snapshots']
 
-    online              = args['online']
+    online                      = args['online']
+
+    force                       = args['force']
+    recovery_import             = args['recovery_import']
+    ignore_missing_write_log    = args['ignore_missing_write_log']
+    ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
     
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
@@ -2831,6 +2901,68 @@ def bind_cluster(bind_ip_addr):
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
 
+
+def import_pool():
+    ''' 
+    '''
+    global node
+    global action_message
+    pools_details = []
+
+    def print_pools_available_for_import(pools_details):
+        for pool_details in pools_details:
+            print('\nPool available for IMPORT:\n  {} Size: {} Status: {} '.format(pool_details['name'],bytes2human(pool_details['size']),pool_details['health']))
+            for vdev in pool_details['vdevs']:
+                vdev_name = vdev['name']
+                vdev_name = 'single' if vdev_name.startswith('wwn-') else vdev_name
+                print('    {}'.format(vdev_name))
+                disk_name_to_replace = [ vdev_replacing['to_replace']['name'] for vdev_replacing in vdev['vdev_replacings']]
+                for disk in vdev['disks']:
+                    if disk['name'] in disk_name_to_replace:
+                        continue
+                    print('\t{} {} Status: {} SN: {}'.format(disk['name'],bytes2human(disk['size']),disk['health'],disk['sn']),end=' IOErors: ')
+                    for stat in disk['iostats']:
+                        print('{}: {}'.format(stat,disk['iostats'][stat]),end=' ')
+                    print()
+                for vdev_replacing in vdev['vdev_replacings']:
+                    print('\t{} Status: {}'.format(vdev_replacing['name'],vdev_replacing['health']))
+                    disk_to_replace = vdev_replacing['to_replace']
+                    disk_replacing = vdev_replacing['replacement']
+                    print('\t\t{} {} (to-replace) SN: {}'.format( disk_to_replace['name'],bytes2human(disk_to_replace['size']), disk_to_replace['sn']))
+                    print('\t\t{} {} (replacing)  SN: {}'.format( disk_replacing['name'],bytes2human(disk_replacing['size']), disk_replacing['sn']))
+        print()
+    #   
+    for node in nodes:
+        pools_details = get('/pools/import')
+        if pools_details:
+            if pool_name:
+                action_message = 'Sending import pool request, Node: {}, Pool: {}'.format(node,pool_name)
+                print_pools_available_for_import(pools_details)
+                pool_id_list = [pool['id'] for pool in pools_details if pool_name in pool['name']]
+                if pool_id_list:
+                    pool_id = pool_id_list[0]
+                else:
+                    sys_exit_with_timestamp('Pool: {} is NOT available for import. Node: {}'.format(pool_name,node))
+                if (recovery_import or ignore_missing_write_log or ignore_unfinished_resilver) and not force:
+                    options_names_dic = dict(recovery_import=recovery_import,
+                                          ignore_missing_write_log=ignore_missing_write_log,
+                                          ignore_unfinished_resilver=ignore_unfinished_resilver)
+                    options_names = ','.join(item for item in options_names_dic if options_names_dic[item])
+                    sys_exit_with_timestamp('{} option requires --force option. Node: {}'.format(options_names, node))
+                    
+                data = dict(id=pool_id, name=pool_name, force=force, recovery_import=recovery_import,
+                        omit_missing=ignore_missing_write_log, ignore_unfinished_resilver=ignore_unfinished_resilver)
+                result=post('/pools/import', data)
+                if result:
+                    print_with_timestamp('{}. Node: {}'.format(result,node))
+            else:
+                print_with_timestamp('Searching for pools available for import. Node: {}'.format(node))
+                print_pools_available_for_import(pools_details)
+        else:
+            sys_exit_with_timestamp('No pools available for import. Node: {}'.format(node))
+            
+            
+
 def activate():
     ''' Online activation only
     '''
@@ -3826,6 +3958,9 @@ def command_processor() :
 
     elif action == 'activate':
         activate()
+
+    elif action == 'import':
+        import_pool()
 
     elif action == 'shutdown':
         shutdown_nodes()
