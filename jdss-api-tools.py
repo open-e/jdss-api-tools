@@ -1114,7 +1114,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_mode = True   ## TESTING ONLY!
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
-    #gtest_command_line = 'import --pool Pool-2 --node 192.168.0.80'
+    #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
@@ -2933,21 +2933,22 @@ def import_pool():
         print()
     #   
     for node in nodes:
+        action_message = 'Sending import pool request, Node: {}, Pool: {}'.format(node,pool_name)
         pools_details = get('/pools/import')
         if pools_details:
             if pool_name:
-                action_message = 'Sending import pool request, Node: {}, Pool: {}'.format(node,pool_name)
                 print_pools_available_for_import(pools_details)
                 pool_id_list = [pool['id'] for pool in pools_details if pool_name in pool['name']]
                 if pool_id_list:
                     pool_id = pool_id_list[0]
                 else:
                     sys_exit_with_timestamp('Pool: {} is NOT available for import. Node: {}'.format(pool_name,node))
+                # exit if "--force" is missing if one of options provided: recovery_import or ignore_missing_write_log or ignore_unfinished_resilver 
                 if (recovery_import or ignore_missing_write_log or ignore_unfinished_resilver) and not force:
-                    options_names_dic = dict(recovery_import=recovery_import,
-                                          ignore_missing_write_log=ignore_missing_write_log,
-                                          ignore_unfinished_resilver=ignore_unfinished_resilver)
-                    options_names = ','.join(item for item in options_names_dic if options_names_dic[item])
+                    options_names = dict( recovery_import               = recovery_import,
+                                          ignore_missing_write_log      = ignore_missing_write_log,
+                                          ignore_unfinished_resilver    = ignore_unfinished_resilver)
+                    options_names = ', '.join(option_name for option_name in options_names if options_names[option_name])
                     sys_exit_with_timestamp('{} option requires --force option. Node: {}'.format(options_names, node))
                     
                 data = dict(id=pool_id, name=pool_name, force=force, recovery_import=recovery_import,
@@ -2955,12 +2956,15 @@ def import_pool():
                 result=post('/pools/import', data)
                 if result:
                     print_with_timestamp('{}. Node: {}'.format(result,node))
+                if check_given_pool_name_in_current_node(pool_name):
+                    print_with_timestamp('Pool: {} was imported on node: {}'.format(pool_name,node))
+                else:
+                    print_with_timestamp('Pool: {} was NOT imported on node: {}'.format(pool_name,node))
             else:
                 print_with_timestamp('Searching for pools available for import. Node: {}'.format(node))
                 print_pools_available_for_import(pools_details)
         else:
             sys_exit_with_timestamp('No pools available for import. Node: {}'.format(node))
-            
             
 
 def activate():
@@ -3101,6 +3105,17 @@ def get_pool_details(node, pool_name):
     return vdevs_num, data_groups_type, vdev_disks_num
 
 
+def check_given_pool_name_in_current_node(pool_name):
+    global node
+    pools = None
+    pools = get('/pools')
+    if pools:
+        pools_names = [ pool['name'] for pool in pools]
+        if pool_name in pools_names:
+            return True
+    return False
+
+    
 def check_given_pool_name(ignore_error=None):
     ''' If given pool_name exist:
             return True
