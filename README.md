@@ -113,9 +113,9 @@
 
         jdss-api-tools.exe import --node 192.168.0.220
 
-    Import pools Pool-0 and Pool-1: 
+    Import pools Pool-0: 
 
-        jdss-api-tools.exe import --pool Pool-0 Pool-1 --node 192.168.0.220
+        jdss-api-tools.exe import --pool Pool-0 --node 192.168.0.220
    
     Import pools Pool-0 with force option.
     Forces import, even if the pool appears to be potentially active.
@@ -293,7 +293,7 @@
     and multi-resource with --quantity option, but starting consecutive number with 50 and increment 10.
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220
-        jdss-api-tools.exe create_storage_resource --pool Pool-1 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220
 
     To attach more than single zvol to a target, use --zvols_per_target option.
     This example will create 3 targets with 2 zvols each with following auto-numbering:
@@ -333,7 +333,7 @@
     Scrub on specified pools only.
 
         jdss-api-tools.exe scrub --pool Pool-0 --node 192.168.0.220
-        jdss-api-tools.exe scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220
+        jdss-api-tools.exe scrub --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220
 
     Stop scrub on all pools.
 

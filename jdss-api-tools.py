@@ -332,9 +332,9 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s import --node 192.168.0.220{ENDF}
 
-    Import pools Pool-0 and Pool-1: 
+    Import pools Pool-0: 
 
-    {LG}%(prog)s import --pool Pool-0 Pool-1 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s import --pool Pool-0 --node 192.168.0.220{ENDF}
    
     Import pools Pool-0 with force option.
     Forces import, even if the pool appears to be potentially active.
@@ -512,7 +512,7 @@ def get_args(batch_args_line=None):
     and multi-resource with --quantity option, but starting consecutive number with 50 and increment 10.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
-    {LG}%(prog)s create_storage_resource --pool Pool-1 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 5 --start_with 10 --increment 10 --node 192.168.0.220{ENDF}
 
     To attach more than single zvol to a target, use --zvols_per_target option.
     This example will create 3 targets with 2 zvols each with following auto-numbering:
@@ -552,7 +552,7 @@ def get_args(batch_args_line=None):
     Scrub on specified pools only.
 
     {LG}%(prog)s scrub --pool Pool-0 --node 192.168.0.220{ENDF}
-    {LG}%(prog)s scrub --pool Pool-0 --pool Pool-1 --pool Pool-2 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220{ENDF}
 
     Stop scrub on all pools.
 
@@ -711,8 +711,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--pool',
         metavar='name',
-        action='append',
-        help='Enter pool name. If command require more pools, enter one more --pool name option'
+        nargs='+',
+        help='Enter pool name.'
     )
     parser.add_argument(
         '--volume',
