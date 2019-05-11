@@ -113,23 +113,23 @@
 
         jdss-api-tools.exe import --node 192.168.0.220
 
-    Import pools Pool-0: 
+    Import pool Pool-0:
 
         jdss-api-tools.exe import --pool Pool-0 --node 192.168.0.220
-   
-    Import pools Pool-0 with force option.
+
+    Import pool Pool-0 with force option.
     Forces import, even if the pool appears to be potentially active.
 
         jdss-api-tools.exe import --pool Pool-0 --force --node 192.168.0.220
-    
+
     Forced import of Pool-0 with missing write-log device.
 
         jdss-api-tools.exe import --pool Pool-0 --force --ignore_missing_write_log --node 192.168.0.220
 
-    Forced import of Pool-0 in recovery mode for a non-importable pool. 
-    Attempt to return the pool to an importable state by discarding the last few transactions. 
-    Not all damaged pools can be recovered by using this option. 
-    If successful, the data from the discarded transactions is irretrievably lost. 
+    Forced import of Pool-0 in recovery mode for a non-importable pool.
+    Attempt to return the pool to an importable state by discarding the last few transactions.
+    Not all damaged pools can be recovered by using this option.
+    If successful, the data from the discarded transactions is irretrievably lost.
 
         jdss-api-tools.exe import --pool Pool-0 --force --recovery_import --node 192.168.0.220
 
@@ -163,19 +163,16 @@
 
  8. <b>Set timezone and NTP-time</b> with default NTP servers.
 
-        jdss-api-tools.exe set_time --timezone America/New_York    --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone America/Chicago     --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone America/New_York --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone America/Chicago --node 192.168.0.220
         jdss-api-tools.exe set_time --timezone America/Los_Angeles --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Asia/Taipei         --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Asia/Tokyo          --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Europe/Berlin       --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Europe/London       --node 192.168.0.220
-        jdss-api-tools.exe set_time --timezone Europe/Moscow       --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Asia/Tokyo --node 192.168.0.220
+        jdss-api-tools.exe set_time --timezone Europe/Berlin --node 192.168.0.220
 
     Set NTP servers only.
 
         jdss-api-tools.exe set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220
-    
+
 
  9. <b>Set new IP settings</b> for eth0 and set gateway-IP and set eth0 as default gateway.
 
@@ -403,9 +400,10 @@
 
         jdss-api-tools.exe activate --online --node 192.168.0.220
 
-    Sends online Product activation request. On-line activation
-    requires internet connection.
-    Note: The off-line actiavtion is not implemented yet.
+    Sends online Product Activation request.
+	On-line activation requires an internet connection.
+    Note: The off-line activation is not implemented yet.
+
 
 25. <b>Print system info</b>.
 

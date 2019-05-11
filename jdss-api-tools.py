@@ -332,23 +332,23 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s import --node 192.168.0.220{ENDF}
 
-    Import pools Pool-0: 
+    Import pool Pool-0:
 
     {LG}%(prog)s import --pool Pool-0 --node 192.168.0.220{ENDF}
-   
-    Import pools Pool-0 with force option.
+
+    Import pool Pool-0 with force option.
     Forces import, even if the pool appears to be potentially active.
 
     {LG}%(prog)s import --pool Pool-0 --force --node 192.168.0.220{ENDF}
-    
+
     Forced import of Pool-0 with missing write-log device.
 
     {LG}%(prog)s import --pool Pool-0 --force --ignore_missing_write_log --node 192.168.0.220{ENDF}
 
-    Forced import of Pool-0 in recovery mode for a non-importable pool. 
-    Attempt to return the pool to an importable state by discarding the last few transactions. 
-    Not all damaged pools can be recovered by using this option. 
-    If successful, the data from the discarded transactions is irretrievably lost. 
+    Forced import of Pool-0 in recovery mode for a non-importable pool.
+    Attempt to return the pool to an importable state by discarding the last few transactions.
+    Not all damaged pools can be recovered by using this option.
+    If successful, the data from the discarded transactions is irretrievably lost.
 
     {LG}%(prog)s import --pool Pool-0 --force --recovery_import --node 192.168.0.220{ENDF}
 
@@ -382,19 +382,16 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Set timezone and NTP-time{END} with default NTP servers.
 
-    {LG}%(prog)s set_time --timezone America/New_York    --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone America/Chicago     --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/New_York --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Asia/Taipei         --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Asia/Tokyo          --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Europe/Berlin       --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Europe/London       --node 192.168.0.220{ENDF}
-    {LG}%(prog)s set_time --timezone Europe/Moscow       --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Asia/Tokyo --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
     Set NTP servers only.
 
     {LG}%(prog)s set_time --ntp_servers 0.pool.ntp.org 1.pool.ntp.org --node 192.168.0.220{ENDF}
-    
+
 
 {} {BOLD}Set new IP settings{END} for eth0 and set gateway-IP and set eth0 as default gateway.
 
@@ -622,9 +619,10 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s activate --online --node 192.168.0.220{ENDF}
 
-    Sends online Product activation request. On-line activation
-    requires internet connection.
-    Note: The off-line actiavtion is not implemented yet.
+    Sends online Product Activation request.
+	On-line activation requires an internet connection.
+    Note: The off-line activation is not implemented yet.
+
 
 {} {BOLD}Print system info{END}.
 
@@ -684,7 +682,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
-                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files','activate', 'import'],
+                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
     )
 
@@ -712,7 +710,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--pool',
         metavar='name',
         nargs='+',
-        help='Enter pool name.'
+        help='Enter pool name'
     )
     parser.add_argument(
         '--volume',
@@ -1078,7 +1076,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         dest='online',
         action='store_true',
         default=False,
-        help='Send Online-Activation request. It requires internet connection'
+        help='Send Online Product Activation request. It requires an internet connection'
     )
     parser.add_argument(
         '--force',
@@ -1092,26 +1090,27 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         dest='recovery_import',
         action='store_true',
         default=False,
-        help='Forced import of pool in recovery mode. It must be used for a non-importable pool.'
+        help='Forced import of pool in recovery mode. It must be used for a non-importable pool'
     )
     parser.add_argument(
-        '--ignore_missing_write_log', 
+        '--ignore_missing_write_log',
         dest='ignore_missing_write_log',
         action='store_true',
         default=False,
-        help='Forced import of pool with missing write-log device.'
+        help='Forced import of pool with missing write-log device'
     )
     parser.add_argument(
-        '--ignore_unfinished_resilver', 
+        '--ignore_unfinished_resilver',
         dest='ignore_unfinished_resilver',
         action='store_true',
         default=False,
-        help='Forced import of pool with ignore unfinished resilver.'
+        help='Forced import of pool with unfinished resilver'
     )
 
-
     test_mode = False
-    #test_mode = True   ## TESTING ONLY!
+
+    ## TESTING ONLY!
+    #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
@@ -1142,7 +1141,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
     global number_of_disks_in_jbod
-
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
@@ -1157,7 +1155,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global setup_files, all_snapshots
     global online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
-    
+
     api_port                    = args['port']
     api_user                    = args['user']
     api_password                = args['pswd']
@@ -1204,7 +1202,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     disk_size_range             = args['disk_size_range']
     disk_size_range             = map(int, map(human_to_bytes, disk_size_range)) \
-                            if disk_size_range else disk_size_range
+                                    if disk_size_range else disk_size_range
 
     host_name                   = args['host']
     server_name                 = args['server']
@@ -1249,7 +1247,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     recovery_import             = args['recovery_import']
     ignore_missing_write_log    = args['ignore_missing_write_log']
     ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
-    
+
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
     number_of_disks_in_jbod = 1
@@ -1890,7 +1888,7 @@ def print_nas_snapshots_details(header,fields):
         for nas_volume in nas_volumes:
             snapshot_details = []
             snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(
-                POOL=pool_name,DATASET=nas_volume))
+			    POOL=pool_name,DATASET=nas_volume))
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
@@ -2404,7 +2402,7 @@ def get_interface_netmask(interface_name):
 
 
 def get_ring_interface_of_first_node():
-    ''' output = get('/cluster/rings') 
+    ''' output = get('/cluster/rings')
     [{u'status': u'ok', u'interfaces': [{u'interface': u'bond0', u'node_id': u'f46f6d14'},
                         {u'interface': u'bond0', u'node_id': u'ae4b08ce'}], u'id': 0}]
     '''
@@ -2415,7 +2413,7 @@ def get_ring_interface_of_first_node():
             return output[0]['interfaces'][0]['interface']
         n -= 1
         time.sleep(1)
-    ## get return empty list  
+    ## get return empty list
     sys_exit_with_timestamp( 'Error getting ring interface: Cluster not bound yet.')
 
 
@@ -2459,7 +2457,7 @@ def cluster_bind_set():
     bind_node_address = '127.0.0.1'
     ## GET
     bind_node_address = get('/cluster/nodes')[0]['address']
-    return False if '127.0.0.1' in bind_node_address  else True
+    return False if '127.0.0.1' in bind_node_address else True
 
 
 def create_vip():
@@ -2894,8 +2892,8 @@ def bind_cluster(bind_ip_addr):
     data = dict(address=bind_ip_addr, password=bind_node_password)
     result = None
     result = post(endpoint, data)
-    
-    ## GET and check
+
+    ## GET and check 
     if cluster_bind_set():
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
@@ -2903,7 +2901,7 @@ def bind_cluster(bind_ip_addr):
 
 
 def import_pool():
-    ''' 
+    '''
     '''
     global node
     global action_message
@@ -2931,7 +2929,7 @@ def import_pool():
                     print('\t\t{} {} (to-replace) SN: {}'.format( disk_to_replace['name'],bytes2human(disk_to_replace['size']), disk_to_replace['sn']))
                     print('\t\t{} {} (replacing)  SN: {}'.format( disk_replacing['name'],bytes2human(disk_replacing['size']), disk_replacing['sn']))
         print()
-    #   
+
     for node in nodes:
         action_message = 'Sending import pool request, Node: {}, Pool: {}'.format(node,pool_name)
         pools_details = get('/pools/import')
@@ -2943,14 +2941,14 @@ def import_pool():
                     pool_id = pool_id_list[0]
                 else:
                     sys_exit_with_timestamp('Pool: {} is NOT available for import. Node: {}'.format(pool_name,node))
-                # exit if "--force" is missing if one of options provided: recovery_import or ignore_missing_write_log or ignore_unfinished_resilver 
+                # exit if "--force" is missing if one of options provided: recovery_import or ignore_missing_write_log or ignore_unfinished_resilver
                 if (recovery_import or ignore_missing_write_log or ignore_unfinished_resilver) and not force:
                     options_names = dict( recovery_import               = recovery_import,
                                           ignore_missing_write_log      = ignore_missing_write_log,
                                           ignore_unfinished_resilver    = ignore_unfinished_resilver)
                     options_names = ', '.join(option_name for option_name in options_names if options_names[option_name])
                     sys_exit_with_timestamp('{} option requires --force option. Node: {}'.format(options_names, node))
-                    
+
                 data = dict(id=pool_id, name=pool_name, force=force, recovery_import=recovery_import,
                         omit_missing=ignore_missing_write_log, ignore_unfinished_resilver=ignore_unfinished_resilver)
                 result=post('/pools/import', data)
@@ -2965,8 +2963,8 @@ def import_pool():
                 print_pools_available_for_import(pools_details)
         else:
             sys_exit_with_timestamp('No pools available for import. Node: {}'.format(node))
-            
 
+            
 def activate():
     ''' Online activation only
     '''
@@ -2984,7 +2982,7 @@ def activate():
                 print_with_timestamp('Product successfully activated. Node: {}'.format(node))
             else:
                 sys_exit_with_timestamp('Error: Product activation failed. Node: {}'.format(node))
-                
+
         else:
             sys_exit_with_timestamp('Error: Offline activation not implemented yet. Please use --online option. Node: {}'.format(node))
 
@@ -3115,7 +3113,7 @@ def check_given_pool_name_in_current_node(pool_name):
             return True
     return False
 
-    
+
 def check_given_pool_name(ignore_error=None):
     ''' If given pool_name exist:
             return True
@@ -3184,7 +3182,7 @@ def read_jbod(n):
     jbod = []
     global metro
     metro = False
-    
+
     api = interface()
     unused_disks = api.storage.disks.unused
     for disk in unused_disks:
@@ -3192,13 +3190,13 @@ def read_jbod(n):
             disk.origin = "remote"
             metro = True
         jbod.append((disk.size,disk.name,disk.id,disk.origin))
-    return jbod 
+    return jbod
 
 
 def zip_n(number_of_items_a_time,*args):
     ''' zip_n zips with given number of items a time
         (the orginal zip function take single item a time only)
-    ''' 
+    '''
     iter_args = map(iter,args)
     while 1:
         yield tuple([next(item) for item in iter_args for _ in range(number_of_items_a_time)])
@@ -3206,17 +3204,17 @@ def zip_n(number_of_items_a_time,*args):
 
 def create_pool(pool_name,vdev_type,jbods):
     timeouted = False
-    
+
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
-        
+
     api = interface()
     vdev_type = vdev_type.replace('single','')
     print_with_timestamp("Creating pool. Please wait...")
 
     ## CREATE
     error = ''
-        
+
     try:
         pool = api.storage.pools.create(
             name = pool_name,
@@ -3734,7 +3732,7 @@ def read_jbods_and_create_pool(choice='0'):
         elif choice in "C":
             '''
             THIS IS FOR MULTI-JBOD TESTS ONLY
-            empty_jbod=False  
+            empty_jbod=False
             jbods = [[(17179869184L, u'sdk', u'wwn-0x6000c2900d9d4b8ad978e58cbeb69ec0', u'local'),
                           (32212254720L, u'sdc', u'wwn-0x6000c2986862e791e2f6a3b3caf812ea', u'local'),
                           (17179869184L, u'sdam', u'wwn-0x6000c29dc9c757892bc52737dfbb514f', u'local'),
@@ -3805,7 +3803,7 @@ def read_jbods_and_create_pool(choice='0'):
                 if check_all_disks_size_equal_or_in_provided_range(jbods) == False:
                     msg = 'Disks with different size present. Please press "r" in order to remove smaller disks.'
                 else:
-                    
+
                     jbods_id_only = convert_jbods_to_id_only(jbods)
                     required_disks_num = vdevs_num * vdev_disks_num
                     available_disks = count_available_disks(jbods_id_only)
