@@ -52,6 +52,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-01-13  add new_gw, new_dns for batch setup
 2019-03-15  add online activation
 2019-03-22  add pool import
+2019-05-18  improve info output (show if listed volume is nas or san volume)
+2019-05-18  add list_snapshots option (kris@dddistribution.be)
 """
 
 from __future__ import print_function
@@ -628,7 +630,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
 
-    The info command lists only the most recent snapshots.
+    The info command lists system information together with only the most recent snapshots.
     In order to list all snapshots use --all_snapshots option,
 
     {LG}%(prog)s info --all_snapshots --node 192.168.0.220{ENDF}
@@ -636,6 +638,23 @@ def get_args(batch_args_line=None):
     or just --all.
 
     {LG}%(prog)s info --all --node 192.168.0.220{ENDF}
+
+
+{} {BOLD}Print only snapshot info{END}.
+
+    {LG}%(prog)s list_snapshots --node 192.168.0.220{ENDF}
+
+    The list_snapshots command lists only the most recent snapshots.
+    In order to list all snapshots use --all_snapshots option,
+
+    {LG}%(prog)s list_snapshots --all_snapshots --node 192.168.0.220{ENDF}
+
+    or just --all.
+
+    {LG}%(prog)s list_snapshots --all --node 192.168.0.220{ENDF}
+
+
+    Note: If you want complete system information, please use the info command instead.
 
 
 #############################################################################################
@@ -681,7 +700,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
-                 'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info',
+                 'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
     )
@@ -3069,17 +3088,46 @@ def info():
 
         ## PRINT NAS SNAPs DETAILS
         if all_snapshots:
-            header= ('snapshot', 'referenced','written','age')
+            header= ('snapshot_(nas_volume)', 'referenced','written','age')
         else:
-            header= ('the_most_recent_snapshot', 'referenced','written','age')
+            header= ('the_most_recent_snapshot_(nas_volume)', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
         print_nas_snapshots_details(header,fields)
 
         ## PRINT SAN SNAPs DETAILS
         if all_snapshots:
-            header= ('snapshot', 'referenced','written','age')
+            header= ('snapshot_(san_volume)', 'referenced','written','age')
         else:
-            header= ('the_most_recent_snapshot', 'referenced','written','age')
+            header= ('the_most_recent_snapshot_(san_volume)', 'referenced','written','age')
+        fields= ('name', 'referenced','written','age')
+        print_san_snapshots_details(header,fields)
+
+
+def list_snapshots():
+    ''' Pools
+    '''
+    global node
+    global action_message
+
+    for node in nodes:
+        ## GET
+        action_message = 'Listing snapshots from: {}'.format(node)
+        host_name = get('/product')["host_name"]
+        print('{:>30}:\t{}'.format("Host name",host_name))
+
+        ## PRINT NAS SNAPs DETAILS
+        if all_snapshots:
+            header= ('snapshot_(nas_volume)', 'referenced','written','age')
+        else:
+            header= ('the_most_recent_snapshot_(nas_volume)', 'referenced','written','age')
+        fields= ('name', 'referenced','written','age')
+        print_nas_snapshots_details(header,fields)
+
+        ## PRINT SAN SNAPs DETAILS
+        if all_snapshots:
+            header= ('snapshot_(san_volume)', 'referenced','written','age')
+        else:
+            header= ('the_most_recent_snapshot_(san_volume)', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
         print_san_snapshots_details(header,fields)
 
@@ -3969,6 +4017,9 @@ def command_processor() :
     elif action == 'info':
         info()
 
+    elif action == 'list_snapshots':
+        list_snapshots()
+
     elif action == 'activate':
         activate()
 
@@ -4028,7 +4079,9 @@ set_time --timezone Europe/Berlin                  --node _node-a-ip-address_   
 #   set_time  --timezone Asia/Taipei                   --node _node-a-ip-address_           # SET TIME
 #   set_time  --timezone Europe/Moscow                 --node _node-a-ip-address_           # SET TIME
 #------------------------------------------------------------------------------------------------------------------------
-info                                               --node _node-a-ip-address_           # PRINT INFO
+info                                               --node _node-a-ip-address_           # PRINT SYSTEM INFO
+#------------------------------------------------------------------------------------------------------------------------
+list_snapshots                                     --node _node-a-ip-address_           # PRINT ONLY SNAPSHOT INFO
 #------------------------------------------------------------------------------------------------------------------------
 activate                                 --online  --node _node-a-ip-address_           # PRODUCT ACTIVATION
 #------------------------------------------------------------------------------------------------------------------------
