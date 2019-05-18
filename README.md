@@ -409,7 +409,7 @@
 
         jdss-api-tools.exe info --node 192.168.0.220
 
-    The info command lists only the most recent snapshots.
+    The info command lists system information together with only the most recent snapshots.
     In order to list all snapshots use --all_snapshots option,
 
         jdss-api-tools.exe info --all_snapshots --node 192.168.0.220
@@ -417,6 +417,23 @@
     or just --all.
 
         jdss-api-tools.exe info --all --node 192.168.0.220
+
+
+26. <b>Print only snapshot info</b>.
+
+        jdss-api-tools.exe list_snapshots --node 192.168.0.220
+
+    The list_snapshots command lists only the most recent snapshots.
+    In order to list all snapshots use --all_snapshots option,
+
+        jdss-api-tools.exe list_snapshots --all_snapshots --node 192.168.0.220
+
+    or just --all.
+
+        jdss-api-tools.exe list_snapshots --all --node 192.168.0.220
+
+
+    Note: If you want complete system information, please use the info command instead.
 
 
 #############################################################################################
@@ -453,6 +470,6 @@ set_host                      	set_time                      	network
 create_bond                   	delete_bond                   	bind_cluster
 set_ping_nodes                	set_mirror_path               	create_vip
 start_cluster                 	move                          	info
-shutdown                      	reboot                        	batch_setup
-create_factory_setup_files    	activate                      	import
-</pre>
+list_snapshots                	shutdown                      	reboot
+batch_setup                   	create_factory_setup_files    	activate
+import                        	</pre>
