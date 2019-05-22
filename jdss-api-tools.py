@@ -54,6 +54,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-03-22  add pool import
 2019-05-18  improve info output (show if listed volume is nas or san volume)
 2019-05-18  add list_snapshots option (kris@dddistribution.be)
+2019-05-22  fix problem auto target name while host name using upper case
+2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach 
 """
 
 from __future__ import print_function
@@ -2349,7 +2351,8 @@ def generate_iscsi_target_and_volume_name(pool_name):
     consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
     consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
-    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name, consecutive_string_target)
+    ## target name MUST use lower case only 
+    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
     if is_cluster_configured():
         iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
     volume_name = "zvol{}".format(consecutive_string_volume)
@@ -3538,7 +3541,7 @@ def attach_volume_to_target(ignore_error=None):
     for node in nodes:
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
                    POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
-        data = dict(name=volume_name)
+        data = dict(name=volume_name, mode='wt', device_handler='vdisk_blockio')
         ## POST
         post(endpoint,data)
         if error:
