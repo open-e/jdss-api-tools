@@ -55,7 +55,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-05-18  improve info output (show if listed volume is nas or san volume)
 2019-05-18  add list_snapshots option (kris@dddistribution.be)
 2019-05-22  fix problem auto target name while host name using upper case
-2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach 
+2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
+2019-05-22  do not exit after error on target or volume creation
 """
 
 from __future__ import print_function
@@ -3367,9 +3368,10 @@ def create_storage_resource():
                 auto_target_name = target_name
                 ## target
                 if _zvols_per_target == zvols_per_target:
-                    create_target()
+                    create_target(ignore_error=True)
+                    #create_target()
                 ## attach
-                attach_volume_to_target()
+                attach_volume_to_target(ignore_error=True)
             if 'SMB' in storage_type or 'NFS' in storage_type:
                 create_share()
                 enable_smb_nfs()
@@ -3534,6 +3536,8 @@ def create_target(ignore_error=None):
         if error:
             if ignore_error is None:
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
+            else:
+                print_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
     
 
 def attach_volume_to_target(ignore_error=None):
