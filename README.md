@@ -255,12 +255,12 @@
 
 18. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB share with dataset.
 
-    Defaults are: size = 1TB, provisioning = thin, volume = auto, target_name = auto, share_name = auto.
-    Example for iSCSI target with specified volume, target_name, size and provisioning.
+    Defaults are: size = 1TB, provisioning = thin, volume = auto, target = auto, share_name = auto.
+    Example for iSCSI target with specified volume, target, size and provisioning.
 
-        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target_name iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220
 
-    If target_name = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
+    If target = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
     In the next example target name will also be "iqn.2018-09:ha-00.target0".
     If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
 
