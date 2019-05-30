@@ -2975,8 +2975,8 @@ def import_pool():
                 data = dict(id=pool_id, name=pool_name, force=force, recovery_import=recovery_import,
                         omit_missing=ignore_missing_write_log, ignore_unfinished_resilver=ignore_unfinished_resilver)
                 result=post('/pools/import', data)
-                if result:
-                    print_with_timestamp('{}. Node: {}'.format(result,node))
+                if result and result['error']:
+                    print_with_timestamp('{}. Node: {}'.format(result['error'],node))
                 if check_given_pool_name_in_current_node(pool_name):
                     print_with_timestamp('Pool: {} was imported on node: {}'.format(pool_name,node))
                 else:
@@ -4045,129 +4045,79 @@ factory_setup_files_content = dict(
     api_setup_single_node = """
 #
 # The '#' comments-out the rest of the line
-#
-#------------------------------------------------------------------------------------------------------------------------
+# 
 network     --nic eth0	  --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 network     --nic eth1	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 network     --nic eth2	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 network     --nic eth3	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 network     --nic eth4	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 network     --nic eth5	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#------------------------------------------------------------------------------------------------------------------------
 #   network   --nic eth6	  --new_ip:nic      --node _node-a-ip-address_
 #   network   --nic eth7	  --new_ip:nic      --node _node-a-ip-address_
 #   network   --nic eth8	  --new_ip:nic      --node _node-a-ip-address_
 #   network   --nic eth9	  --new_ip:nic      --node _node-a-ip-address_
 #   network   --nic eth10	  --new_ip:nic      --node _node-a-ip-address_
 #   network   --nic eth11	  --new_ip:nic      --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# CREATE BOND: nodes bind and ring: with default --bond_type active-backup 
-#------------------------------------------------------------------------------------------------------------------------
-create_bond --bond_nics eth0 eth1  --new_ip:bond  --new_gw 192.168.0.1  --new_dns 192.168.0.1  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
+
+create_bond --bond_nics eth0 eth1 --new_ip:bond --bond_type active-backup --new_gw 192.168.0.1  --new_dns 192.168.0.1 --node _node-a-ip-address_
+
 # CREATE BOND: mirror path: active-backup or balance-rr (round-robin) 
-#------------------------------------------------------------------------------------------------------------------------
-create_bond --bond_nics eth4 eth5   --new_ip:bond   --bond_type active-backup   --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
+create_bond --bond_nics eth4 eth5 --new_ip:bond --bond_type active-backup --node _node-a-ip-address_
+
 set_host --host node-80-ha00 --server node-80-ha00 --node _node-a-ip-address_           # SET HOST & SERVER
-#------------------------------------------------------------------------------------------------------------------------
 set_time --timezone Europe/Berlin                  --node _node-a-ip-address_           # SET TIME
-#------------------------------------------------------------------------------------------------------------------------
-#   set_time  --timezone America/New_York              --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone America/Chicago               --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone America/Los_Angeles           --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone Europe/London                 --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone Asia/Tokyo                    --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone Asia/Taipei                   --node _node-a-ip-address_           # SET TIME
-#   set_time  --timezone Europe/Moscow                 --node _node-a-ip-address_           # SET TIME
-#------------------------------------------------------------------------------------------------------------------------
+#   set_time  --timezone America/New_York              --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone America/Chicago               --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone America/Los_Angeles           --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone Europe/London                 --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone Asia/Tokyo                    --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone Asia/Taipei                   --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone Europe/Moscow                 --node _node-a-ip-address_       # SET TIME
+
 info                                               --node _node-a-ip-address_           # PRINT SYSTEM INFO
-#------------------------------------------------------------------------------------------------------------------------
 list_snapshots                                     --node _node-a-ip-address_           # PRINT ONLY SNAPSHOT INFO
-#------------------------------------------------------------------------------------------------------------------------
 activate                                 --online  --node _node-a-ip-address_           # PRODUCT ACTIVATION
-#------------------------------------------------------------------------------------------------------------------------
 """,
     api_setup_cluster = """
 # The '#' comments-out the rest of the line
-# BIND CLUSTER
-#------------------------------------------------------------------------------------------------------------------------
-bind_cluster        --nodes _node-a-ip-address_ _node-b-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# PING NODES  
-#------------------------------------------------------------------------------------------------------------------------
-set_ping_nodes      --ping_nodes 192.168.0.30 192.168.0.40                                     --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# MIRROR PATH
-#------------------------------------------------------------------------------------------------------------------------
-set_mirror_path     --mirror_nics bond1 bond1                                                  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# START CLUSTER
-#------------------------------------------------------------------------------------------------------------------------
-start_cluster                                                                                  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# CREATE Pool-0
-#------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-0   --vdevs 1   --vdev mirror --vdev_disks 4  --tolerance 20GB     --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# VIP FOR Pool-0
-#------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# VIP FOR Pool-0
-#------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-0   --vip_name vip31 --vip_ip 192.168.31.100 --vip_nics eth3 eth3  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# CREATE Pool-1
-#------------------------------------------------------------------------------------------------------------------------
-create_pool     --pool Pool-1   --vdevs 1   --vdev mirror   --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# VIP FOR Pool-1
-#------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1  --vip_name vip22 --vip_ip 192.168.22.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# VIP FOR Pool-1
-#------------------------------------------------------------------------------------------------------------------------
-create_vip      --pool Pool-1  --vip_name vip32 --vip_ip 192.168.32.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# CREATE ZVOLS
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 2 --node _node-a-ip-address_
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-# CREATE VOLs
-#-------------------------------------------------------------------------------------------------------------------------------------
-create_storage_resource --pool Pool-0 --storage_type smb nfs  --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
-#-------------------------------------------------------------------------------------------------------------------------------------
-# SCRUB ALL
-#------------------------------------------------------------------------------------------------------------------------
+
+bind_cluster     --nodes _node-a-ip-address_ _node-b-ip-address_
+
+set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node _node-a-ip-address_
+
+set_mirror_path  --mirror_nics bond1 bond1               --node _node-a-ip-address_
+
+start_cluster                                            --node _node-a-ip-address_
+
+create_pool --pool Pool-0  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
+create_pool --pool Pool-1  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
+
+create_vip  --pool Pool-0  --vip_name vip21  --vip_ip 192.168.21.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
+create_vip  --pool Pool-0  --vip_name vip31  --vip_ip 192.168.31.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
+create_vip  --pool Pool-1  --vip_name vip22  --vip_ip 192.168.22.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
+create_vip  --pool Pool-1  --vip_name vip32  --vip_ip 192.168.32.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
+
+create_storage_resource --pool Pool-0 --storage_type iscsi   --quantity 2 --start_with 100 --increment 100 --zvols_per_target 2 --node _node-a-ip-address_
+create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
+
 scrub                           --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# SET SCRUB SCHEDULER to all pools (also on other cluster node)
-#------------------------------------------------------------------------------------------------------------------------
+
 set_scrub_scheduler             --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
-# MOVE
-#------------------------------------------------------------------------------------------------------------------------
+
 move            --pool Pool-1   --node _node-a-ip-address_
-#------------------------------------------------------------------------------------------------------------------------
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line
-move            --pool Pool-1   --node _node-a-ip-address_	# move 
-scrub                           --node _node-a-ip-address_      # scrub all
-reboot          --delay 10      --node _node-a-ip-address_      # reboot
-move            --pool Pool-0   --node _node-a-ip-address_	# move 
-move            --pool Pool-1   --node _node-a-ip-address_	# move 
-reboot          --delay 10      --node _node-a-ip-address_      # reboot
-scrub                           --node _node-a-ip-address_      # scrub all
-reboot          --delay 10      --node _node-b-ip-address_      # reboot node-b
-move            --pool Pool-1   --node _node-a-ip-address_	# move 
-scrub                           --node _node-a-ip-address_      # scrub all
+move      --pool Pool-1   --node _node-a-ip-address_	# move 
+scrub                     --node _node-a-ip-address_    # scrub all
+reboot    --delay 10      --node _node-a-ip-address_    # reboot
+move      --pool Pool-0   --node _node-a-ip-address_	# move 
+move      --pool Pool-1   --node _node-a-ip-address_	# move 
+reboot    --delay 10      --node _node-a-ip-address_    # reboot
+scrub                     --node _node-a-ip-address_    # scrub all
+reboot    --delay 10      --node _node-b-ip-address_    # reboot node-b
+move      --pool Pool-1   --node _node-a-ip-address_	# move 
+scrub                     --node _node-a-ip-address_    # scrub all
 """)
 
 
