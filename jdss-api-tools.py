@@ -57,6 +57,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-05-22  fix problem auto target name while host name using upper case
 2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
 2019-05-22  do not exit after error on target or volume creation
+2019-06-01  add: detach_volume_from_iscsi_target
 """
 
 from __future__ import print_function
@@ -148,9 +149,15 @@ def post(endpoint,data):
 
 
 def delete(endpoint,data):
+    global error
+    result = None
+    error = ''
     api=interface()
-    return api.driver.delete(endpoint,data)
-
+    try:
+        result = api.driver.delete(endpoint,data)
+    except Exception as e:
+        error = str(e[0])
+    return result
 
 '''
 ##to-do
@@ -545,6 +552,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Detach volume form iSCSI target{END}.
+
+    
+    {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
@@ -702,6 +715,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
+                 'detach_volume_from_iscsi_target',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
@@ -3559,6 +3573,24 @@ def attach_volume_to_target(ignore_error=None):
         print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
 
 
+def detach_volume_from_iscsi_target(ignore_error=None):
+    global node
+    for node in nodes:
+        # DELETE /pools/<string:poolname>/san/iscsi/targets/<string:target_name>/luns/<string:zvol>
+        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns/{VOLUME_NAME}'.format(
+                   POOL_NAME=pool_name, TARGET_NAME=target_name, VOLUME_NAME=volume_name)
+        ## DELETE
+        delete(endpoint,None)
+        if error:
+            if ignore_error is None:
+                print_with_timestamp('{}'.format(error))
+                sys_exit_with_timestamp( 'Error: Cannot dettach volume: {} from  {} on Node:{}'.format(
+                    volume_name, target_name, node))
+
+        print_with_timestamp('Volume: {}/{} has been successfully dettached from target {}.'.format(
+            pool_name,volume_name, target_name))
+
+
 def attach_clone_to_target(ignore_error=None):
     global node
     for node in nodes:
@@ -3947,6 +3979,12 @@ def command_processor() :
             if storage_volume_type != 'volume':
                 sys_exit_with_timestamp( 'Error: inconsistent options.')
         create_storage_resource()
+
+    elif action == 'detach_volume_from_iscsi_target':
+        c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target_name), {} provided.'.format(c))
+        detach_volume_from_iscsi_target()
 
     elif action == 'modify_volume':
         c = count_provided_args( pool_name, volume_name )   ## if all provided (not None), c must be equal 3
