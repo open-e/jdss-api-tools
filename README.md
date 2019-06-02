@@ -323,7 +323,6 @@
 
 20. <b>Detach volume form iSCSI target</b>.
 
-    
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
