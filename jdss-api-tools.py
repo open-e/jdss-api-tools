@@ -57,7 +57,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-05-22  fix problem auto target name while host name using upper case
 2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
 2019-05-22  do not exit after error on target or volume creation
-2019-06-01  add: detach_volume_from_iscsi_target
+2019-06-01  add detach_volume_from_iscsi_target
 """
 
 from __future__ import print_function
@@ -554,7 +554,6 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Detach volume form iSCSI target{END}.
 
-    
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
 
 
@@ -3552,7 +3551,7 @@ def create_target(ignore_error=None):
                 sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
             else:
                 print_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
-    
+
 
 def attach_volume_to_target(ignore_error=None):
     global node
@@ -3584,10 +3583,10 @@ def detach_volume_from_iscsi_target(ignore_error=None):
         if error:
             if ignore_error is None:
                 print_with_timestamp('{}'.format(error))
-                sys_exit_with_timestamp( 'Error: Cannot dettach volume: {} from  {} on Node:{}'.format(
+                sys_exit_with_timestamp( 'Error: Cannot detach volume: {} from {} on Node:{}'.format(
                     volume_name, target_name, node))
 
-        print_with_timestamp('Volume: {}/{} has been successfully dettached from target {}.'.format(
+        print_with_timestamp('Volume: {}/{} has been successfully detached from target {}.'.format(
             pool_name,volume_name, target_name))
 
 
@@ -4084,22 +4083,22 @@ factory_setup_files_content = dict(
 #
 # The '#' comments-out the rest of the line
 # 
-network     --nic eth0	  --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth1	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-network     --nic eth2	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-network     --nic eth3	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-network     --nic eth4	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-network     --nic eth5	  --new_ip:nic      --node _node-a-ip-address_       # SET ETH
-#   network   --nic eth6	  --new_ip:nic      --node _node-a-ip-address_
-#   network   --nic eth7	  --new_ip:nic      --node _node-a-ip-address_
-#   network   --nic eth8	  --new_ip:nic      --node _node-a-ip-address_
-#   network   --nic eth9	  --new_ip:nic      --node _node-a-ip-address_
-#   network   --nic eth10	  --new_ip:nic      --node _node-a-ip-address_
-#   network   --nic eth11	  --new_ip:nic      --node _node-a-ip-address_
+network     --nic eth0    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth1    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth2    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth3    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth4    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth5    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+#   network   --nic eth6      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+#   network   --nic eth7      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+#   network   --nic eth8      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+#   network   --nic eth9      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+#   network   --nic eth10     --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+#   network   --nic eth11     --new_ip _node-a-ip-address_   --node _node-a-ip-address_
 
-create_bond --bond_nics eth0 eth1 --new_ip:bond --bond_type active-backup --new_gw 192.168.0.1  --new_dns 192.168.0.1 --node _node-a-ip-address_
+create_bond --bond_nics eth0 eth1 --new_ip:bond --bond_type active-backup --new_gw 192.168.0.1 --new_dns 192.168.0.1 --node _node-a-ip-address_
 
-# CREATE BOND: mirror path: active-backup or balance-rr (round-robin) 
+# CREATE BOND: mirror path: active-backup or balance-rr (round-robin)
 create_bond --bond_nics eth4 eth5 --new_ip:bond --bond_type active-backup --node _node-a-ip-address_
 
 set_host --host node-80-ha00 --server node-80-ha00 --node _node-a-ip-address_           # SET HOST & SERVER
