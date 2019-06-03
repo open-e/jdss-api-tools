@@ -2389,7 +2389,10 @@ def generate_share_and_volume_name(pool_name):
 
 def get_iscsi_targets_names():
     targets= get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
-    return [target['name'] for target in targets]
+    if targets:
+        return [target['name'] for target in targets]
+    else:
+        return []
 
 
 def get_nas_volumes_names():
