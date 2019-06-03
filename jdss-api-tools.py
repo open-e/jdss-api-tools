@@ -491,7 +491,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    If target = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
+    If target = auto (default), the cluster name "ha-00" will be added to the automatically created target name.
     In the next example target name will also be "iqn.2018-09:ha-00.target0".
     If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
 
@@ -792,7 +792,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--target',
         metavar='name',
         default='auto',
-        help='Enter iSCSI target name. If not specified, auto-target_name will be generated'
+        help='Enter iSCSI target name. If not specified, target name will be generated automatically'
     )
     parser.add_argument(
         '--quantity',
@@ -1146,11 +1146,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     ##test_mode = True
-    #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -3990,7 +3990,7 @@ def command_processor() :
     elif action == 'detach_volume_from_iscsi_target':
         c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target_name), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target), {} provided.'.format(c))
         detach_volume_from_iscsi_target()
 
     elif action == 'modify_volume':
