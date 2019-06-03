@@ -1145,7 +1145,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    #test_mode = True
+    ##test_mode = True
+    #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
@@ -2318,12 +2319,16 @@ def get_active_cluster_node_address_of_given_pool(pool_name):
 
 
 def is_cluster_configured():
-    return get('/cluster')['enabled']
+    result = False
+    result = get('/cluster')
+    # {u'status': u'started', u'enabled': True}
+    return True if result and result['enabled'] else False
 
 
 def is_cluster_started():
     result = ''
     result = get('/cluster')
+    # {u'status': u'started', u'enabled': True}
     result = result['status'] if result else ''
     return True if 'started' in result else False
 
