@@ -1145,12 +1145,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    ##test_mode = True
+    test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
+    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -3312,11 +3312,13 @@ def create_volume(vol_type):
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
+        sync='always'   # set default sync for zvol
+        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
         result = post(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard', quota=quota, reservation=reservation)
+        sync='standard'  # set default sync for dataset
+        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
