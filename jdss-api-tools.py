@@ -1151,6 +1151,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
+    test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --node 192.168.0.80'
+    test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --target testme --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -3370,18 +3372,19 @@ def create_storage_resource():
     initialize_pool_based_consecutive_number_generator()
     ## pool_based_consecutive_number_generator
     node = get_active_cluster_node_address_of_given_pool(pool_name)
-    generate_automatic_name = (
-        True if target_name == 'auto' else False) or (
-        True if share_name  == 'auto' else False)
+    #generate_automatic_name = (
+    #    True if target_name == 'auto' else False) or (
+    #    True if share_name  == 'auto' else False)
 
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-            if generate_automatic_name:
-                if 'ISCSI' in storage_type:
-                    target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
-                if 'SMB' in storage_type:
-                    share_name,volume_name = generate_share_and_volume_name(pool_name)
+            #if generate_automatic_name:
+            if 'ISCSI' in storage_type and target_name == 'auto':
+                target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
+            
+            elif 'SMB' in storage_type and share_name  == 'auto':
+                share_name,volume_name = generate_share_and_volume_name(pool_name)
             else:
                 quantity = 1
             ## volume or dataset
