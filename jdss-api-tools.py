@@ -826,8 +826,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--cluster',
         metavar='name',
-        default='ha-00',
-        help='Enter the cluster name, default=ha-00'
+        #default='ha-00',
+        #help='Enter the cluster name, default=ha-00'
+        help='Enter the cluster name'
     )
     parser.add_argument(
         '--snapshot',
@@ -1145,14 +1146,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    #test_mode = True
+    test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --node 192.168.0.80'
+    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --cluster clust-XX --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -2368,16 +2369,16 @@ def unmanaged_pools():
 
 def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
+    if cluster_name:
+        host_name = cluster_name
     consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
     consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
     consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
     ## target name MUST use lower case only 
     iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
-    if is_cluster_configured():
-        iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
     volume_name = "zvol{}".format(consecutive_string_volume)
-    return (iscsi_target_name, volume_name)
+    return (iscsi_target_name.lower(), volume_name)
 
 
 def generate_share_and_volume_name(pool_name):
