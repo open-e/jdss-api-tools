@@ -1146,14 +1146,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    test_mode = True
+    #test_mode = True
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --node 192.168.0.80'
-    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --cluster clust-XX --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --cluster clust-XX --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
