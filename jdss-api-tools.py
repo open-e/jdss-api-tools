@@ -491,7 +491,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    If target = auto (default), the cluster name "ha-00" will be added to the automatically created target name.
+    If target = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
     In the next example target name will also be "iqn.2018-09:ha-00.target0".
     If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
 
@@ -792,7 +792,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--target',
         metavar='name',
         default='auto',
-        help='Enter iSCSI target name. If not specified, target name will be generated automatically'
+        help='Enter iSCSI target name. If not specified, auto-target_name will be generated'
     )
     parser.add_argument(
         '--quantity',
@@ -826,9 +826,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--cluster',
         metavar='name',
-        #default='ha-00',
-        #help='Enter the cluster name, default=ha-00'
-        help='Enter the cluster name'
+        default='ha-00',
+        help='Enter the cluster name, default=ha-00'
     )
     parser.add_argument(
         '--snapshot',
@@ -1146,14 +1145,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    #test_mode = True
+    ##test_mode = True
+    #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --cluster clust-XX --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -1201,8 +1198,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    storage_type                = args['storage_type']    ## it will be converted to upper below.
-    
+    storage_type                = args['storage_type']
+
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
     sparse                      = True if sparse in 'THIN' else False
 
@@ -2369,16 +2366,16 @@ def unmanaged_pools():
 
 def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
-    if cluster_name:
-        host_name = cluster_name
     consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
     consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
     consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
     ## target name MUST use lower case only 
     iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
+    if is_cluster_configured():
+        iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
     volume_name = "zvol{}".format(consecutive_string_volume)
-    return (iscsi_target_name.lower(), volume_name)
+    return (iscsi_target_name, volume_name)
 
 
 def generate_share_and_volume_name(pool_name):
@@ -3315,13 +3312,11 @@ def create_volume(vol_type):
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        sync='always'   # set default sync for zvol
-        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
+        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
         result = post(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        sync='standard'  # set default sync for dataset
-        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
+        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard', quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
@@ -3373,24 +3368,20 @@ def create_storage_resource():
     initialize_pool_based_consecutive_number_generator()
     ## pool_based_consecutive_number_generator
     node = get_active_cluster_node_address_of_given_pool(pool_name)
+    generate_automatic_name = (
+        True if target_name == 'auto' else False) or (
+        True if share_name  == 'auto' else False)
 
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-
-            if target_name != 'auto' or share_name != 'auto' or volume_name != 'auto':
+            if generate_automatic_name:
+                if 'ISCSI' in storage_type:
+                    target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                if 'SMB' in storage_type:
+                    share_name,volume_name = generate_share_and_volume_name(pool_name)
+            else:
                 quantity = 1
-
-            #if generate_automatic_name:
-            if 'ISCSI' in storage_type :
-                _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
-                target_name = _target_name if target_name == 'auto' else target_name
-                volume_name = _volume_name if volume_name == 'auto' else volume_name
-            
-            if 'SMB' in storage_type :
-                _share_name,_volume_name = generate_share_and_volume_name(pool_name)
-                share_name = _share_name if share_name == 'auto' else share_name
-                volume_name = _volume_name if volume_name == 'auto' else volume_name
             ## volume or dataset
             #if _zvols_per_target == zvols_per_target:
             create_volume(storage_volume_type)
@@ -3999,7 +3990,7 @@ def command_processor() :
     elif action == 'detach_volume_from_iscsi_target':
         c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
-            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target_name), {} provided.'.format(c))
         detach_volume_from_iscsi_target()
 
     elif action == 'modify_volume':
