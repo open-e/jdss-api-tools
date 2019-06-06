@@ -159,19 +159,6 @@ def delete(endpoint,data):
         error = str(e[0])
     return result
 
-'''
-##to-do
-def delete(endpoint,data):
-    global error
-    result = None
-    error = ''
-    api=interface()
-    try:
-        result = api.driver.delete(endpoint,data)
-    except Exception as e:
-        error = str(e[0])
-    return result
-'''
 
 
 def wait_for_node():
@@ -826,8 +813,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--cluster',
         metavar='name',
-        default='ha-00',
-        help='Enter the cluster name, default=ha-00'
+        #default='ha-00',
+        #help='Enter the cluster name, default=ha-00'
+        help='Enter the cluster name'
     )
     parser.add_argument(
         '--snapshot',
@@ -1145,12 +1133,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     test_mode = False
 
     ## TESTING ONLY!
-    ##test_mode = True
+    #test_mode = True
     #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
+    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -2366,6 +2355,8 @@ def unmanaged_pools():
 
 def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
+    if cluster_name:
+        host_name = cluster_name
     consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
     consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
@@ -2373,7 +2364,8 @@ def generate_iscsi_target_and_volume_name(pool_name):
     ## target name MUST use lower case only 
     iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
     if is_cluster_configured():
-        iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name)
+        # default cluster name = ha-00
+        iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name if cluster_name else 'ha-00')
     volume_name = "zvol{}".format(consecutive_string_volume)
     return (iscsi_target_name, volume_name)
 
@@ -3312,11 +3304,13 @@ def create_volume(vol_type):
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync='always')
+        sync='always'   # set default sync for zvol
+        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
         result = post(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync='standard', quota=quota, reservation=reservation)
+        sync='standard'  # set default sync for dataset
+        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
@@ -3368,18 +3362,28 @@ def create_storage_resource():
     initialize_pool_based_consecutive_number_generator()
     ## pool_based_consecutive_number_generator
     node = get_active_cluster_node_address_of_given_pool(pool_name)
-    generate_automatic_name = (
-        True if target_name == 'auto' else False) or (
-        True if share_name  == 'auto' else False)
+    generate_automatic_volume_name = True if volume_name == 'auto' else False
+    generate_automatic_target_name = True if target_name == 'auto' else False
+    generate_automatic_share_name = True if share_name  == 'auto' else False
 
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-            if generate_automatic_name:
-                if 'ISCSI' in storage_type:
-                    target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
-                if 'SMB' in storage_type:
-                    share_name,volume_name = generate_share_and_volume_name(pool_name)
+
+            if 'ISCSI' in storage_type and generate_automatic_target_name:
+                target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                #target_name = _target_name if target_name == 'auto' else target_name
+                if generate_automatic_volume_name:
+                    volume_name = _volume_name
+                else:
+                    quantity = 1
+            elif 'SMB' in storage_type and generate_automatic_share_name:
+                share_name,_volume_name = generate_share_and_volume_name(pool_name)
+                share_name = _share_name if share_name == 'auto' else share_name
+                if generate_automatic_volume_name:
+                    volume_name = _volume_name
+                else:
+                    quantity = 1
             else:
                 quantity = 1
             ## volume or dataset
