@@ -1152,7 +1152,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool VSAN01-TDSRV-S2400BB01-ZPOOL-A --storage_type iscsi --target testme --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -1200,8 +1200,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    storage_type                = args['storage_type']
-
+    storage_type                = args['storage_type']    ## it will be converted to upper below.
+    
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
     sparse                      = True if sparse in 'THIN' else False
 
@@ -3372,21 +3372,24 @@ def create_storage_resource():
     initialize_pool_based_consecutive_number_generator()
     ## pool_based_consecutive_number_generator
     node = get_active_cluster_node_address_of_given_pool(pool_name)
-    #generate_automatic_name = (
-    #    True if target_name == 'auto' else False) or (
-    #    True if share_name  == 'auto' else False)
 
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-            #if generate_automatic_name:
-            if 'ISCSI' in storage_type and target_name == 'auto':
-                target_name,volume_name = generate_iscsi_target_and_volume_name(pool_name)
-            
-            elif 'SMB' in storage_type and share_name  == 'auto':
-                share_name,volume_name = generate_share_and_volume_name(pool_name)
-            else:
+
+            if target_name != 'auto' or share_name != 'auto' or volume_name != 'auto':
                 quantity = 1
+
+            #if generate_automatic_name:
+            if 'ISCSI' in storage_type :
+                _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                target_name = _target_name if target_name == 'auto' else target_name
+                volume_name = _volume_name if volume_name == 'auto' else volume_name
+            
+            if 'SMB' in storage_type :
+                _share_name,_volume_name = generate_share_and_volume_name(pool_name)
+                share_name = _share_name if share_name == 'auto' else share_name
+                volume_name = _volume_name if volume_name == 'auto' else volume_name
             ## volume or dataset
             #if _zvols_per_target == zvols_per_target:
             create_volume(storage_volume_type)
