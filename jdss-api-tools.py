@@ -231,9 +231,10 @@ def get_args(batch_args_line=None):
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
-     {BOLD}...{END}
+     {LG}...{ENDF}
 
 {BOLD}Commands:{END}{LG}
+
 {COMMANDS}{ENDF}
 
 
@@ -702,7 +703,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
-     ...
+     {LG}...{ENDF}
 
 {BOLD}Commands:{END}{LG}
 

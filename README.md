@@ -13,9 +13,10 @@
          jdss-api-tools.exe create_factory_setup_files
          jdss-api-tools.exe batch_setup
          jdss-api-tools.exe create_pool
-     <b>...</b>
+      ...
 
 <b>Commands:</b> 
+
 <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
@@ -493,7 +494,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
          jdss-api-tools.exe create_factory_setup_files
          jdss-api-tools.exe batch_setup
          jdss-api-tools.exe create_pool
-     ...
+      ...
 
 <b>Commands:</b> 
 
