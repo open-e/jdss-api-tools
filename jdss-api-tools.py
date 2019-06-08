@@ -220,7 +220,7 @@ def get_args(batch_args_line=None):
 {LG}jdss-api-tools{ENDF}
 
 
-{BOLD}Execute given JovianDSS command for automated setup and to control JovianDSS remotely.{END}
+{BOLD}Execute single or batch commands for automated setup or testing of JovianDSS remotely.{END}
 
 {BOLD}Print full help:{END}
 
@@ -693,18 +693,19 @@ In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
 
-{BOLD}Print full help:{END}
+{BOLD}Get help:{END}
 
      {LG}%(prog)s -h{ENDF}
 
-{BOLD}Print help for an single command:{END}
+{BOLD}Get help for an single command:{END}
 
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
-     {BOLD}...{END}
+     ...
 
 {BOLD}Commands:{END}{LG}
+
 {COMMANDS}{ENDF}
 '''    
 
