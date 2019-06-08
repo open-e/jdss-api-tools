@@ -222,21 +222,9 @@ def get_args(batch_args_line=None):
 
 {BOLD}Execute single or batch commands for automated setup or testing of JovianDSS remotely.{END}
 
-{BOLD}Print full help:{END}
-
-     {LG}%(prog)s -h{ENDF}
-
-{BOLD}Print help for an single command:{END}
-
-     {LG}%(prog)s create_factory_setup_files{ENDF}
-     {LG}%(prog)s batch_setup{ENDF}
-     {LG}%(prog)s create_pool{ENDF}
-     {LG}...{ENDF}
-
 {BOLD}Commands:{END}{LG}
 
 {COMMANDS}{ENDF}
-
 
 {BOLD}Commands description:{END}
 
@@ -3394,22 +3382,25 @@ def create_storage_resource():
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
             ## iscsi
-            if 'ISCSI' in storage_type and generate_automatic_target_name:
-                target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+            if 'ISCSI' in storage_type:
+                _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                if generate_automatic_target_name:
+                    target_name = _target_name
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
-                else:
-                    quantity = 1
-            ## smb
-            elif 'SMB' in storage_type and generate_automatic_share_name:
-                share_name,_volume_name = generate_share_and_volume_name(pool_name)
-                share_name = _share_name if share_name == 'auto' else share_name
+            ## nas
+            if ('SMB' in storage_type) or ('NFS' in storage_type):
+                _share_name,_volume_name = generate_share_and_volume_name(pool_name)
+                if generate_automatic_share_name:
+                    share_name = _share_name
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
-                else:
-                    quantity = 1
-            else:
+
+            if not (generate_automatic_target_name and
+                    generate_automatic_share_name and
+                    generate_automatic_volume_name):
                 quantity = 1
+
             ## volume or dataset
             create_volume(storage_volume_type)
             if 'ISCSI' in storage_type:

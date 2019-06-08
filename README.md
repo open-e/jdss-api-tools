@@ -4,17 +4,6 @@
 
 <b>Execute single or batch commands for automated setup or testing of JovianDSS remotely.</b>
 
-<b>Print full help:</b>
-
-         jdss-api-tools.exe -h
-
-<b>Print help for an single command:</b>
-
-         jdss-api-tools.exe create_factory_setup_files
-         jdss-api-tools.exe batch_setup
-         jdss-api-tools.exe create_pool
-      ...
-
 <b>Commands:</b> 
 
 <pre>clone                         	clone_existing_snapshot       	create_pool
@@ -27,7 +16,6 @@ create_vip                    	start_cluster                 	move
 info                          	list_snapshots                	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	</pre>
-
 
 <b>Commands description:</b>
 
