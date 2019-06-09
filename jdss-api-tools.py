@@ -219,10 +219,14 @@ def get_args(batch_args_line=None):
 {LG}jdss-api-tools{ENDF}
 
 
-{BOLD}Execute given JovianDSS command for automated setup and to control JovianDSS remotely.{END}
+{BOLD}Execute single or batch commands for automated setup or to control JovianDSS remotely.{END}
 
 
-{LG}EXAMPLES:{ENDF}
+{BOLD}Commands:{END}
+
+{LG}{COMMANDS}{ENDF}
+
+{BOLD}Commands description:{END}
 
 {} {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
@@ -678,14 +682,20 @@ In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
 
-{BOLD}To print usage example of an single command:{END}
+{BOLD}Get help:{END}
+
+     {LG}%(prog)s -h{ENDF}
+
+{BOLD}Get help for a single command:{END}
 
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
+     {LG}...{ENDF}
 
-{BOLD}COMMANDS:{END}{LG}
-{COMMANDS}{ENDF}
+{BOLD}COMMANDS:{END}
+
+{LG}{COMMANDS}{ENDF}
 '''    
 
     global parser
@@ -3360,40 +3370,45 @@ def create_storage_resource():
     global action_message
     action_message = 'Sending Create Storage Resource to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
-    ## pool_based_consecutive_number_generator
-    node = get_active_cluster_node_address_of_given_pool(pool_name)
+    active_node = get_active_cluster_node_address_of_given_pool(pool_name)
+    if not active_node:
+        sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+    else:
+        node = active_node
     generate_automatic_volume_name = True if volume_name == 'auto' else False
     generate_automatic_target_name = True if target_name == 'auto' else False
-    generate_automatic_share_name = True if share_name  == 'auto' else False
-
+    generate_automatic_share_name  = True if share_name  == 'auto' else False
+    ##
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-            if 'ISCSI' in storage_type and generate_automatic_target_name:
-                target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
-                #target_name = _target_name if target_name == 'auto' else target_name
+            ## ISCSI
+            if 'ISCSI' in storage_type:
+                _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                if generate_automatic_target_name:
+                    target_name = _target_name
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
-                else:
-                    quantity = 1
-            elif 'SMB' in storage_type and generate_automatic_share_name:
-                share_name,_volume_name = generate_share_and_volume_name(pool_name)
-                share_name = _share_name if share_name == 'auto' else share_name
+            ## NAS
+            if ('SMB' in storage_type) or ('NFS' in storage_type):
+                _share_name,_volume_name = generate_share_and_volume_name(pool_name)
+                if generate_automatic_share_name:
+                    share_name = _share_name
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
-                else:
-                    quantity = 1
-            else:
+
+            if not (generate_automatic_target_name and
+                    generate_automatic_share_name and
+                    generate_automatic_volume_name):
                 quantity = 1
+
             ## volume or dataset
-            #if _zvols_per_target == zvols_per_target:
             create_volume(storage_volume_type)
             if 'ISCSI' in storage_type:
                 auto_target_name = target_name
                 ## target
                 if _zvols_per_target == zvols_per_target:
                     create_target(ignore_error=True)
-                    #create_target()
                 ## attach
                 attach_volume_to_target(ignore_error=True)
             if 'SMB' in storage_type or 'NFS' in storage_type:
