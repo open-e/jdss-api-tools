@@ -2,10 +2,23 @@
  # jdss-api-tools
 
 
-<b>Execute given JovianDSS command for automated setup and to control JovianDSS remotely.</b>
+<b>Execute single or batch commands for automated setup or to control JovianDSS remotely.</b>
 
 
- EXAMPLES:
+<b>Commands:</b>
+
+ <pre>clone                         	clone_existing_snapshot       	create_pool
+scrub                         	set_scrub_scheduler           	create_storage_resource
+modify_volume                 	detach_volume_from_iscsi_target	delete_clone
+delete_clone_existing_snapshot	set_host                      	set_time
+network                       	create_bond                   	delete_bond
+bind_cluster                  	set_ping_nodes                	set_mirror_path
+create_vip                    	start_cluster                 	move
+info                          	list_snapshots                	shutdown
+reboot                        	batch_setup                   	create_factory_setup_files
+activate                      	import                        	</pre>
+
+<b>Commands description:</b>
 
  1. <b>Create clone</b> of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
@@ -461,14 +474,20 @@ In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
 
-<b>To print usage example of an single command:</b>
+<b>Get help:</b>
+
+         jdss-api-tools.exe -h
+
+<b>Get help for a single command:</b>
 
          jdss-api-tools.exe create_factory_setup_files
          jdss-api-tools.exe batch_setup
          jdss-api-tools.exe create_pool
+      ...
 
-<b>COMMANDS:</b> 
-<pre>clone                         	clone_existing_snapshot       	create_pool
+<b>COMMANDS:</b>
+
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
 delete_clone_existing_snapshot	set_host                      	set_time
