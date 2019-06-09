@@ -160,7 +160,6 @@ def delete(endpoint,data):
     return result
 
 
-
 def wait_for_node():
     global waiting_dots_printed
     waiting_dots_printed = False
@@ -1134,12 +1133,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
-    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -1187,7 +1187,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    storage_type                = args['storage_type']
+    storage_type                = args['storage_type']			## it will be converted to upper below
 
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
     sparse                      = True if sparse in 'THIN' else False
@@ -3369,7 +3369,6 @@ def create_storage_resource():
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-
             if 'ISCSI' in storage_type and generate_automatic_target_name:
                 target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
                 #target_name = _target_name if target_name == 'auto' else target_name
