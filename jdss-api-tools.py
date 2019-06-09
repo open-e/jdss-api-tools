@@ -693,10 +693,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
      {LG}%(prog)s create_pool{ENDF}
      {LG}...{ENDF}
 
-{BOLD}COMMANDS:{END}
+{BOLD}Commands:{END}
 
 {LG}{COMMANDS}{ENDF}
-'''    
+ 
+'''
 
     global parser
     global commands
