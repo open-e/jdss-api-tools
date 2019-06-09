@@ -485,7 +485,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
          jdss-api-tools.exe create_pool
       ...
 
-<b>COMMANDS:</b>
+<b>Commands:</b>
 
  <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
