@@ -1148,7 +1148,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
+<<<<<<< HEAD
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
+=======
+    test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
+>>>>>>> parent of 8eafa7d... fix create storage resource
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -3381,11 +3385,18 @@ def create_storage_resource():
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
+<<<<<<< HEAD
             ## iscsi
             if 'ISCSI' in storage_type:
                 _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
                 if generate_automatic_target_name:
                     target_name = _target_name
+=======
+
+            if 'ISCSI' in storage_type and generate_automatic_target_name:
+                target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
+                #target_name = _target_name if target_name == 'auto' else target_name
+>>>>>>> parent of 8eafa7d... fix create storage resource
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
             ## nas
