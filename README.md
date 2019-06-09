@@ -2,17 +2,12 @@
  # jdss-api-tools
 
 
-<<<<<<< HEAD
-<b>Execute given JovianDSS command for automated setup and to control JovianDSS remotely.</b>
+<b>Execute single or batch commands for automated setup or to control JovianDSS remotely.</b>
 
 
- EXAMPLES:
-=======
-<b>Execute single or batch commands for automated setup or testing of JovianDSS remotely.</b>
+<b>Commands:</b>
 
-<b>Commands:</b> 
-
-<pre>clone                         	clone_existing_snapshot       	create_pool
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
 delete_clone_existing_snapshot	set_host                      	set_time
@@ -24,7 +19,6 @@ reboot                        	batch_setup                   	create_factory_set
 activate                      	import                        	</pre>
 
 <b>Commands description:</b>
->>>>>>> parent of 54444b2... Merge branch 'fix-create-storage-resource'
 
  1. <b>Create clone</b> of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
@@ -480,29 +474,20 @@ In case of error: "msvcr100.dll missing...",
 download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
 #############################################################################################
 
-<<<<<<< HEAD
-<b>To print usage example of an single command:</b>
-=======
 <b>Get help:</b>
 
          jdss-api-tools.exe -h
 
-<b>Get help for an single command:</b>
->>>>>>> parent of 54444b2... Merge branch 'fix-create-storage-resource'
+<b>Get help for a single command:</b>
 
          jdss-api-tools.exe create_factory_setup_files
          jdss-api-tools.exe batch_setup
          jdss-api-tools.exe create_pool
-<<<<<<< HEAD
-
-<b>COMMANDS:</b> 
-=======
       ...
 
-<b>Commands:</b> 
+<b>COMMANDS:</b>
 
->>>>>>> parent of 54444b2... Merge branch 'fix-create-storage-resource'
-<pre>clone                         	clone_existing_snapshot       	create_pool
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
 delete_clone_existing_snapshot	set_host                      	set_time
