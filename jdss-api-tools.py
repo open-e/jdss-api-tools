@@ -783,7 +783,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--sync',
         metavar='sync',
         choices=['always', 'standard', 'disabled'],
-        default='standard',
+        default=None,
         help='Enter write cache logging (sync): always, standard, disabled'
     )
     parser.add_argument(
@@ -3986,7 +3986,7 @@ def command_processor() :
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
-        ##c = count_provided_args( pool_name)
+        ##c = count_provided_args( pool_name )
         read_jbods_and_create_pool()
 
     elif action == 'scrub':
@@ -3997,7 +3997,7 @@ def command_processor() :
 
     elif action == 'create_storage_resource':
         if zvols_per_target> 15:
-            sys_exit_with_timestamp('Error: the zvols_per_target must be in range 1..15.')
+            sys_exit_with_timestamp( 'Error: the zvols_per_target must be in range 1..15.')
 
         c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
         if c < 5:
@@ -4014,38 +4014,40 @@ def command_processor() :
         detach_volume_from_iscsi_target()
 
     elif action == 'modify_volume':
-        c = count_provided_args( pool_name, volume_name )   ## if all provided (not None), c must be equal 3
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
+        c = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), c must be equal 3
+        if volume_name == 'auto':
+            sys_exit_with_timestamp( 'Error: modify_volume command expects volume name to be specified')
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: modify_volume command expects (pool, volume, sync), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         modify_volume(vol_type)
 
     elif action == 'set_host':
-        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
+        c = count_provided_args( host_name, server_name, server_description )   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)
+        c = count_provided_args( timezone, ntp, ntp_servers )
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_time command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
+        c = count_provided_args( nic_name, new_ip_addr, new_mask, new_gw, new_dns )
         if c not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if c not in (2,3,4):
             sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if c not in (0,1,2):
             sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         delete_bond(nic_name)
@@ -4064,7 +4066,7 @@ def command_processor() :
     elif action == 'set_mirror_path':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP address')
-        c = count_provided_args(mirror_nics)
+        c = count_provided_args( mirror_nics )
         if c not in (1,):
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
         set_mirror_path()
@@ -4072,7 +4074,7 @@ def command_processor() :
     elif action == 'create_vip':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
-        c = count_provided_args(pool_name, vip_name, vip_nics, vip_ip, vip_mask)
+        c = count_provided_args( pool_name, vip_name, vip_nics, vip_ip, vip_mask )
         if c not in (4,5):
             sys_exit_with_timestamp( 'Error: create_vip command expects arguments: --pool --vip_name --vip_nics --vip_ip --vip_mask')
         create_vip()
@@ -4081,9 +4083,9 @@ def command_processor() :
         start_cluster()
 
     elif action == 'move':
-        c = count_provided_args(pool_name)
+        c = count_provided_args( pool_name )
         if c != 1:
-            sys_exit_with_timestamp( 'Error: move command expects pool name: --pool=pool-name')
+            sys_exit_with_timestamp( 'Error: move command expects pool name to be specified')
         move()
 
     elif action == 'info':
