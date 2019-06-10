@@ -1148,7 +1148,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3  --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme  --quantity 3 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare  --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -3367,13 +3369,16 @@ def create_storage_resource():
     global share_name
     global quantity
     global action_message
+
     action_message = 'Sending Create Storage Resource to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
+
     if not active_node:
         sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
     else:
         node = active_node
+
     generate_automatic_volume_name = True if volume_name == 'auto' else False
     generate_automatic_target_name = True if target_name == 'auto' else False
     generate_automatic_share_name  = True if share_name  == 'auto' else False
@@ -3396,9 +3401,9 @@ def create_storage_resource():
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
 
-            if not (generate_automatic_target_name and
-                    generate_automatic_share_name and
-                    generate_automatic_volume_name):
+            # ignore given quantity if share name or volume name provided in command line
+            if not (generate_automatic_volume_name and
+                    generate_automatic_share_name):
                 quantity = 1
 
             ## volume or dataset
@@ -3564,18 +3569,24 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
 def create_target(ignore_error=None):
     global node
     for node in nodes:
-        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
-                   POOL_NAME=pool_name)
-        ## Auto-Target-Name
-        data = dict(name=auto_target_name)       
 
-        ## POST
-        target_object = post(endpoint, data)
-        if error:
-            if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
-            else:
-                print_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
+        targets = get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
+        if targets and target_name in [target['name']for target in targets]:
+            print_with_timestamp( 'Info: Target: {} allready exist on Node: {}'.format(auto_target_name,node))
+
+        else:    
+            endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
+                       POOL_NAME=pool_name)
+            ## Auto-Target-Name
+            data = dict(name=auto_target_name)       
+
+            ## POST
+            target_object = post(endpoint, data)
+            if error:
+                if ignore_error is None:
+                    sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
+                else:
+                    print_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
 
 
 def attach_volume_to_target(ignore_error=None):
@@ -3655,20 +3666,26 @@ def create_share_for_auto_clone(ignore_error=None):
 def create_share(ignore_error=None):
     global node
     for node in nodes:
-        endpoint = '/shares'
-        data = dict(name=share_name,
-                path='{POOL_NAME}/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name),
-                smb=dict(enabled=True if 'SMB' in storage_type else False ),
-                nfs=dict(enabled=True if 'NFS' in storage_type else False ))
-        ## POST
-        post(endpoint,data)
-        if error:
-            sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(share_name,node))
 
-        print_with_timestamp('Share for {}/{} has been successfully created.'.format(
-                pool_name,volume_name))
-        print("\n\tShare:\t\\\\{}\{}".format(node,share_name))
-        print("\tDataset:\t{}/{}\n".format(pool_name,volume_name))
+        shares = get('/shares')
+        if shares and shares['entries'] and share_name in [share['name'] for share in shares['entries']]:
+            print_with_timestamp( 'Info: Share: {} allready exist on Node: {}'.format(share_name,node))
+        else:
+
+            endpoint = '/shares'
+            data = dict(name=share_name,
+                    path='{POOL_NAME}/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name),
+                    smb=dict(enabled=True if 'SMB' in storage_type else False ),
+                    nfs=dict(enabled=True if 'NFS' in storage_type else False ))
+            ## POST
+            post(endpoint,data)
+            if error:
+                sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(share_name,node))
+
+            print_with_timestamp('Share for {}/{} has been successfully created.'.format(
+                    pool_name,volume_name))
+            print("\n\tShare:\t\\\\{}\{}".format(node,share_name))
+            print("\tDataset:\t{}/{}\n".format(pool_name,volume_name))
 
 
 def create_new_backup_clone(vol_type):
