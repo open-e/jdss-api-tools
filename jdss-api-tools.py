@@ -3370,7 +3370,7 @@ def create_storage_resource():
     global share_name
     global quantity
     global action_message
-    action_message = 'Sending create storage resource request to: {}'.format(node)
+    action_message = 'Sending Create Storage Resource to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
     if not active_node:
