@@ -62,6 +62,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 from __future__ import print_function
 import sys
+import re
 import time
 import datetime
 import argparse
@@ -3392,9 +3393,16 @@ def create_storage_resource():
                 if generate_automatic_target_name:
                     target_name = _target_name
                 else:
+                    ## modify target name with provided cluster name
                     if cluster_name:
-                        ## modify target name with provided cluster name
-                        target_name = "iqn.{}:{}.{}".format(time.strftime("%Y-%m"), cluster_name.lower(), target_name.lower())
+                        ## iqn.yyyy.mm: included
+                        if re.match('iqn.\d{4}-\d{2}:', target_name):
+                            split = target_name.split(':')
+                            split.insert(1, ':' + cluster_name.lower() + '.')
+                            target_name = ''.join(split).lower()
+                        else:
+                            ## iqn.yyyy.mm: NOT included
+                            target_name = "iqn.{}:{}.{}".format(time.strftime("%Y-%m"), cluster_name.lower(), target_name.lower())
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
             ## NAS
