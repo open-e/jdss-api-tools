@@ -2,11 +2,12 @@
  # jdss-api-tools
 
 
-<b>Execute single or batch commands for automated setup or testing of JovianDSS remotely.</b>
+<b>Execute single or batch commands for automated setup or to control JovianDSS remotely.</b>
 
-<b>Commands:</b> 
 
-<pre>clone                         	clone_existing_snapshot       	create_pool
+<b>Commands:</b>
+
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
 delete_clone_existing_snapshot	set_host                      	set_time
@@ -477,16 +478,16 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
          jdss-api-tools.exe -h
 
-<b>Get help for an single command:</b>
+<b>Get help for a single command:</b>
 
          jdss-api-tools.exe create_factory_setup_files
          jdss-api-tools.exe batch_setup
          jdss-api-tools.exe create_pool
       ...
 
-<b>Commands:</b> 
+<b>Commands:</b>
 
-<pre>clone                         	clone_existing_snapshot       	create_pool
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	detach_volume_from_iscsi_target	delete_clone
 delete_clone_existing_snapshot	set_host                      	set_time
@@ -496,3 +497,5 @@ create_vip                    	start_cluster                 	move
 info                          	list_snapshots                	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	</pre>
+ 
+ 

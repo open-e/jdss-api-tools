@@ -160,7 +160,6 @@ def delete(endpoint,data):
     return result
 
 
-
 def wait_for_node():
     global waiting_dots_printed
     waiting_dots_printed = False
@@ -220,11 +219,12 @@ def get_args(batch_args_line=None):
 {LG}jdss-api-tools{ENDF}
 
 
-{BOLD}Execute single or batch commands for automated setup or testing of JovianDSS remotely.{END}
+{BOLD}Execute single or batch commands for automated setup or to control JovianDSS remotely.{END}
 
-{BOLD}Commands:{END}{LG}
 
-{COMMANDS}{ENDF}
+{BOLD}Commands:{END}
+
+{LG}{COMMANDS}{ENDF}
 
 {BOLD}Commands description:{END}
 
@@ -686,17 +686,19 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
      {LG}%(prog)s -h{ENDF}
 
-{BOLD}Get help for an single command:{END}
+{BOLD}Get help for a single command:{END}
 
      {LG}%(prog)s create_factory_setup_files{ENDF}
      {LG}%(prog)s batch_setup{ENDF}
      {LG}%(prog)s create_pool{ENDF}
      {LG}...{ENDF}
 
-{BOLD}Commands:{END}{LG}
+{BOLD}Commands:{END}
 
-{COMMANDS}{ENDF}
-'''    
+{LG}{COMMANDS}{ENDF}
+ 
+ 
+'''
 
     global parser
     global commands
@@ -779,16 +781,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     )
     parser.add_argument(
         '--sync',
-        metavar='sync',
-        choices=['always', 'standard', 'disabled'],
-        default='standard',
+        metavar='always|standard|disabled',
+        default=None,
         help='Enter write cache logging (sync): always, standard, disabled'
     )
     parser.add_argument(
         '--target',
         metavar='name',
         default='auto',
-        help='Enter iSCSI target name. If not specified, auto-target_name will be generated'
+        help='Enter iSCSI target name. If not specified, target name will be auto-generated'
     )
     parser.add_argument(
         '--quantity',
@@ -1143,14 +1144,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line =  "create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.42"
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3  --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme  --quantity 3 --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare  --quantity 3 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --quantity 3 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
@@ -1198,7 +1199,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    storage_type                = args['storage_type']
+    storage_type                = args['storage_type']			## it will be converted to upper below
 
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
     sparse                      = True if sparse in 'THIN' else False
@@ -3369,8 +3370,7 @@ def create_storage_resource():
     global share_name
     global quantity
     global action_message
-
-    action_message = 'Sending create storage resource to: {}'.format(node)
+    action_message = 'Sending create storage resource request to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
 
@@ -3386,14 +3386,14 @@ def create_storage_resource():
     while quantity:
         _zvols_per_target = zvols_per_target
         while _zvols_per_target:
-            ## iscsi
+            ## ISCSI
             if 'ISCSI' in storage_type:
                 _target_name,_volume_name = generate_iscsi_target_and_volume_name(pool_name)
                 if generate_automatic_target_name:
                     target_name = _target_name
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
-            ## nas
+            ## NAS
             if ('SMB' in storage_type) or ('NFS' in storage_type):
                 _share_name,_volume_name = generate_share_and_volume_name(pool_name)
                 if generate_automatic_share_name:
@@ -3572,13 +3572,13 @@ def create_target(ignore_error=None):
 
         targets = get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
         if targets and target_name in [target['name']for target in targets]:
-            print_with_timestamp( 'Info: Target: {} allready exist on Node: {}'.format(auto_target_name,node))
+            print_with_timestamp( 'Info: Target: {} already exist on Node: {}'.format(auto_target_name,node))
 
-        else:    
+        else:
             endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
                        POOL_NAME=pool_name)
             ## Auto-Target-Name
-            data = dict(name=auto_target_name)       
+            data = dict(name=auto_target_name)
 
             ## POST
             target_object = post(endpoint, data)
@@ -3669,7 +3669,7 @@ def create_share(ignore_error=None):
 
         shares = get('/shares')
         if shares and shares['entries'] and share_name in [share['name'] for share in shares['entries']]:
-            print_with_timestamp( 'Info: Share: {} allready exist on Node: {}'.format(share_name,node))
+            print_with_timestamp( 'Info: Share: {} already exist on Node: {}'.format(share_name,node))
         else:
 
             endpoint = '/shares'
@@ -4000,7 +4000,7 @@ def command_processor() :
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
-        ##c = count_provided_args( pool_name)
+        ##c = count_provided_args( pool_name )
         read_jbods_and_create_pool()
 
     elif action == 'scrub':
@@ -4011,7 +4011,7 @@ def command_processor() :
 
     elif action == 'create_storage_resource':
         if zvols_per_target> 15:
-            sys_exit_with_timestamp('Error: the zvols_per_target must be in range 1..15.')
+            sys_exit_with_timestamp( 'Error: the zvols_per_target must be in range 1..15.')
 
         c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
         if c < 5:
@@ -4028,38 +4028,40 @@ def command_processor() :
         detach_volume_from_iscsi_target()
 
     elif action == 'modify_volume':
-        c = count_provided_args( pool_name, volume_name )   ## if all provided (not None), c must be equal 3
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
+        c = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), c must be equal 3
+        if volume_name == 'auto':
+            sys_exit_with_timestamp( 'Error: modify_volume command expects volume name to be specified')
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: modify_volume command expects (pool, volume, sync), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         modify_volume(vol_type)
 
     elif action == 'set_host':
-        c = count_provided_args(host_name, server_name, server_description)   ## if all provided (not None), c must be equal 3 set_host
+        c = count_provided_args( host_name, server_name, server_description )   ## if all provided (not None), c must be equal 3 set_host
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args(timezone, ntp, ntp_servers)
+        c = count_provided_args( timezone, ntp, ntp_servers )
         if c not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_time command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
+        c = count_provided_args( nic_name, new_ip_addr, new_mask, new_gw, new_dns )
         if c not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if c not in (2,3,4):
             sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args(bond_type, bond_nics, new_gw, new_dns)
+        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if c not in (0,1,2):
             sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         delete_bond(nic_name)
@@ -4078,7 +4080,7 @@ def command_processor() :
     elif action == 'set_mirror_path':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP address')
-        c = count_provided_args(mirror_nics)
+        c = count_provided_args( mirror_nics )
         if c not in (1,):
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
         set_mirror_path()
@@ -4086,7 +4088,7 @@ def command_processor() :
     elif action == 'create_vip':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
-        c = count_provided_args(pool_name, vip_name, vip_nics, vip_ip, vip_mask)
+        c = count_provided_args( pool_name, vip_name, vip_nics, vip_ip, vip_mask )
         if c not in (4,5):
             sys_exit_with_timestamp( 'Error: create_vip command expects arguments: --pool --vip_name --vip_nics --vip_ip --vip_mask')
         create_vip()
@@ -4095,9 +4097,9 @@ def command_processor() :
         start_cluster()
 
     elif action == 'move':
-        c = count_provided_args(pool_name)
+        c = count_provided_args( pool_name )
         if c != 1:
-            sys_exit_with_timestamp( 'Error: move command expects pool name: --pool=pool-name')
+            sys_exit_with_timestamp( 'Error: move command expects pool name to be specified')
         move()
 
     elif action == 'info':
