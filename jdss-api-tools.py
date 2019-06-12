@@ -3393,6 +3393,8 @@ def create_storage_resource():
                 if generate_automatic_target_name:
                     target_name = _target_name
                 else:
+                    ## create target with provided target name
+                    target_name = "iqn.{}:{}".format(time.strftime("%Y-%m"), target_name.lower())
                     ## modify target name with provided cluster name
                     if cluster_name:
                         ## iqn.yyyy.mm: included
