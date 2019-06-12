@@ -475,20 +475,19 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
 
 
-{} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB share with dataset.
+{} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
     Defaults are: size = 1TB, provisioning = thin, volume = auto, target = auto, share_name = auto.
     Example for iSCSI target with specified volume, target, size and provisioning.
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:ha-00.target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
 
-    If target = auto (default), the cluster name "ha-00" will be used in the auto-target_name.
-    In the next example target name will also be "iqn.2018-09:ha-00.target0".
-    If "iqn.2018-09:ha-00.target0" and "zvol00" already exist, program will use next one: "iqn.2018-09:ha-00.target1" and "zvol01".
+    If cluster name is specified, it will be used in the target name. Next examples will create both the same target name.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --cluster ha-00 --node 192.168.0.220{ENDF}
 
-    With missing --cluster ha-00, it will produce same result as "ha-00" is default cluster name.
+    With missing --target argument, it will produce auto-target name based on the host name.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
 
@@ -824,8 +823,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--cluster',
         metavar='name',
-        #default='ha-00',
-        #help='Enter the cluster name, default=ha-00'
         help='Enter the cluster name'
     )
     parser.add_argument(
@@ -3393,6 +3390,8 @@ def create_storage_resource():
                 if generate_automatic_target_name:
                     target_name = _target_name
                 else:
+                    ## create target with provided target name
+                    target_name = "iqn.{}:{}".format(time.strftime("%Y-%m"), target_name.lower())
                     ## modify target name with provided cluster name
                     if cluster_name:
                         ## iqn.yyyy.mm: included
@@ -3410,6 +3409,10 @@ def create_storage_resource():
                 _share_name,_volume_name = generate_share_and_volume_name(pool_name)
                 if generate_automatic_share_name:
                     share_name = _share_name
+                else:
+                    ## modify share name with provided cluster name
+                    if cluster_name:
+                        share_name = "{}-{}".format(cluster_name.lower(), share_name.lower())
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
 
