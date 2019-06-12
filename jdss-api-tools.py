@@ -3412,6 +3412,10 @@ def create_storage_resource():
                 _share_name,_volume_name = generate_share_and_volume_name(pool_name)
                 if generate_automatic_share_name:
                     share_name = _share_name
+                else:
+                    ## modify share name with provided cluster name
+                    if cluster_name:
+                        share_name = "{}-{}".format(cluster_name.lower(), share_name.lower())
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
 
