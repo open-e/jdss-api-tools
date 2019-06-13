@@ -58,6 +58,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
 2019-05-22  do not exit after error on target or volume creation
 2019-06-01  add detach_volume_from_iscsi_target
+2019-06-13  add sync option to create_storage_resource
 """
 
 from __future__ import print_function
@@ -487,17 +488,21 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --cluster ha-00 --node 192.168.0.220{ENDF}
 
+    If sync (Write cache sync requests) is not provided the default "always" is set. Here the sync is set to "disabled"
+    
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
+    
     With missing --target argument, it will produce auto-target name based on the host name.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto).
+    Example for SMB share with dataset, using defaults (volume = auto, share_name = auto, sync = standard).
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using specified volume and share_name.
+    Example for SMB share with dataset, using specified volume and share_name and sync = always.
 
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --share_name data --node 192.168.0.220{ENDF}
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --sync always --share_name data --node 192.168.0.220{ENDF}
 
     Example with specified quota and reservation.
 
@@ -3310,16 +3315,19 @@ def create_pool(pool_name,vdev_type,jbods):
 
 
 def create_volume(vol_type):
+
+    global sync
+
     ## POST
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        sync='always'   # set default sync for zvol
+        sync = sync if sync else 'always'   # set default sync for zvol
         data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
         result = post(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        sync='standard'  # set default sync for dataset
+        sync = sync if sync else 'standard'  # set default sync for dataset
         data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
@@ -3391,17 +3399,18 @@ def create_storage_resource():
                     target_name = _target_name
                 else:
                     ## create target with provided target name
-                    target_name = "iqn.{}:{}".format(time.strftime("%Y-%m"), target_name.lower())
+                    target_name = "iqn.{}:{}".format(time.strftime("%Y-%m"), target_name)
                     ## modify target name with provided cluster name
                     if cluster_name:
                         ## iqn.yyyy.mm: included
                         if re.match('iqn.\d{4}-\d{2}:', target_name):
-                            split = target_name.split(':')
-                            split.insert(1, ':' + cluster_name.lower() + '.')
-                            target_name = ''.join(split).lower()
+                            split = target_name.split(':',1)
+                            split[1] = split[1].replace(':','.')  
+                            split.insert(1, ':{}.'.format(cluster_name))
+                            target_name = ''.join(split)
                         else:
                             ## iqn.yyyy.mm: NOT included
-                            target_name = "iqn.{}:{}.{}".format(time.strftime("%Y-%m"), cluster_name.lower(), target_name.lower())
+                            target_name = "iqn.{}:{}.{}".format(time.strftime("%Y-%m"), cluster_name, target_name)
                 if generate_automatic_volume_name:
                     volume_name = _volume_name
             ## NAS
@@ -3424,8 +3433,8 @@ def create_storage_resource():
             ## volume or dataset
             create_volume(storage_volume_type)
             if 'ISCSI' in storage_type:
-                auto_target_name = target_name
-                ## target
+                ## target name must be lower case
+                auto_target_name = target_name.lower()
                 if _zvols_per_target == zvols_per_target:
                     create_target(ignore_error=True)
                 ## attach
