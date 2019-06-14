@@ -1,4 +1,4 @@
-
+![Project Icon](JovianDSS-Logo.png)
  # jdss-api-tools
 
 
