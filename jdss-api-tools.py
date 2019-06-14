@@ -3322,13 +3322,16 @@ def create_volume(vol_type):
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        sync = sync if sync else 'always'      # set default sync for zvol
-        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
+        data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4')
         result = post(endpoint,data)
+        sync = sync if sync else 'always'      # set default sync for zvol
+        endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/properties'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name)
+        data = dict(property_name='sync',property_value=sync)
+        result = put(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'standard'    # set default sync for dataset
-        data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
+        data = dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
