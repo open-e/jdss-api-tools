@@ -278,13 +278,13 @@ activate                      	import                        	</pre>
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --cluster ha-00 --node 192.168.0.220
 
-    If sync (Write cache sync requests) is not provided the default "always" is set. Here the sync is set to "disabled"
-    
-        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220
-    
     With missing --target argument, it will produce auto-target name based on the host name.
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220
+
+    If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
+
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220
 
     Example for SMB share with dataset, using defaults (volume = auto, share_name = auto, sync = standard).
 

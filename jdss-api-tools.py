@@ -488,13 +488,13 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --cluster ha-00 --node 192.168.0.220{ENDF}
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --cluster ha-00 --node 192.168.0.220{ENDF}
 
-    If sync (Write cache sync requests) is not provided the default "always" is set. Here the sync is set to "disabled"
-    
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
-    
     With missing --target argument, it will produce auto-target name based on the host name.
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
+
+    If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
+
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
 
     Example for SMB share with dataset, using defaults (volume = auto, share_name = auto, sync = standard).
 
@@ -3322,12 +3322,12 @@ def create_volume(vol_type):
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
-        sync = sync if sync else 'always'   # set default sync for zvol
+        sync = sync if sync else 'always'      # set default sync for zvol
         data = dict(name=volume_name, sparse=sparse, size=size, compression='lz4', sync=sync)
         result = post(endpoint,data)
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
-        sync = sync if sync else 'standard'  # set default sync for dataset
+        sync = sync if sync else 'standard'    # set default sync for dataset
         data=dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
@@ -3405,7 +3405,7 @@ def create_storage_resource():
                         ## iqn.yyyy.mm: included
                         if re.match('iqn.\d{4}-\d{2}:', target_name):
                             split = target_name.split(':',1)
-                            split[1] = split[1].replace(':','.')  
+                            split[1] = split[1].replace(':','.')
                             split.insert(1, ':{}.'.format(cluster_name))
                             target_name = ''.join(split)
                         else:
