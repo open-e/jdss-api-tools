@@ -1,5 +1,6 @@
 
- # jdss-api-tools
+ ![Project Icon](JovianDSS-Logo.png)
+# jdss-api-tools
 
 
 <b>Execute single or batch commands for automated setup or to control JovianDSS remotely.</b>
