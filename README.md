@@ -244,7 +244,7 @@ activate                      	import                        	</pre>
         jdss-api-tools.exe set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82
 
 
-15. <b>Create VIP (Virtual IP)</b> examples. 
+15. <b>Create VIP (Virtual IP)</b> examples.
 
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80
@@ -501,5 +501,3 @@ create_vip                    	start_cluster                 	move
 info                          	list_snapshots                	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	</pre>
- 
- 
