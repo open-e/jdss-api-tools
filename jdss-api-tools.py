@@ -453,7 +453,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82{ENDF}
 
 
-{} {BOLD}Create VIP (Virtual IP){END} examples. 
+{} {BOLD}Create VIP (Virtual IP){END} examples.
 
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80{ENDF}
     {LG}%(prog)s create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80{ENDF}
@@ -3315,15 +3315,13 @@ def create_pool(pool_name,vdev_type,jbods):
 
 
 def create_volume(vol_type):
-
     global sync
-
     ## POST
     quota_text, reservation_text = ('','')
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'always'      # set default sync for zvol
-        properties=dict(sync=sync,compression='lz4',primarycache='all',secondarycache='all',logbias='latency',dedup='off',copies=1)
+        properties = dict(sync=sync,compression='lz4',primarycache='all',secondarycache='all',logbias='latency',dedup='off',copies=1)
         data = dict(name=volume_name, sparse=sparse, size=size, properties=properties)
         result = post(endpoint,data)
 
@@ -4327,8 +4325,9 @@ def nice_print(a_list,html=None):
 
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
+        f.write(' ![Project Icon](JovianDSS-Logo.png)')
         f.write(parser.epilog.replace(
-            LG+'jdss-api-tools',LG+'# jdss-api-tools').replace(   ## start first line with '#'
+            LG+'jdss-api-tools','# jdss-api-tools').replace(   ## start first line with '#'
             BOLD,'<b>').replace(
             END,'</b>').replace(
             LG+'%(prog)s','    jdss-api-tools.exe').replace(
