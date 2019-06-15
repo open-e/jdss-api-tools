@@ -4325,8 +4325,9 @@ def nice_print(a_list,html=None):
 
 def print_README_md_for_GitHub():
     with open('README.md','w') as f:
+        f.write(' ![Project Icon](JovianDSS-Logo.png)')
         f.write(parser.epilog.replace(
-            LG+'jdss-api-tools',LG+'# jdss-api-tools').replace(   ## start first line with '#'
+            LG+'jdss-api-tools','# jdss-api-tools').replace(   ## start first line with '#'
             BOLD,'<b>').replace(
             END,'</b>').replace(
             LG+'%(prog)s','    jdss-api-tools.exe').replace(
