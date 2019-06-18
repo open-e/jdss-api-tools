@@ -268,10 +268,11 @@ activate                      	import                        	</pre>
 
 18. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
-    Defaults are: size = 1TB, provisioning = thin, volume = auto, target = auto, share_name = auto.
-    Example for iSCSI target with specified volume, target, size and provisioning.
-
-        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --size 1TB --provisioning thin --node 192.168.0.220
+    Defaults are: size = 1TB, blocksize = 128KB, provisioning = thin, volume = auto, target = auto, share_name = auto.
+    The blocksize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default = 128KB.
+    Example for iSCSI target with specified volume, target, size, provisioning blocksize.
+    
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --size 1TB --blocksize 64KB --provisioning thin --node 192.168.0.220
 
     If cluster name is specified, it will be used in the target name. Next examples will create both the same target name.
 
@@ -287,12 +288,13 @@ activate                      	import                        	</pre>
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220
 
     Example for SMB share with dataset, using defaults (volume = auto, share_name = auto, sync = standard).
-
+    
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb --node 192.168.0.220
 
-    Example for SMB share with dataset, using specified volume and share_name and sync = always.
-
-        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --sync always --share_name data --node 192.168.0.220
+    Example for SMB share with dataset, using specified volume and share_name and sync = always, recordsize = 128KB.
+    The recordsize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default = 1MB.
+    
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --recordsize 128KB --sync always --share_name data --node 192.168.0.220
 
     Example with specified quota and reservation.
 

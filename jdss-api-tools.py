@@ -59,6 +59,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-05-22  do not exit after error on target or volume creation
 2019-06-01  add detach_volume_from_iscsi_target
 2019-06-13  add sync option to create_storage_resource
+2019-06-18  add blocksize and recordsize for create_storage_recource
 """
 
 from __future__ import print_function
@@ -478,10 +479,11 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
-    Defaults are: size = 1TB, provisioning = thin, volume = auto, target = auto, share_name = auto.
-    Example for iSCSI target with specified volume, target, size and provisioning.
-
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --size 1TB --provisioning thin --node 192.168.0.220{ENDF}
+    Defaults are: size = 1TB, blocksize = 128KB, provisioning = thin, volume = auto, target = auto, share_name = auto.
+    The blocksize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default = 128KB.
+    Example for iSCSI target with specified volume, target, size, provisioning blocksize.
+    
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --volume zvol00 --target iqn.2018-09:target0 --size 1TB --blocksize 64KB --provisioning thin --node 192.168.0.220{ENDF}
 
     If cluster name is specified, it will be used in the target name. Next examples will create both the same target name.
 
@@ -497,12 +499,13 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
 
     Example for SMB share with dataset, using defaults (volume = auto, share_name = auto, sync = standard).
-
+    
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --node 192.168.0.220{ENDF}
 
-    Example for SMB share with dataset, using specified volume and share_name and sync = always.
-
-    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --sync always --share_name data --node 192.168.0.220{ENDF}
+    Example for SMB share with dataset, using specified volume and share_name and sync = always, recordsize = 128KB.
+    The recordsize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default = 1MB.
+    
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type smb --volume vol00 --recordsize 128KB --sync always --share_name data --node 192.168.0.220{ENDF}
 
     Example with specified quota and reservation.
 
@@ -767,6 +770,18 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='size',
         default='1TB',
         help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
+    )
+    parser.add_argument(
+        '--blocksize',
+        metavar='size',
+        default='128KB',
+        help='Enter SAN (zvol) blocksize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default=128KB'
+    )
+    parser.add_argument(
+        '--recordsize',
+        metavar='size',
+        default='1MB',
+        help='Enter NAS (vol) recordsize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default=1MB'
     )
     parser.add_argument(
         '--quota',
@@ -1175,7 +1190,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
     
     global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
-    global size, quota, reservation, sync, sparse, snapshot_name
+    global size, blocksize, recordsize, quota, reservation, sync, sparse, snapshot_name
     global nodes, ping_nodes, node
     global delay, menu
     global share_name, visible
@@ -1209,6 +1224,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     size                        = args['size']
     size                        = human_to_bytes(size)
+
+    blocksize                   = args['blocksize']
+    blocksize                   = human_to_bytes(blocksize)
+
+    recordsize                  = args['recordsize']
+    recordsize                  = human_to_bytes(recordsize)
 
     quota                       = args['quota']
     quota                       = human_to_bytes(quota)
@@ -3322,13 +3343,13 @@ def create_volume(vol_type):
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'always'      # set default sync for zvol
         properties = dict(sync=sync,compression='lz4',primarycache='all',secondarycache='all',logbias='latency',dedup='off',copies=1)
-        data = dict(name=volume_name, sparse=sparse, size=size, properties=properties)
+        data = dict(name=volume_name, sparse=sparse, size=size, blocksize=blocksize, properties=properties)
         result = post(endpoint,data)
 
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'standard'    # set default sync for dataset
-        data = dict(name=volume_name, compression='lz4', recordsize=1048576, sync=sync, quota=quota, reservation=reservation)
+        data = dict(name=volume_name, compression='lz4', recordsize=int(recordsize), sync=sync, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
