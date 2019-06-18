@@ -1770,7 +1770,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     put('/time',data)
 
     if error:
-        sys_exit_with_timestamp('Cannot set NTP. Error: {}.'.format(error))
+        print_with_timestamp('Cannot set NTP. Error: {}.'.format(error))
 
     if timezone:
         print_with_timestamp( 'Set timezone: {}'.format(timezone))
