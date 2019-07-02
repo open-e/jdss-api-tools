@@ -60,6 +60,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-06-01  add detach_volume_from_iscsi_target
 2019-06-13  add sync option to create_storage_resource
 2019-06-18  add blocksize and recordsize for create_storage_resource
+2019-07-02  add detach_disk_from_pool
 """
 
 from __future__ import print_function
@@ -555,6 +556,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Detach disk form pool{END}. Detach disk from pool works with mirrored vdevs
+    or with disks in raidz vdevs which are during or stopped replace process.
+
+    {LG}%(prog)s detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
@@ -720,7 +727,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-                 'detach_volume_from_iscsi_target',
+                 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
@@ -883,6 +890,12 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         default=1,
         type=int,
         help='Enter number of vdevs in pool'
+    )
+    parser.add_argument(
+        '--disk_wwn',
+        metavar='wwn',
+        default=None,
+        help='Enter disk wwn , i.e. : wwn-0x5000c5008574a736'
     )
     parser.add_argument(
         '--host',
@@ -1162,6 +1175,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
+    #test_command_line = 'detach_disk_from_pool --pool Pool-2 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.32'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'
@@ -1196,6 +1210,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
     global number_of_disks_in_jbod
+    global disk_wwn
     global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
@@ -1257,6 +1272,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     jbods_num                   = args['jbods']
     vdevs_num                   = args['vdevs']
     vdev_type                   = args['vdev']
+
+    disk_wwn                    = args['disk_wwn']
 
     disk_size_tolerance         = args['tolerance']
     disk_size_tolerance         = int(human_to_bytes(disk_size_tolerance))
@@ -3671,6 +3688,28 @@ def detach_volume_from_iscsi_target(ignore_error=None):
             pool_name,volume_name, target_name))
 
 
+def detach_disk_from_pool(ignore_error=None):
+
+    global node
+    global action_message
+    action_message = 'Sending disk detach from pool request to: {}'.format(node)
+
+    for node in nodes:
+        # POST /pools/POOL_NAME/disks/DISK_ID/detach
+        endpoint = '/pools/{POOL_NAME}/disks/{DISK_WWN}/detach'.format(
+                   POOL_NAME=pool_name, DISK_WWN=disk_wwn)
+        ## POST
+        post(endpoint,None)
+        if error:
+            if ignore_error is None:
+                print_with_timestamp('{}'.format(error))
+                sys_exit_with_timestamp( 'Error: Cannot detach disk: {} from {} on Node:{}'.format(
+                    disk_wwn, pool_name, node))
+
+        print_with_timestamp('Disk: {} has been successfully detached from pool {}.'.format(
+            disk_wwn, pool_name))
+
+
 def attach_clone_to_target(ignore_error=None):
     global node
     for node in nodes:
@@ -4071,6 +4110,12 @@ def command_processor() :
         if c < 3:
             sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target_name), {} provided.'.format(c))
         detach_volume_from_iscsi_target()
+
+    elif action == 'detach_disk_from_pool':
+        c = count_provided_args( pool_name, disk_wwn)   ## if all provided (not None), c must be equal 2
+        if c < 2:
+            sys_exit_with_timestamp( 'Error: detach command expects (pool, disk_wwn), {} provided.'.format(c))
+        detach_disk_from_pool()
 
     elif action == 'modify_volume':
         c = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), c must be equal 3
