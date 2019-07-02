@@ -345,7 +345,8 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-21. <b>Detach disk form pool</b>. Detach disk from pool works with mirrored vdevs
+21. <b>Detach disk form pool</b>.
+    Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
 
         jdss-api-tools.exe detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220

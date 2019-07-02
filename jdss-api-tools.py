@@ -556,7 +556,8 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
 
 
-{} {BOLD}Detach disk form pool{END}. Detach disk from pool works with mirrored vdevs
+{} {BOLD}Detach disk form pool{END}.
+    Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
 
     {LG}%(prog)s detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
