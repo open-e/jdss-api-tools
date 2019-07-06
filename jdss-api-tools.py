@@ -557,6 +557,7 @@ def get_args(batch_args_line=None):
 
 
 {} {BOLD}Detach disk form pool{END}.
+
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
 
@@ -896,7 +897,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         '--disk_wwn',
         metavar='wwn',
         default=None,
-        help='Enter disk wwn , i.e. : wwn-0x5000c5008574a736'
+        help='Enter disk wwn, i.e.: wwn-0x5000c5008574a736'
     )
     parser.add_argument(
         '--host',
@@ -1176,7 +1177,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line = 'detach_disk_from_pool --pool Pool-2 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.32'
+    #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.80'

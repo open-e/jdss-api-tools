@@ -346,6 +346,7 @@ create_factory_setup_files    	activate                      	import
 
 
 21. <b>Detach disk form pool</b>.
+
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
 
