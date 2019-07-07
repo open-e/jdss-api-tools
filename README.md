@@ -262,9 +262,10 @@ create_factory_setup_files    	activate                      	import
 
 17. <b>Move (failover)</b> given pool.
 
-    The current active node of given pool will be found and pool will be moved to passive node.
+    The current active node of given pool will be found and pool will be moved to passive node
+    with optional delay in seconds.
 
-        jdss-api-tools.exe move --pool Pool-0 --node 192.168.0.82
+        jdss-api-tools.exe move --pool Pool-0 --delay 120 --node 192.168.0.82
 
 
 18. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.

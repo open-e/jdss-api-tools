@@ -61,6 +61,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-06-13  add sync option to create_storage_resource
 2019-06-18  add blocksize and recordsize for create_storage_resource
 2019-07-02  add detach_disk_from_pool
+2019-07-07  add delay to Move function
 """
 
 from __future__ import print_function
@@ -473,9 +474,10 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Move (failover){END} given pool.
 
-    The current active node of given pool will be found and pool will be moved to passive node.
+    The current active node of given pool will be found and pool will be moved to passive node
+    with optional delay in seconds.
 
-    {LG}%(prog)s move --pool Pool-0 --node 192.168.0.82{ENDF}
+    {LG}%(prog)s move --pool Pool-0 --delay 120 --node 192.168.0.82{ENDF}
 
 
 {} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
@@ -1042,7 +1044,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='seconds',
         default=30,
         type=int,
-        help='User defined reboot/shutdown delay, default=30 sec'
+        help='User defined reboot/shutdown or move delay, default=30 sec'
     )
     parser.add_argument(
         '--disk_size_range',
@@ -1708,10 +1710,24 @@ def expand_ip_range(ip_range):
 	return ip_list
 
 
+#def display_delay(msg):
+#    for sec in range(delay, 0, -1) :
+#        print( '{} in {:>2} seconds \r'.format(msg,sec))
+#        time.sleep(1)
+
+
 def display_delay(msg):
+
+    def backspace(n):
+        sys.stdout.write((b'\x08' * n).decode()) # use \x08 char to go back   
+
     for sec in range(delay, 0, -1) :
-        print( '{} in {:>2} seconds \r'.format(msg,sec))
-        time.sleep(1)
+        print
+        s = '{} in {:>2} seconds ...          '.format(msg,sec)
+        sys.stdout.write(s)                     # just print
+        sys.stdout.flush()                      # needed for flush when using \x08
+        backspace(len(s))                       # back n chars    
+        time.sleep(1)                         
 
 
 def shutdown_nodes():
@@ -2741,12 +2757,17 @@ def move():
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
+            display_delay('Move')
             post(endpoint,data)
             if error:
                 sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
-    print_with_timestamp('Moving in progress...')
+
+    if not pool_names:
+        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
+        return
+    
     ## wait for pool import
-    time.sleep(15)
+    time.sleep(15) 
     new_active_node = ''
     for _ in range(15):
         for node in nodes:
@@ -4189,8 +4210,8 @@ def command_processor() :
         start_cluster()
 
     elif action == 'move':
-        c = count_provided_args( pool_name )
-        if c != 1:
+        c = count_provided_args( pool_name, delay )
+        if c not in (1,2):
             sys_exit_with_timestamp( 'Error: move command expects pool name to be specified')
         move()
 
@@ -4281,16 +4302,16 @@ move            --pool Pool-1   --node _node-a-ip-address_
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line
-move      --pool Pool-1   --node _node-a-ip-address_	# move 
-scrub                     --node _node-a-ip-address_    # scrub all
-reboot    --delay 10      --node _node-a-ip-address_    # reboot
-move      --pool Pool-0   --node _node-a-ip-address_	# move 
-move      --pool Pool-1   --node _node-a-ip-address_	# move 
-reboot    --delay 10      --node _node-a-ip-address_    # reboot
-scrub                     --node _node-a-ip-address_    # scrub all
-reboot    --delay 10      --node _node-b-ip-address_    # reboot node-b
-move      --pool Pool-1   --node _node-a-ip-address_	# move 
-scrub                     --node _node-a-ip-address_    # scrub all
+move      --pool Pool-1                 --node _node-a-ip-address_      # move 
+scrub                                   --node _node-a-ip-address_      # scrub all
+reboot    --delay 10                    --node _node-a-ip-address_      # reboot
+move      --delay 15    --pool Pool-0   --node _node-a-ip-address_	# move 
+move      --delay 15    --pool Pool-1   --node _node-a-ip-address_	# move 
+reboot    --delay 10                    --node _node-a-ip-address_      # reboot
+scrub                                   --node _node-a-ip-address_      # scrub all
+reboot    --delay 10                    --node _node-b-ip-address_      # reboot node-b
+move      --delay 15    --pool Pool-1   --node _node-a-ip-address_      # move 
+scrub                                   --node _node-a-ip-address_      # scrub all
 """)
 
 
