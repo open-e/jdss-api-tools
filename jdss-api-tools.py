@@ -2584,8 +2584,9 @@ def create_vip():
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = False if len(cluster_ip_addresses) == 1 else True
-    node_b_address = cluster_ip_addresses
-    node_b_address.remove(node)
+    cluster_ip_addresses.sort() ##this is temporary solution
+    node_b_address = cluster_ip_addresses[-1]
+    #node_b_address.remove(node)  # this will not work if ring is diff than management
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
     if cluster:
         ## cluster
