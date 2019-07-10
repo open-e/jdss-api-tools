@@ -1182,7 +1182,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --node 192.168.0.80'
+    test_command_line = 'info --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -2527,9 +2527,10 @@ def get_ring_interface_of_first_node():
 def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
-    result = get('/cluster/nodes')
-    if result:
-        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result]
+    #result = get('/cluster/nodes')
+    cluster_nodes = get('/cluster/nodes')
+    if cluster_nodes:
+        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
     else:
         cluster_nodes_addresses = []
     if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
@@ -2537,6 +2538,21 @@ def get_cluster_nodes_addresses():
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
     return cluster_nodes_addresses
+
+## to-do
+def get_cluster_nodes_addresses():
+    global is_cluster
+    global local_cluster_node
+    global remote_cluster_node
+    local_cluster_node_ip_address = ''
+    remote_cluster_node_ip_address = ''
+    is_cluster = False
+    cluster_nodes = get('/cluster/nodes')
+    if cluster_nodes and len(cluster_nodes) >1:
+        is_cluster = True
+        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
+        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
+    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
 
 
 def get_cluster_node_id(node):
@@ -2584,7 +2600,6 @@ def create_vip():
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = False if len(cluster_ip_addresses) == 1 else True
-    cluster_ip_addresses.sort() ##this is temporary solution
     node_b_address = cluster_ip_addresses[-1]
     #node_b_address.remove(node)  # this will not work if ring is diff than management
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
@@ -2687,7 +2702,7 @@ def start_cluster():
 
     started = False
 
-    cluster_nodes_addresses = get_cluster_nodes_addresses()
+    ## to-do  cluster_nodes_addresses = get_cluster_nodes_addresses()
     if not cluster_bind_set():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
 
@@ -2735,6 +2750,12 @@ def move():
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
+
+    cluster_pools_names = get_cluster_pools_names()
+    if pool_name not in cluster_pools_names :
+        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
+        return
+
     active_node = ''
     passive_node = ''
     new_active_node = ''
@@ -2751,6 +2772,7 @@ def move():
         if pool_name in pool_names:
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
+            display_delay('Move')
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
             ## wait ...
             wait_for_move_destination_node(passive_node)
@@ -2758,15 +2780,11 @@ def move():
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
-            display_delay('Move')
             post(endpoint,data)
             if error:
                 sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
-
-    if not pool_names:
-        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
-        return
-    
+            else:
+                break
     ## wait for pool import
     time.sleep(15) 
     new_active_node = ''
