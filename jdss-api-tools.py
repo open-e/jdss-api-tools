@@ -1710,12 +1710,6 @@ def expand_ip_range(ip_range):
 	return ip_list
 
 
-#def display_delay(msg):
-#    for sec in range(delay, 0, -1) :
-#        print( '{} in {:>2} seconds \r'.format(msg,sec))
-#        time.sleep(1)
-
-
 def display_delay(msg):
 
     def backspace(n):
@@ -1728,7 +1722,6 @@ def display_delay(msg):
         sys.stdout.flush()                      # needed for flush when using \x08
         backspace(len(s))                       # back n chars
         time.sleep(1)
-
 
 def shutdown_nodes():
     global node
@@ -2527,10 +2520,9 @@ def get_ring_interface_of_first_node():
 def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
-    #result = get('/cluster/nodes')
-    cluster_nodes = get('/cluster/nodes')
-    if cluster_nodes:
-        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
+    result = get('/cluster/nodes')
+    if result:
+        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result]
     else:
         cluster_nodes_addresses = []
     if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
@@ -2538,21 +2530,6 @@ def get_cluster_nodes_addresses():
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
     return cluster_nodes_addresses
-
-## to-do
-def get_cluster_nodes_addresses():
-    global is_cluster
-    global local_cluster_node
-    global remote_cluster_node
-    local_cluster_node_ip_address = ''
-    remote_cluster_node_ip_address = ''
-    is_cluster = False
-    cluster_nodes = get('/cluster/nodes')
-    if cluster_nodes and len(cluster_nodes) >1:
-        is_cluster = True
-        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
-        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
-    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
 
 
 def get_cluster_node_id(node):
@@ -2600,8 +2577,8 @@ def create_vip():
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = False if len(cluster_ip_addresses) == 1 else True
-    node_b_address = cluster_ip_addresses[-1]
-    #node_b_address.remove(node)  # this will not work if ring is diff than management
+    node_b_address = cluster_ip_addresses
+    node_b_address.remove(node)
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
     if cluster:
         ## cluster
@@ -2702,7 +2679,7 @@ def start_cluster():
 
     started = False
 
-    ## to-do  cluster_nodes_addresses = get_cluster_nodes_addresses()
+    cluster_nodes_addresses = get_cluster_nodes_addresses()
     if not cluster_bind_set():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
 
@@ -2750,12 +2727,6 @@ def move():
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
-
-    cluster_pools_names = get_cluster_pools_names()
-    if pool_name not in cluster_pools_names :
-        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
-        return
-
     active_node = ''
     passive_node = ''
     new_active_node = ''
@@ -2772,7 +2743,6 @@ def move():
         if pool_name in pool_names:
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
-            display_delay('Move')
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
             ## wait ...
             wait_for_move_destination_node(passive_node)
@@ -2780,11 +2750,15 @@ def move():
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
+            display_delay('Move')
             post(endpoint,data)
             if error:
                 sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
-            else:
-                break
+
+    if not pool_names:
+        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
+        return
+
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
@@ -4302,13 +4276,13 @@ set_mirror_path  --mirror_nics bond1 bond1               --node _node-a-ip-addre
 
 start_cluster                                            --node _node-a-ip-address_
 
-create_pool --pool Pool-0  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
-create_pool --pool Pool-1  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
+create_pool --pool Pool-0 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
+create_pool --pool Pool-1 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
 
-create_vip  --pool Pool-0  --vip_name vip21  --vip_ip 192.168.21.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
-create_vip  --pool Pool-0  --vip_name vip31  --vip_ip 192.168.31.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
-create_vip  --pool Pool-1  --vip_name vip22  --vip_ip 192.168.22.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
-create_vip  --pool Pool-1  --vip_name vip32  --vip_ip 192.168.32.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
+create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
+create_vip --pool Pool-0 --vip_name vip31 --vip_ip 192.168.31.100 --vip_nics eth3 eth3 --node _node-a-ip-address_
+create_vip --pool Pool-1 --vip_name vip22 --vip_ip 192.168.22.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
+create_vip --pool Pool-1 --vip_name vip32 --vip_ip 192.168.32.100 --vip_nics eth3 eth3 --node _node-a-ip-address_
 
 create_storage_resource --pool Pool-0 --storage_type iscsi   --quantity 2 --start_with 100 --increment 100 --zvols_per_target 2 --node _node-a-ip-address_
 create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
@@ -4321,16 +4295,16 @@ move            --pool Pool-1   --node _node-a-ip-address_
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line
-move      --pool Pool-1                 --node _node-a-ip-address_      # move
-scrub                                   --node _node-a-ip-address_      # scrub all
-reboot    --delay 10                    --node _node-a-ip-address_      # reboot
-move      --delay 15    --pool Pool-0   --node _node-a-ip-address_      # move
-move      --delay 15    --pool Pool-1   --node _node-a-ip-address_      # move
-reboot    --delay 10                    --node _node-a-ip-address_      # reboot
-scrub                                   --node _node-a-ip-address_      # scrub all
-reboot    --delay 10                    --node _node-b-ip-address_      # reboot node-b
-move      --delay 15    --pool Pool-1   --node _node-a-ip-address_      # move
-scrub                                   --node _node-a-ip-address_      # scrub all
+move      --pool Pool-1                --node _node-a-ip-address_    # move
+scrub                                  --node _node-a-ip-address_    # scrub all
+reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+move      --delay 15   --pool Pool-0   --node _node-a-ip-address_    # move
+move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
+reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+scrub                                  --node _node-a-ip-address_    # scrub all
+reboot    --delay 10                   --node _node-b-ip-address_    # reboot node-b
+move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
+scrub                                  --node _node-a-ip-address_    # scrub all
 """)
 
 
