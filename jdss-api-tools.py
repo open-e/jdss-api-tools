@@ -16,8 +16,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 
 2018-02-07  initial release
-2018-03-06  add create pool
-2018-03-18  add delete_clone option (it deletes the snapshot as well) (kris@dddistribution.be)
+2018-03-06  add create_pool
+2018-03-18  add delete_clone (it deletes the snapshot as well) (kris@dddistribution.be)
 2018-04-23  add set_host  --host --server --description
 2018-04-23  add network
 2018-04-23  add info
@@ -25,8 +25,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-06  add pools info
 2018-05-28  add set_time
 2018-06-06  fix spelling
-2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
-2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
+2018-06-07  add clone_existing_snapshot (kris@dddistribution.be)
+2018-06-09  add delete_clone_existing_snapshot (kris@dddistribution.be)
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
@@ -53,7 +53,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-03-15  add online activation
 2019-03-22  add pool import
 2019-05-18  improve info output (show if listed volume is nas or san volume)
-2019-05-18  add list_snapshots option (kris@dddistribution.be)
+2019-05-18  add list_snapshots (kris@dddistribution.be)
 2019-05-22  fix problem auto target name while host name using upper case
 2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
 2019-05-22  do not exit after error on target or volume creation
@@ -62,6 +62,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-06-18  add blocksize and recordsize for create_storage_resource
 2019-07-02  add detach_disk_from_pool
 2019-07-07  add delay to Move function
+2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
 """
 
 from __future__ import print_function
@@ -553,6 +554,11 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Attach volume to iSCSI target{END}.
+
+    {LG}%(prog)s attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Detach volume form iSCSI target{END}.
 
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
@@ -731,7 +737,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-                 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
+                 'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
                  'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
@@ -3686,6 +3692,25 @@ def attach_volume_to_target(ignore_error=None):
         print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
 
 
+def attach_volume_to_iscsi_target(ignore_error=None):
+    global node
+    for node in nodes:
+        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
+                   POOL_NAME=pool_name, TARGET_NAME=target_name)
+        data = dict(name=volume_name, mode='wt', device_handler='vdisk_blockio')
+        ## POST
+        post(endpoint,data)
+        if error:
+            if ignore_error is None:
+                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
+                    target_name,volume_name,node))
+
+        print_with_timestamp('Volume: {}/{} has been successfully attached to target.'.format(
+            pool_name,volume_name))
+        print("\n\tTarget:\t{}".format(target_name))
+        print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
+
+
 def detach_volume_from_iscsi_target(ignore_error=None):
     global node
     for node in nodes:
@@ -4120,6 +4145,12 @@ def command_processor() :
             if storage_volume_type != 'volume':
                 sys_exit_with_timestamp( 'Error: inconsistent options.')
         create_storage_resource()
+
+    elif action == 'attach_volume_to_iscsi_target':
+        c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: attach command expects (pool, volume, target_name), {} provided.'.format(c))
+        attach_volume_to_iscsi_target()
 
     elif action == 'detach_volume_from_iscsi_target':
         c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
