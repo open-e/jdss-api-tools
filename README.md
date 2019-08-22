@@ -87,11 +87,12 @@ import                        	</pre>
         jdss-api-tools.exe delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
-
  3. <b>Delete clones</b> (time-based)
 
-    Delete all clones with creation date older then two and half months
-    of iSCSI volume zvol00 from Pool-0 with 5 seconds prompted delay
+    Delete clones of provided volume and pool with creation date older then provided time period.
+
+    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay,
+    older than 2 months and 15 days:
     
         jdss-api-tools.exe delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220
 
@@ -101,9 +102,8 @@ import                        	</pre>
               3w1d12h -> three week and one day and twelth hour 
               2hours30min -> two and half hour
               2hours 30min -> two and half hour (with space between items)
-              
     
-    <b>Delete all clones</b> of NAS volume vol00 from Pool-0.
+    <b>Delete all (older_than 0 seconds) clones</b> of NAS volume vol00 from Pool-0.
 
         jdss-api-tools.exe delete_clones --pool Pool-0 --volume vol00 --older_than 0seconds --delay 1 --node 192.168.0.220
 
