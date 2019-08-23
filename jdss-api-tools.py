@@ -792,7 +792,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--volume',
         metavar='name',
-        default='auto',
+        #default='auto',
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -1271,6 +1271,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
+    volume_name                 = 'auto' if not volume_name and action not in 'delete_clones' else volume_name  ## set default to auto except 'delete_clones'
+    
     storage_type                = args['storage_type']			## it will be converted to upper below
 
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
