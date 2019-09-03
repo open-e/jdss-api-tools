@@ -1216,7 +1216,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.32'
     #test_command_line =  'clone --pool Pool-0 --volume zvol00 --node 192.168.0.32'
-    test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1min --delay 1 --node 192.168.0.32'
+    test_command_line =  'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
+    test_command_line =  'create_vip  --pool Pool-0  --vip_name vip21  --vip_ip 192.168.21.100  --vip_nics eth2 eth2  --node 192.168.0.80'
+    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1m --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -1670,7 +1672,7 @@ def human2seconds(age):
 
 
 
-def snapshot_age_seconds(creation):
+def snapshot_creation_to_seconds(creation):
     '''
     creation = snapshot creation time in seconds or date-string. Example: 2018-10-14 22:45:3
     '''
@@ -2078,7 +2080,7 @@ def get_all_volume_clones_older_than_given_age(vol_type):
     if vol_type in 'dataset':
         volumes = get('/pools/{POOL}/nas-volumes'.format(POOL=pool_name))
         
-    clones_origin_names = [(volume['name'],volume['origin'].replace('@','/').split('/')) for volume in volumes if volume['is_clone'] and snapshot_age_seconds(volume['creation']) > older_than]
+    clones_origin_names = [(volume['name'],volume['origin'].replace('@','/').split('/')) for volume in volumes if volume['is_clone'] and snapshot_creation_to_seconds(volume['creation']) > older_than]
     # example: [(u'clone-zvol00', [u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200'])]
     clones_pools_volumes_snapshots = [(item[0],item[1][0],item[1][1],item[1][2]) for item in clones_origin_names]
     # example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
@@ -2123,7 +2125,7 @@ def get_all_volume_snapshots_older_than_given_age(vol_type):
         snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=volume_name))
     # snapshots['entries'][0]['creation'] -> u'2019-8-15 14:0:1'
     if snapshots:
-        snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_age_seconds(snapshot['creation']) > older_than]
+        snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
     return snapshots_names or []
     
 
@@ -2193,8 +2195,8 @@ def print_nas_snapshots_details(header,fields):
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
-                        value = seconds2human(snapshot_age_seconds(property_dict['creation']))
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_creation_to_seconds(property_dict['creation']))
                         if 'src_plan' in property_dict.keys():
                             plan = property_dict['src_plan']
                         else:
@@ -2266,8 +2268,8 @@ def print_san_snapshots_details(header,fields):
                         value = snapshot_name
                     elif field in ('age',):
                         #time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
-                        value = seconds2human(snapshot_age_seconds(snapshot['creation']))
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
                         if 'org.znapzend:src_plan' in snapshot.keys():
                             plan = snapshot['org.znapzend:src_plan']
                         else:
@@ -2717,7 +2719,8 @@ def get_ring_interface_of_first_node():
 def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
-    #result = get('/cluster/nodes')
+    result = get('/cluster/nodes')
+     
     cluster_nodes = get('/cluster/nodes')
     if cluster_nodes:
         cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
@@ -2730,19 +2733,22 @@ def get_cluster_nodes_addresses():
     return cluster_nodes_addresses
 
 ## to-do
-def get_cluster_nodes_addresses():
-    global is_cluster
-    global local_cluster_node
-    global remote_cluster_node
-    local_cluster_node_ip_address = ''
-    remote_cluster_node_ip_address = ''
-    is_cluster = False
-    cluster_nodes = get('/cluster/nodes')
-    if cluster_nodes and len(cluster_nodes) >1:
-        is_cluster = True
-        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
-        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
-    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
+##def get_cluster_nodes_addresses():
+##    global is_cluster
+##    global local_cluster_node
+##    global remote_cluster_node
+##    local_cluster_node_ip_address = node
+##    remote_cluster_node_ip_address = ''
+##    is_cluster = False
+##    if is_cluster_configured():
+##        cluster_nodes = get('/cluster/nodes')
+##    else:
+##        cluster_nodes = None
+##    if cluster_nodes and len(cluster_nodes) >1:
+##        is_cluster = True
+##        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
+##        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
+##    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
 
 
 def get_cluster_node_id(node):
@@ -2789,11 +2795,11 @@ def create_vip():
     else:
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
-    cluster = False if len(cluster_ip_addresses) == 1 else True
-    node_b_address = cluster_ip_addresses[-1]
-    #node_b_address.remove(node)  # this will not work if ring is diff than management
+    cluster = True if cluster_ip_addresses and len(cluster_ip_addresses) > 1 else False
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
     if cluster:
+        node_b_address = cluster_ip_addresses[:]
+        node_b_address.remove(node) # this will not work if ring is diff than management
         ## cluster
         data = dict(name=vip_name,
                     address = vip_ip,
@@ -3648,6 +3654,7 @@ def create_storage_resource():
     global action_message
     action_message = 'Sending create storage resource request to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
+    ####
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
 
     if not active_node:
