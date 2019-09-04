@@ -16,8 +16,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 
 2018-02-07  initial release
-2018-03-06  add create pool
-2018-03-18  add delete_clone option (it deletes the snapshot as well) (kris@dddistribution.be)
+2018-03-06  add create_pool
+2018-03-18  add delete_clone (it deletes the snapshot as well) (kris@dddistribution.be)
 2018-04-23  add set_host  --host --server --description
 2018-04-23  add network
 2018-04-23  add info
@@ -25,8 +25,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2018-05-06  add pools info
 2018-05-28  add set_time
 2018-06-06  fix spelling
-2018-06-07  add clone_existing_snapshot option (kris@dddistribution.be)
-2018-06-09  add delete_clone_existing_snapshot option (kris@dddistribution.be)
+2018-06-07  add clone_existing_snapshot (kris@dddistribution.be)
+2018-06-09  add delete_clone_existing_snapshot (kris@dddistribution.be)
 2018-06-21  add user defined share name for clone and make share invisible by default
 2018-06-23  add bond create and delete
 2018-06-25  add bind_cluster
@@ -53,7 +53,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-03-15  add online activation
 2019-03-22  add pool import
 2019-05-18  improve info output (show if listed volume is nas or san volume)
-2019-05-18  add list_snapshots option (kris@dddistribution.be)
+2019-05-18  add list_snapshots (kris@dddistribution.be)
 2019-05-22  fix problem auto target name while host name using upper case
 2019-05-22  set iSCSI mode=BIO (as in up27 defaults to FIO) while iSCSI target attach
 2019-05-22  do not exit after error on target or volume creation
@@ -62,6 +62,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-06-18  add blocksize and recordsize for create_storage_resource
 2019-07-02  add detach_disk_from_pool
 2019-07-07  add delay to Move function
+2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
 2019-08-22  add delete clones
 """
 
@@ -300,27 +301,26 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
-{} {BOLD}Delete clones{END} (time-based)
+{} {BOLD}Delete clones{END} (time-based).
 
-    Delete clones of provided volume and pool with creation date older then provided time period.
+    Delete clones of provided volume and pool with creation date older than provided time period.
 
-    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay,
-    older than 2 months and 15 days:
-    
+    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay, older than 2 months and 15 days.
+
     {LG}%(prog)s delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220{ENDF}
 
-    The older_than option is human_readable clone age wrtitten with or without spaces with folowing units:
-    year,y,  month,m,  week,w,  day,d,  hour,h,  minute,min,  second,sec
-    example:  2m15d  -> two and half months
-              3w1d12h -> three week and one day and twelth hour 
-              2hours30min -> two and half hour
-              2hours 30min -> two and half hour (with space between items)
-    
+    The older_than option is human readable clone age written with or without spaces with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
+               2hours 30min -> two and a half hours (with space between)
+
     {BOLD}Delete all (older_than 0 seconds) clones{END} of NAS volume vol00 from Pool-0.
 
     {LG}%(prog)s delete_clones --pool Pool-0 --volume vol00 --older_than 0seconds --delay 1 --node 192.168.0.220{ENDF}
 
-    In order to delete all clones the older_than must be zero.
+    In order to delete all clones, the older_than must be zero.
     If the older_than option is missing, nothing will be deleted.
 
 
@@ -578,6 +578,11 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Attach volume to iSCSI target{END}.
+
+    {LG}%(prog)s attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Detach volume form iSCSI target{END}.
 
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
@@ -660,7 +665,6 @@ def get_args(batch_args_line=None):
     The batch setup will start to configure first node.
     Now, the second node can be booted.
     Once the second node is up, the RESTapi must also be enabled via GUI.
-
 
     {LG}%(prog)s batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt{ENDF}
     {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
@@ -756,7 +760,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         'cmd',
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-                 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
+                 'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
                  'delete_clone', 'delete_clones', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
@@ -1149,7 +1153,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='age_string',
         nargs = '*',
         default=['99years'],
-        help='The older_than option is human_readable clone age. Units: y,m,w,d,h,min,sec'
+        help='The older_than option is human readable clone age. Units: year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec'
     )
     parser.add_argument(
         '--menu',
@@ -1214,11 +1218,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.32'
-    #test_command_line =  'clone --pool Pool-0 --volume zvol00 --node 192.168.0.32'
-    test_command_line =  'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
-    test_command_line =  'create_vip  --pool Pool-0  --vip_name vip21  --vip_ip 192.168.21.100  --vip_nics eth2 eth2  --node 192.168.0.80'
-    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1m --delay 1 --node 192.168.0.32'
+    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
+    #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
+    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1min --delay 1 --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -1274,7 +1278,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     pool_name                   = args['pool']
     volume_name                 = args['volume']
     volume_name                 = 'auto' if not volume_name and action not in 'delete_clones' else volume_name  ## set default to auto except 'delete_clones'
-    
+
     storage_type                = args['storage_type']			## it will be converted to upper below
 
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
@@ -1358,7 +1362,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     hour                        = args['hour']
     minute                      = args['minute']
 
-    older_than                  = args['older_than']                ## list 
+    older_than                  = args['older_than']                ## list
     older_than                  = ''.join(older_than)               ## list to string
     older_than                  = human2seconds(older_than)         ## string to seconds
 
@@ -1614,11 +1618,11 @@ def interval_seconds(plan):
 
 def human2seconds(age):
     '''
-    param: human_readable age wrtitten without any spaces or interpuction with folowing units:
-    year,y,  month,m,  week,w,  day,d,  hour,h,  minute,min, second,sec
-    example:  2m15d  -> two and half months
-              3w1d12h -> three week and one day and twelth hour 
-              2hours30min -> two and half hour
+    param: human_readable age written without any spaces or interpunction with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
     '''
     def split_items(age):
         out=''; previous = '0'
@@ -1651,7 +1655,7 @@ def human2seconds(age):
             'weeks',    '-week ').replace(
             'months',  '-month ').replace(
             'years',    '-year ').strip()
-                
+
         try:
             seconds = eval(age.replace(
                 'seconds',          '*'+str(1)).replace(
@@ -1669,7 +1673,6 @@ def human2seconds(age):
 
     ##
     return  sum([item2seconds(item) for item in split_items(age)])
-
 
 
 def snapshot_creation_to_seconds(creation):
@@ -1813,25 +1816,18 @@ def expand_ip_range(ip_range):
 	return ip_list
 
 
-#def display_delay(msg):
-#    for sec in range(delay, 0, -1) :
-#        print( '{} in {:>2} seconds \r'.format(msg,sec))
-#        time.sleep(1)
-
-
 def display_delay(msg):
 
     def backspace(n):
-        sys.stdout.write((b'\x08' * n).decode()) # use \x08 char to go back   
+        sys.stdout.write((b'\x08' * n).decode()) # use \x08 char to go back
 
     for sec in range(delay, 0, -1) :
         print
         s = '{} in {:>2} seconds ...          '.format(msg,sec)
         sys.stdout.write(s)                     # just print
         sys.stdout.flush()                      # needed for flush when using \x08
-        backspace(len(s))                       # back n chars    
-        time.sleep(1)                         
-
+        backspace(len(s))                       # back n chars
+        time.sleep(1)
 
 def shutdown_nodes():
     global node
@@ -1840,7 +1836,7 @@ def shutdown_nodes():
     _nodes = get_cluster_nodes_addresses()
     passive_node = [_node for _node in _nodes if _node not in node][0]
     wait_for_move_destination_node(passive_node)
-    wait_for_zero_unmanaged_pools() 
+    wait_for_zero_unmanaged_pools()
     display_delay('Shutdown')
     for node in nodes:
         post('/power/shutdown',dict(force=False))
@@ -1848,14 +1844,14 @@ def shutdown_nodes():
     time.sleep(60)
 
 
-def reboot_nodes() :
+def reboot_nodes():
     global node
     global action_message
     action_message = 'Sending reboot request to: {}'.format(node)
     _nodes = get_cluster_nodes_addresses()
     passive_node = [_node for _node in _nodes if _node not in node][0]
     wait_for_move_destination_node(passive_node)
-    wait_for_zero_unmanaged_pools() 
+    wait_for_zero_unmanaged_pools()
     display_delay('Reboot')
     for node in nodes:
         post('/power/reboot', dict(force=False))
@@ -2048,12 +2044,13 @@ def delete_clones(vol_type):
         for clone in clones:
             clone_name = clone[0]
             print_with_timestamp('Clone: {} of {} {} will be deleted.'.format(clone_name, pool_name, volume_name))
-        display_delay('DELETING clones...')
+        display_delay('DELETING clones ...')
+        print()
         for clone in clones:
             clone_name = clone[0]
             snapshot_name = clone[3]
             resp_code = delete_clone(vol_type,clone_name, snapshot_name)
-            print(resp_code)
+            #print(resp_code)
             if resp_code == 204:
                 print_with_timestamp('Clone: {} of {} {} has been deleted.'.format(clone_name, pool_name, volume_name))
             else:
@@ -2061,7 +2058,7 @@ def delete_clones(vol_type):
     else:
         print_with_timestamp('No clones older than {} found on {} {}.'.format(older_than_string_to_print, pool_name, volume_name))
 
-    
+
 def delete_clone(vol_type,clone_name, snapshot_name):
     data = dict(umount=True, force_umount=True)
     if vol_type in 'volume':
@@ -2071,7 +2068,7 @@ def delete_clone(vol_type,clone_name, snapshot_name):
         resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
             POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name, CLONE=clone_name),data)
     #print(vol_type,clone_name, snapshot_name, volume_name,pool_name)
-    return resp.code # Http code 204 on success
+    return resp.code if resp is not None else None # Http code 204 on success
 
 
 def get_all_volume_clones_older_than_given_age(vol_type):
@@ -2079,13 +2076,13 @@ def get_all_volume_clones_older_than_given_age(vol_type):
         volumes = get('/pools/{POOL}/volumes'.format(POOL=pool_name))
     if vol_type in 'dataset':
         volumes = get('/pools/{POOL}/nas-volumes'.format(POOL=pool_name))
-        
+
     clones_origin_names = [(volume['name'],volume['origin'].replace('@','/').split('/')) for volume in volumes if volume['is_clone'] and snapshot_creation_to_seconds(volume['creation']) > older_than]
-    # example: [(u'clone-zvol00', [u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200'])]
+    # Example: [(u'clone-zvol00', [u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200'])]
     clones_pools_volumes_snapshots = [(item[0],item[1][0],item[1][1],item[1][2]) for item in clones_origin_names]
-    # example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
-    return clones_pools_volumes_snapshots 
-    
+    # Example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
+    return clones_pools_volumes_snapshots
+
 
 def delete_snapshots():
     snapshots_names = get_snapshots_names()
@@ -2106,7 +2103,7 @@ def delete_snapshot(vol_type, snapshot_name):
         resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name), data)
     return resp.code if resp is not None else None # Http code 204 on success
 
-    
+
 def get_snapshot_clones(snapshot_name):
     clones = clones_names = None
     if vol_type in 'volume':
@@ -2127,7 +2124,7 @@ def get_all_volume_snapshots_older_than_given_age(vol_type):
     if snapshots:
         snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
     return snapshots_names or []
-    
+
 
 def print_nas_snapshots_details(header,fields):
     global pool_name
@@ -2720,7 +2717,7 @@ def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
     result = get('/cluster/nodes')
-     
+
     cluster_nodes = get('/cluster/nodes')
     if cluster_nodes:
         cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
@@ -2731,6 +2728,7 @@ def get_cluster_nodes_addresses():
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
     return cluster_nodes_addresses
+
 
 ## to-do
 ##def get_cluster_nodes_addresses():
@@ -2946,9 +2944,8 @@ def move():
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
-
     cluster_pools_names = get_cluster_pools_names()
-    if pool_name not in cluster_pools_names :
+    if pool_name not in cluster_pools_names:
         print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
         return
 
@@ -2972,7 +2969,7 @@ def move():
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
             ## wait ...
             wait_for_move_destination_node(passive_node)
-            wait_for_zero_unmanaged_pools() 
+            wait_for_zero_unmanaged_pools()
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
@@ -2982,7 +2979,7 @@ def move():
             else:
                 break
     ## wait for pool import
-    time.sleep(15) 
+    time.sleep(15)
     new_active_node = ''
     for _ in range(15):
         for node in nodes:
@@ -3909,6 +3906,25 @@ def attach_volume_to_target(ignore_error=None):
         print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
 
 
+def attach_volume_to_iscsi_target(ignore_error=None):
+    global node
+    for node in nodes:
+        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
+                   POOL_NAME=pool_name, TARGET_NAME=target_name)
+        data = dict(name=volume_name, mode='wt', device_handler='vdisk_blockio')
+        ## POST
+        post(endpoint,data)
+        if error:
+            if ignore_error is None:
+                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
+                    target_name,volume_name,node))
+
+        print_with_timestamp('Volume: {}/{} has been successfully attached to target.'.format(
+            pool_name,volume_name))
+        print("\n\tTarget:\t{}".format(target_name))
+        print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
+
+
 def detach_volume_from_iscsi_target(ignore_error=None):
     global node
     for node in nodes:
@@ -4318,9 +4334,9 @@ def command_processor() :
     elif action == 'delete_clones':
         c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
         if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: delete_clones command expects 2 arguments (pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
-        delete_clones(vol_type)
+        delete_clones( vol_type )
 
     elif action == 'delete_clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
@@ -4350,6 +4366,12 @@ def command_processor() :
             if storage_volume_type != 'volume':
                 sys_exit_with_timestamp( 'Error: inconsistent options.')
         create_storage_resource()
+
+    elif action == 'attach_volume_to_iscsi_target':
+        c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
+        if c < 3:
+            sys_exit_with_timestamp( 'Error: attach command expects (pool, volume, target_name), {} provided.'.format(c))
+        attach_volume_to_iscsi_target()
 
     elif action == 'detach_volume_from_iscsi_target':
         c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
@@ -4463,18 +4485,18 @@ factory_setup_files_content = dict(
 #
 # The '#' comments-out the rest of the line
 # 
-network     --nic eth0      --new_ip _node-a-ip-address_                --node _node-a-ip-address_  # SET ETH
-network     --nic eth1      --new_ip:nic                --node _node-a-ip-address_  # SET ETH
-network     --nic eth2      --new_ip:nic                --node _node-a-ip-address_  # SET ETH
-network     --nic eth3      --new_ip:nic                --node _node-a-ip-address_  # SET ETH
-network     --nic eth4      --new_ip:nic                --node _node-a-ip-address_  # SET ETH
-network     --nic eth5      --new_ip:nic                --node _node-a-ip-address_  # SET ETH
-# network   --nic eth6      --new_ip:nic            --node _node-a-ip-address_
-# network   --nic eth7      --new_ip:nic            --node _node-a-ip-address_
-# network   --nic eth8      --new_ip:nic            --node _node-a-ip-address_
-# network   --nic eth9      --new_ip:nic            --node _node-a-ip-address_
-# network   --nic eth10     --new_ip:nic           --node _node-a-ip-address_
-# network   --nic eth11     --new_ip:nic           --node _node-a-ip-address_
+network     --nic eth0      --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth1      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth2      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth3      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth4      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth5      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+# network   --nic eth6      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth7      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth8      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth9      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth10     --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth11     --new_ip:nic   --node _node-a-ip-address_
 
 create_bond --bond_nics eth0 eth1 --new_ip:bond --bond_type active-backup --new_gw 192.168.0.1 --new_dns 192.168.0.1 --node _node-a-ip-address_
 
@@ -4506,13 +4528,13 @@ set_mirror_path  --mirror_nics bond1 bond1               --node _node-a-ip-addre
 
 start_cluster                                            --node _node-a-ip-address_
 
-create_pool --pool Pool-0  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
-create_pool --pool Pool-1  --vdevs 1   --vdev mirror  --vdev_disks 4  --tolerance 20GB   --node _node-a-ip-address_
+create_pool --pool Pool-0 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
+create_pool --pool Pool-1 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
 
-create_vip  --pool Pool-0  --vip_name vip21  --vip_ip 192.168.21.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
-create_vip  --pool Pool-0  --vip_name vip31  --vip_ip 192.168.31.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
-create_vip  --pool Pool-1  --vip_name vip22  --vip_ip 192.168.22.100  --vip_nics eth2 eth2  --node _node-a-ip-address_
-create_vip  --pool Pool-1  --vip_name vip32  --vip_ip 192.168.32.100  --vip_nics eth3 eth3  --node _node-a-ip-address_
+create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
+create_vip --pool Pool-0 --vip_name vip31 --vip_ip 192.168.31.100 --vip_nics eth3 eth3 --node _node-a-ip-address_
+create_vip --pool Pool-1 --vip_name vip22 --vip_ip 192.168.22.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
+create_vip --pool Pool-1 --vip_name vip32 --vip_ip 192.168.32.100 --vip_nics eth3 eth3 --node _node-a-ip-address_
 
 create_storage_resource --pool Pool-0 --storage_type iscsi   --quantity 2 --start_with 100 --increment 100 --zvols_per_target 2 --node _node-a-ip-address_
 create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
@@ -4525,16 +4547,16 @@ move            --pool Pool-1   --node _node-a-ip-address_
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line
-move      --pool Pool-1                 --node _node-a-ip-address_      # move 
-scrub                                   --node _node-a-ip-address_      # scrub all
-reboot    --delay 10                    --node _node-a-ip-address_      # reboot
-move      --delay 15    --pool Pool-0   --node _node-a-ip-address_      # move 
-move      --delay 15    --pool Pool-1   --node _node-a-ip-address_      # move 
-reboot    --delay 10                    --node _node-a-ip-address_      # reboot
-scrub                                   --node _node-a-ip-address_      # scrub all
-reboot    --delay 10                    --node _node-b-ip-address_      # reboot node-b
-move      --delay 15    --pool Pool-1   --node _node-a-ip-address_      # move 
-scrub                                   --node _node-a-ip-address_      # scrub all
+move      --pool Pool-1                --node _node-a-ip-address_    # move
+scrub                                  --node _node-a-ip-address_    # scrub all
+reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+move      --delay 15   --pool Pool-0   --node _node-a-ip-address_    # move
+move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
+reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+scrub                                  --node _node-a-ip-address_    # scrub all
+reboot    --delay 10                   --node _node-b-ip-address_    # reboot node-b
+move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
+scrub                                  --node _node-a-ip-address_    # scrub all
 """)
 
 

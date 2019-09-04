@@ -9,15 +9,15 @@
 
  <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
-modify_volume                 	detach_volume_from_iscsi_target	detach_disk_from_pool
-delete_clone                  	delete_clones                 	delete_clone_existing_snapshot
-set_host                      	set_time                      	network
-create_bond                   	delete_bond                   	bind_cluster
-set_ping_nodes                	set_mirror_path               	create_vip
-start_cluster                 	move                          	info
-list_snapshots                	shutdown                      	reboot
-batch_setup                   	create_factory_setup_files    	activate
-import                        	</pre>
+modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from_iscsi_target
+detach_disk_from_pool         	delete_clone                  	delete_clones
+delete_clone_existing_snapshot	set_host                      	set_time
+network                       	create_bond                   	delete_bond
+bind_cluster                  	set_ping_nodes                	set_mirror_path
+create_vip                    	start_cluster                 	move
+info                          	list_snapshots                	shutdown
+reboot                        	batch_setup                   	create_factory_setup_files
+activate                      	import                        	</pre>
 
 <b>Commands description:</b>
 
@@ -87,27 +87,26 @@ import                        	</pre>
         jdss-api-tools.exe delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345
 
 
- 3. <b>Delete clones</b> (time-based)
+ 3. <b>Delete clones</b> (time-based).
 
-    Delete clones of provided volume and pool with creation date older then provided time period.
+    Delete clones of provided volume and pool with creation date older than provided time period.
 
-    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay,
-    older than 2 months and 15 days:
-    
+    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay, older than 2 months and 15 days.
+
         jdss-api-tools.exe delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220
 
-    The older_than option is human_readable clone age wrtitten with or without spaces with folowing units:
-    year,y,  month,m,  week,w,  day,d,  hour,h,  minute,min,  second,sec
-    example:  2m15d  -> two and half months
-              3w1d12h -> three week and one day and twelth hour 
-              2hours30min -> two and half hour
-              2hours 30min -> two and half hour (with space between items)
-    
+    The older_than option is human readable clone age written with or without spaces with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
+               2hours 30min -> two and a half hours (with space between)
+
     <b>Delete all (older_than 0 seconds) clones</b> of NAS volume vol00 from Pool-0.
 
         jdss-api-tools.exe delete_clones --pool Pool-0 --volume vol00 --older_than 0seconds --delay 1 --node 192.168.0.220
 
-    In order to delete all clones the older_than must be zero.
+    In order to delete all clones, the older_than must be zero.
     If the older_than option is missing, nothing will be deleted.
 
 
@@ -365,12 +364,17 @@ import                        	</pre>
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220
 
 
-21. <b>Detach volume form iSCSI target</b>.
+21. <b>Attach volume to iSCSI target</b>.
+
+        jdss-api-tools.exe attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
+
+
+22. <b>Detach volume form iSCSI target</b>.
 
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-22. <b>Detach disk form pool</b>.
+23. <b>Detach disk form pool</b>.
 
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
@@ -378,7 +382,7 @@ import                        	</pre>
         jdss-api-tools.exe detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
 
 
-23. <b>Scrub</b> start|stop|status.
+24. <b>Scrub</b> start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -398,7 +402,7 @@ import                        	</pre>
         jdss-api-tools.exe scrub --action status --node 192.168.0.220
 
 
-24. <b>Set scrub scheduler</b>.
+25. <b>Set scrub scheduler</b>.
 
     By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
@@ -427,7 +431,7 @@ import                        	</pre>
      <b>https:</b>//<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-25. <b>Generate factory setup files for batch setup</b>.
+26. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -439,7 +443,7 @@ import                        	</pre>
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1
 
 
-26. <b>Execute factory setup files for batch setup</b>.
+27. <b>Execute factory setup files for batch setup</b>.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -448,12 +452,11 @@ import                        	</pre>
     Now, the second node can be booted.
     Once the second node is up, the RESTapi must also be enabled via GUI.
 
-
         jdss-api-tools.exe batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-27. <b>Product activation</b>.
+28. <b>Product activation</b>.
 
         jdss-api-tools.exe activate --online --node 192.168.0.220
 
@@ -462,7 +465,7 @@ import                        	</pre>
     Note: The off-line activation is not implemented yet.
 
 
-28. <b>Print system info</b>.
+29. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -476,7 +479,7 @@ import                        	</pre>
         jdss-api-tools.exe info --all --node 192.168.0.220
 
 
-29. <b>Print only snapshot info</b>.
+30. <b>Print only snapshot info</b>.
 
         jdss-api-tools.exe list_snapshots --node 192.168.0.220
 
@@ -528,14 +531,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
  <pre>clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
-modify_volume                 	detach_volume_from_iscsi_target	detach_disk_from_pool
-delete_clone                  	delete_clones                 	delete_clone_existing_snapshot
-set_host                      	set_time                      	network
-create_bond                   	delete_bond                   	bind_cluster
-set_ping_nodes                	set_mirror_path               	create_vip
-start_cluster                 	move                          	info
-list_snapshots                	shutdown                      	reboot
-batch_setup                   	create_factory_setup_files    	activate
-import                        	</pre>
+modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from_iscsi_target
+detach_disk_from_pool         	delete_clone                  	delete_clones
+delete_clone_existing_snapshot	set_host                      	set_time
+network                       	create_bond                   	delete_bond
+bind_cluster                  	set_ping_nodes                	set_mirror_path
+create_vip                    	start_cluster                 	move
+info                          	list_snapshots                	shutdown
+reboot                        	batch_setup                   	create_factory_setup_files
+activate                      	import                        	</pre>
  
  
