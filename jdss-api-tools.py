@@ -63,6 +63,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-07-02  add detach_disk_from_pool
 2019-07-07  add delay to Move function
 2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
+2019-08-22  add delete clones
 """
 
 from __future__ import print_function
@@ -298,6 +299,29 @@ def get_args(batch_args_line=None):
     The example is using password 12345 and default port.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
+
+
+{} {BOLD}Delete clones{END} (time-based).
+
+    Delete clones of provided volume and pool with creation date older than provided time period.
+
+    This example deletes clones of iSCSI zvol00 from Pool-0 with 5 seconds prompted delay, older than 2 months and 15 days.
+
+    {LG}%(prog)s delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220{ENDF}
+
+    The older_than option is human readable clone age written with or without spaces with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
+               2hours 30min -> two and a half hours (with space between)
+
+    {BOLD}Delete all (older_than 0 seconds) clones{END} of NAS volume vol00 from Pool-0.
+
+    {LG}%(prog)s delete_clones --pool Pool-0 --volume vol00 --older_than 0seconds --delay 1 --node 192.168.0.220{ENDF}
+
+    In order to delete all clones, the older_than must be zero.
+    If the older_than option is missing, nothing will be deleted.
 
 
 {} {BOLD}Create pool{END} on single node or cluster with single JBOD:
@@ -642,7 +666,6 @@ def get_args(batch_args_line=None):
     Now, the second node can be booted.
     Once the second node is up, the RESTapi must also be enabled via GUI.
 
-
     {LG}%(prog)s batch_setup --setup_files api_setup_single_node_80.txt api_setup_single_node_81.txt api_setup_cluster_80.txt{ENDF}
     {LG}%(prog)s batch_setup --setup_files api_test_cluster_80.txt{ENDF}
 
@@ -738,7 +761,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
-                 'delete_clone', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+                 'delete_clone', 'delete_clones', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
@@ -773,7 +796,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--volume',
         metavar='name',
-        default='auto',
+        #default='auto',
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -1126,6 +1149,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         help='Enter the minute of schedule plan, default=15'
     )
     parser.add_argument(
+        '--older_than',
+        metavar='age_string',
+        nargs = '*',
+        default=['99years'],
+        help='The older_than option is human readable clone age. Units: year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec'
+    )
+    parser.add_argument(
         '--menu',
         dest='menu',
         action='store_true',
@@ -1188,7 +1218,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --node 192.168.0.80'
+    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
+    #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
+    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1min --delay 1 --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -1217,6 +1251,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global size, blocksize, recordsize, quota, reservation, sync, sparse, snapshot_name
     global nodes, ping_nodes, node
     global delay, menu
+    global older_than
     global share_name, visible
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
     global number_of_disks_in_jbod
@@ -1242,6 +1277,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
+    volume_name                 = 'auto' if not volume_name and action not in 'delete_clones' else volume_name  ## set default to auto except 'delete_clones'
+
     storage_type                = args['storage_type']			## it will be converted to upper below
 
     sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
@@ -1324,6 +1361,10 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     day_of_the_week             = args['day_of_the_week']
     hour                        = args['hour']
     minute                      = args['minute']
+
+    older_than                  = args['older_than']                ## list
+    older_than                  = ''.join(older_than)               ## list to string
+    older_than                  = human2seconds(older_than)         ## string to seconds
 
     menu                        = args['menu']
     setup_files                 = args['setup_files']
@@ -1575,7 +1616,66 @@ def interval_seconds(plan):
           'years', '*'+str(60*60*24*365)) ) for item in plan.split(',')])
 
 
-def snapshot_age_seconds(creation):
+def human2seconds(age):
+    '''
+    param: human_readable age written without any spaces or interpunction with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
+    '''
+    def split_items(age):
+        out=''; previous = '0'
+        for char in age:
+            out += '#' + char if char.isdigit() and not previous.isdigit() else char
+            previous = char
+        return out.split('#')
+
+    def item2seconds(age):
+        age = age.lower()
+        if age in '0': age = '0sec'
+        alpha = filter(str.isalpha,age)
+        seconds = 3600*24*365*99 # 99 years
+        if alpha in ('second','minute','hour','day','week','month','year'):
+            age = age + 's'
+        if alpha in 'sec'       : age = age.replace('sec','seconds')
+        if alpha in 'min'       : age = age.replace('min','minutes')
+        if alpha in 'h'         : age = age.replace('h','hours')
+        if alpha in 'd'         : age = age.replace('d','days')
+        if alpha in 'w'         : age = age.replace('w','weeks')
+        if alpha in 'm'         : age = age.replace('m','months')
+        if alpha in 'y'         : age = age.replace('y','years')
+
+        global older_than_string_to_print
+        older_than_string_to_print = age.replace(
+            'seconds','-second ').replace(
+            'minutes','-minute ').replace(
+            'hours',    '-hour ').replace(
+            'days',      '-day ').replace(
+            'weeks',    '-week ').replace(
+            'months',  '-month ').replace(
+            'years',    '-year ').strip()
+
+        try:
+            seconds = eval(age.replace(
+                'seconds',          '*'+str(1)).replace(
+                'minutes',         '*'+str(60)).replace(
+                'hours',        '*'+str(60*60)).replace(
+                'days',      '*'+str(60*60*24)).replace(
+                'weeks',   '*'+str(60*60*24*7)).replace(
+                'months', '*'+str(60*60*24*30)).replace(
+                'years', '*'+str(60*60*24*365)))
+        except:
+            print_with_timestamp('Age:{} Syntax error'.format(age))
+            print_with_exit(human2seconds.__doc__) # EXIT
+
+        return seconds
+
+    ##
+    return  sum([item2seconds(item) for item in split_items(age)])
+
+
+def snapshot_creation_to_seconds(creation):
     '''
     creation = snapshot creation time in seconds or date-string. Example: 2018-10-14 22:45:3
     '''
@@ -1936,6 +2036,96 @@ def print_nas_volumes_details(header,fields):
             print(field_format_template.format(*volume_details))
 
 
+def delete_clones(vol_type):
+    global action_message
+    action_message = 'Sending delete clones request to: {}'.format(node)
+    clones = get_all_volume_clones_older_than_given_age(vol_type)
+    if clones:
+        for clone in clones:
+            clone_name = clone[0]
+            print_with_timestamp('Clone: {} of {} {} will be deleted.'.format(clone_name, pool_name, volume_name))
+        display_delay('DELETING clones ...')
+        print()
+        for clone in clones:
+            clone_name = clone[0]
+            snapshot_name = clone[3]
+            resp_code = delete_clone(vol_type,clone_name, snapshot_name)
+            #print(resp_code)
+            if resp_code == 204:
+                print_with_timestamp('Clone: {} of {} {} has been deleted.'.format(clone_name, pool_name, volume_name))
+            else:
+                print_with_timestamp('Cannot delete clone: {} of {} {}.'.format(clone_name, pool_name, volume_name))
+    else:
+        print_with_timestamp('No clones older than {} found on {} {}.'.format(older_than_string_to_print, pool_name, volume_name))
+
+
+def delete_clone(vol_type,clone_name, snapshot_name):
+    data = dict(umount=True, force_umount=True)
+    if vol_type in 'volume':
+        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
+            POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name, CLONE=clone_name),data)
+    if vol_type in 'dataset':
+        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
+            POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name, CLONE=clone_name),data)
+    #print(vol_type,clone_name, snapshot_name, volume_name,pool_name)
+    return resp.code if resp is not None else None # Http code 204 on success
+
+
+def get_all_volume_clones_older_than_given_age(vol_type):
+    if vol_type in 'volume':
+        volumes = get('/pools/{POOL}/volumes'.format(POOL=pool_name))
+    if vol_type in 'dataset':
+        volumes = get('/pools/{POOL}/nas-volumes'.format(POOL=pool_name))
+
+    clones_origin_names = [(volume['name'],volume['origin'].replace('@','/').split('/')) for volume in volumes if volume['is_clone'] and snapshot_creation_to_seconds(volume['creation']) > older_than]
+    # Example: [(u'clone-zvol00', [u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200'])]
+    clones_pools_volumes_snapshots = [(item[0],item[1][0],item[1][1],item[1][2]) for item in clones_origin_names]
+    # Example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
+    return clones_pools_volumes_snapshots
+
+
+def delete_snapshots():
+    snapshots_names = get_snapshots_names()
+    for snapshot_name in snapshots_names:
+        resp = delete_snapshot(snapshot_name)
+        if resp:
+            print_with_timestamp('Snapshot: {} deleted.'.format(snapshot_name))
+        else:
+            print_with_timestamp('Cannot delete snapshot: {}.'.format(snapshot_name))
+
+
+def delete_snapshot(vol_type, snapshot_name):
+    #data = {'recursively_dependents':True}
+    data = {}
+    if vol_type in 'volume':
+        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name), data)
+    if vol_type in 'dataset':
+        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name), data)
+    return resp.code if resp is not None else None # Http code 204 on success
+
+
+def get_snapshot_clones(snapshot_name):
+    clones = clones_names = None
+    if vol_type in 'volume':
+        clones = get('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
+    if vol_type in 'dataset':
+        clones = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots/{SNAPSHOT}/clones'.format(POOL=pool_name,DATASET=volume_name,SNAPSHOT=snapshot_name))
+    if clones:
+        clones_names = [clone['full_name'] for clone in clones]
+    return clones_names or []
+
+## @@@
+def get_all_volume_snapshots_older_than_given_age(vol_type):
+    if vol_type in 'volume':
+        snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=volume_name))
+    if vol_type in 'dataset':
+        snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=volume_name))
+    # snapshots['entries'][0]['creation'] -> u'2019-8-15 14:0:1'
+    if snapshots:
+        snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
+    return snapshots_names or []
+
+
 def print_nas_snapshots_details(header,fields):
     global pool_name
     pools = get('/pools')
@@ -2002,8 +2192,8 @@ def print_nas_snapshots_details(header,fields):
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
-                        value = seconds2human(snapshot_age_seconds(property_dict['creation']))
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_creation_to_seconds(property_dict['creation']))
                         if 'src_plan' in property_dict.keys():
                             plan = property_dict['src_plan']
                         else:
@@ -2075,8 +2265,8 @@ def print_san_snapshots_details(header,fields):
                         value = snapshot_name
                     elif field in ('age',):
                         #time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_age_seconds(time_stamp_string))
-                        value = seconds2human(snapshot_age_seconds(snapshot['creation']))
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
                         if 'org.znapzend:src_plan' in snapshot.keys():
                             plan = snapshot['org.znapzend:src_plan']
                         else:
@@ -2527,8 +2717,10 @@ def get_cluster_nodes_addresses():
     global is_cluster
     is_cluster = False
     result = get('/cluster/nodes')
-    if result:
-        cluster_nodes_addresses = [cluster_node['address']for cluster_node in result]
+
+    cluster_nodes = get('/cluster/nodes')
+    if cluster_nodes:
+        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
     else:
         cluster_nodes_addresses = []
     if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
@@ -2536,6 +2728,25 @@ def get_cluster_nodes_addresses():
     else:
         cluster_nodes_addresses = node.split()  ## the node as single item list
     return cluster_nodes_addresses
+
+
+## to-do
+##def get_cluster_nodes_addresses():
+##    global is_cluster
+##    global local_cluster_node
+##    global remote_cluster_node
+##    local_cluster_node_ip_address = node
+##    remote_cluster_node_ip_address = ''
+##    is_cluster = False
+##    if is_cluster_configured():
+##        cluster_nodes = get('/cluster/nodes')
+##    else:
+##        cluster_nodes = None
+##    if cluster_nodes and len(cluster_nodes) >1:
+##        is_cluster = True
+##        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
+##        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
+##    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
 
 
 def get_cluster_node_id(node):
@@ -2582,11 +2793,11 @@ def create_vip():
     else:
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
     cluster_ip_addresses = get_cluster_nodes_addresses()
-    cluster = False if len(cluster_ip_addresses) == 1 else True
-    node_b_address = cluster_ip_addresses
-    node_b_address.remove(node)
+    cluster = True if cluster_ip_addresses and len(cluster_ip_addresses) > 1 else False
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
     if cluster:
+        node_b_address = cluster_ip_addresses[:]
+        node_b_address.remove(node) # this will not work if ring is diff than management
         ## cluster
         data = dict(name=vip_name,
                     address = vip_ip,
@@ -2685,7 +2896,7 @@ def start_cluster():
 
     started = False
 
-    cluster_nodes_addresses = get_cluster_nodes_addresses()
+    ## to-do  cluster_nodes_addresses = get_cluster_nodes_addresses()
     if not cluster_bind_set():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
 
@@ -2733,6 +2944,11 @@ def move():
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
         sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
+    cluster_pools_names = get_cluster_pools_names()
+    if pool_name not in cluster_pools_names:
+        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
+        return
+
     active_node = ''
     passive_node = ''
     new_active_node = ''
@@ -2749,6 +2965,7 @@ def move():
         if pool_name in pool_names:
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
+            display_delay('Move')
             print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
             ## wait ...
             wait_for_move_destination_node(passive_node)
@@ -2756,15 +2973,11 @@ def move():
             data=dict(node_id= get_cluster_node_id(passive_node))
             endpoint='/cluster/resources/{}/move-resource'.format(pool_name)
             ## POST
-            display_delay('Move')
             post(endpoint,data)
             if error:
                 sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
-
-    if not pool_names:
-        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
-        return
-
+            else:
+                break
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
@@ -3438,6 +3651,7 @@ def create_storage_resource():
     global action_message
     action_message = 'Sending create storage resource request to: {}'.format(node)
     initialize_pool_based_consecutive_number_generator()
+    ####
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
 
     if not active_node:
@@ -4117,6 +4331,13 @@ def command_processor() :
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
 
+    elif action == 'delete_clones':
+        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
+        if c < 2:
+            sys_exit_with_timestamp( 'Error: delete_clones command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        vol_type = check_given_volume_name()
+        delete_clones( vol_type )
+
     elif action == 'delete_clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
         if c < 3:
@@ -4264,18 +4485,18 @@ factory_setup_files_content = dict(
 #
 # The '#' comments-out the rest of the line
 # 
-network     --nic eth0    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth1    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth2    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth3    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth4    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-network     --nic eth5    --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
-#   network   --nic eth6      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
-#   network   --nic eth7      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
-#   network   --nic eth8      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
-#   network   --nic eth9      --new_ip _node-a-ip-address_   --node _node-a-ip-address_
-#   network   --nic eth10     --new_ip _node-a-ip-address_   --node _node-a-ip-address_
-#   network   --nic eth11     --new_ip _node-a-ip-address_   --node _node-a-ip-address_
+network     --nic eth0      --new_ip _node-a-ip-address_   --node _node-a-ip-address_  # SET ETH
+network     --nic eth1      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth2      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth3      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth4      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+network     --nic eth5      --new_ip:nic   --node _node-a-ip-address_  # SET ETH
+# network   --nic eth6      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth7      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth8      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth9      --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth10     --new_ip:nic   --node _node-a-ip-address_
+# network   --nic eth11     --new_ip:nic   --node _node-a-ip-address_
 
 create_bond --bond_nics eth0 eth1 --new_ip:bond --bond_type active-backup --new_gw 192.168.0.1 --new_dns 192.168.0.1 --node _node-a-ip-address_
 
