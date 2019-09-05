@@ -1222,7 +1222,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
-    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol00 --older_than 1min --delay 1 --node 192.168.0.80'
+    test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.80'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -1618,7 +1618,7 @@ def interval_seconds(plan):
 
 def human2seconds(age):
     '''
-    param: human_readable age written without any spaces or interpunction with following units:
+    param: human_readable age written with or without any spaces, without interpunction with following units:
     year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec
     Examples:  2m15d  -> two and a half months
                3w1d12h -> three weeks, one day and twelf hours
@@ -1627,6 +1627,7 @@ def human2seconds(age):
     def split_items(age):
         out=''; previous = '0'
         for char in age:
+            if char in '-_.:': continue # just in case user put i.e. 1-min
             out += '#' + char if char.isdigit() and not previous.isdigit() else char
             previous = char
         return out.split('#')
@@ -2081,6 +2082,9 @@ def get_all_volume_clones_older_than_given_age(vol_type):
     # Example: [(u'clone-zvol00', [u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200'])]
     clones_pools_volumes_snapshots = [(item[0],item[1][0],item[1][1],item[1][2]) for item in clones_origin_names]
     # Example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
+
+    ## filter-out clones of other volumes than volume_name
+    clones_pools_volumes_snapshots = filter(lambda item: item[2] in volume_name, clones_pools_volumes_snapshots)
     return clones_pools_volumes_snapshots
 
 
