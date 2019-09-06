@@ -1222,7 +1222,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
-    test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.80'
+    test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -2717,41 +2717,37 @@ def get_ring_interface_of_first_node():
     sys_exit_with_timestamp( 'Error getting ring interface: Cluster not bound yet.')
 
 
-def get_cluster_nodes_addresses():
-    global is_cluster
-    is_cluster = False
-    result = get('/cluster/nodes')
-
-    cluster_nodes = get('/cluster/nodes')
-    if cluster_nodes:
-        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
-    else:
-        cluster_nodes_addresses = []
-    if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
-        is_cluster = True
-    else:
-        cluster_nodes_addresses = node.split()  ## the node as single item list
-    return cluster_nodes_addresses
-
-
-## to-do
 ##def get_cluster_nodes_addresses():
 ##    global is_cluster
-##    global local_cluster_node
-##    global remote_cluster_node
-##    local_cluster_node_ip_address = node
-##    remote_cluster_node_ip_address = ''
 ##    is_cluster = False
-##    if is_cluster_configured():
-##        cluster_nodes = get('/cluster/nodes')
+##    result = get('/cluster/nodes')
+##
+##    cluster_nodes = get('/cluster/nodes')
+##    if cluster_nodes:
+##        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
 ##    else:
-##        cluster_nodes = None
-##    if cluster_nodes and len(cluster_nodes) >1:
+##        cluster_nodes_addresses = []
+##    if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
 ##        is_cluster = True
-##        local_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if cluster_node['localnode']][0]
-##        remote_cluster_node_ip_address = [cluster_node['address'] for cluster_node in cluster_nodes if not cluster_node['localnode']][0]
-##    return (local_cluster_node_ip_address, remote_cluster_node_ip_address)
+##    else:
+##        cluster_nodes_addresses = node.split()  ## the node as single item list
+##    return cluster_nodes_addresses
 
+
+def get_cluster_nodes_addresses():
+    global is_cluster
+    if is_cluster_configured():
+        is_cluster = True
+        resp = get('/cluster/nodes')
+        ## single-node  [{u'localnode': True, u'status': None, u'hostname': u'node-32', u'reachable': True, u'address': u'127.0.0.1', u'id': u'5c913a76'}]
+        ## cluster      [{u'localnode': False, u'status': u'online', u'hostname': u'node-81-ha00', u'reachable': True, u'address': u'192.168.0.81', u'id': u'8e126ece'},
+        ##               {u'localnode': True, u'status': u'online', u'hostname': u'node-80-ha00', u'reachable': True, u'address': u'192.168.0.80', u'id': u'67596e40'}]
+        resp.sort(key=lambda item:item['localnode'],reverse=True)
+        return [item['address'] for item in resp]
+    else:
+        is_cluster = False
+        return [node]  ## the node as single item list
+    
 
 def get_cluster_node_id(node):
     if get('/cluster/nodes')[0]['address'] in '127.0.0.1':
