@@ -1215,6 +1215,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
+    test_command_line =  'set_mirror_path  --mirror_nics bond1 bond1               --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
@@ -1222,7 +1223,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
-    test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
+    #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
     #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -1618,7 +1619,7 @@ def interval_seconds(plan):
 
 def human2seconds(age):
     '''
-    param: human_readable age written with or without any spaces, without interpunction with following units:
+    param: human_readable age written with or without spaces with following units:
     year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec
     Examples:  2m15d  -> two and a half months
                3w1d12h -> three weeks, one day and twelf hours
@@ -2572,10 +2573,8 @@ def get_active_cluster_node_address_of_given_pool(pool_name):
 
 
 def is_cluster_configured():
-    result = False
-    result = get('/cluster')
-    # {u'status': u'started', u'enabled': True}
-    return True if result and result['enabled'] else False
+    result = get('/cluster/nodes')
+    return True if result and len(result)>1 else False
 
 
 def is_cluster_started():
@@ -2736,7 +2735,8 @@ def get_ring_interface_of_first_node():
 
 def get_cluster_nodes_addresses():
     global is_cluster
-    if is_cluster_configured():
+    resp = get('/cluster/nodes')
+    if resp and len(resp) > 1 :
         is_cluster = True
         resp = get('/cluster/nodes')
         ## single-node  [{u'localnode': True, u'status': None, u'hostname': u'node-32', u'reachable': True, u'address': u'127.0.0.1', u'id': u'5c913a76'}]
