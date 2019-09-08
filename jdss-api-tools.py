@@ -101,9 +101,7 @@ auto_snap_name          = "auto_api_backup_snap"
 auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
 increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
-
-global older_than_string_to_print
-older_than_string_to_print  = ''
+time_periods = ['year','month','week','day','hour','minute','second']
 
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
@@ -1629,6 +1627,9 @@ def human2seconds(age):
                3w1d12h -> three weeks, one day and twelf hours
                2hours30min -> two and a half hours
     '''
+    global older_than_string_to_print
+    older_than_string_to_print  = ''
+
     
     def split_items(age):
         out=''; previous = '0'
@@ -2064,7 +2065,8 @@ def delete_clones(vol_type):
             else:
                 print_with_timestamp('Cannot delete clone: {} of {} {}.'.format(clone_name, pool_name, volume_name))
     else:
-        print_with_timestamp('No clones older than {} found on {} {}.'.format(older_than_string_to_print.strip(), pool_name, volume_name))
+        _older_than_string_to_print = ' '.join(sorted(older_than_string_to_print.split(), key=lambda item: time_periods.index(item.split('-')[-1])))
+        print_with_timestamp('No clones older than {} found on {} {}.'.format(_older_than_string_to_print, pool_name, volume_name))
 
 
 def delete_clone(vol_type,clone_name, snapshot_name):
