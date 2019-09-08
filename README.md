@@ -96,7 +96,7 @@ activate                      	import                        	</pre>
         jdss-api-tools.exe delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220
 
     The older_than option is human readable clone age written with or without spaces with following units:
-    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec,s
     Examples:  2m15d  -> two and a half months
                3w1d12h -> three weeks, one day and twelf hours
                2hours30min -> two and a half hours

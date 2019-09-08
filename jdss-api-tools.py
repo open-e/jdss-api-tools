@@ -102,6 +102,9 @@ auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
 increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
 
+global older_than_string_to_print
+older_than_string_to_print  = ''
+
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
 
@@ -310,7 +313,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s delete_clones --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 5 --node 192.168.0.220{ENDF}
 
     The older_than option is human readable clone age written with or without spaces with following units:
-    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec,s
     Examples:  2m15d  -> two and a half months
                3w1d12h -> three weeks, one day and twelf hours
                2hours30min -> two and a half hours
@@ -1261,7 +1264,6 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
     global bind_node_password
-    global to_print_timestamp_msg, waiting_dots_printed
     global pool_based_consecutive_number_generator
     global cluster_pool_names
     global target_name, cluster_name
@@ -1271,7 +1273,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global setup_files, all_snapshots
     global online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
-
+    global to_print_timestamp_msg, waiting_dots_printed
+    
     api_port                    = args['port']
     api_user                    = args['user']
     api_password                = args['pswd']
@@ -1378,6 +1381,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ignore_missing_write_log    = args['ignore_missing_write_log']
     ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
 
+    
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
     number_of_disks_in_jbod = 1
@@ -1620,27 +1624,28 @@ def interval_seconds(plan):
 def human2seconds(age):
     '''
     param: human_readable age written with or without spaces with following units:
-    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min  second(s),sec,s
     Examples:  2m15d  -> two and a half months
                3w1d12h -> three weeks, one day and twelf hours
                2hours30min -> two and a half hours
     '''
+    
     def split_items(age):
         out=''; previous = '0'
         for char in age:
-            if char in '-_.:': continue # just in case user put i.e. 1-min
-            out += '#' + char if char.isdigit() and not previous.isdigit() else char
-            previous = char
+            if char.isdigit() or char in 'year month week day hour minute second':
+                out += '#' + char if char.isdigit() and not previous.isdigit() else char
+                previous = char
         return out.split('#')
 
     def item2seconds(age):
-        age = age.lower()
         if age in '0': age = '0sec'
         alpha = filter(str.isalpha,age)
         seconds = 3600*24*365*99 # 99 years
         if alpha in ('second','minute','hour','day','week','month','year'):
             age = age + 's'
         if alpha in 'sec'       : age = age.replace('sec','seconds')
+        if alpha in 's'         : age = age.replace('s','seconds')
         if alpha in 'min'       : age = age.replace('min','minutes')
         if alpha in 'h'         : age = age.replace('h','hours')
         if alpha in 'd'         : age = age.replace('d','days')
@@ -1648,15 +1653,16 @@ def human2seconds(age):
         if alpha in 'm'         : age = age.replace('m','months')
         if alpha in 'y'         : age = age.replace('y','years')
 
+        
         global older_than_string_to_print
-        older_than_string_to_print = age.replace(
+        older_than_string_to_print += age.replace(
             'seconds','-second ').replace(
             'minutes','-minute ').replace(
             'hours',    '-hour ').replace(
             'days',      '-day ').replace(
             'weeks',    '-week ').replace(
             'months',  '-month ').replace(
-            'years',    '-year ').strip()
+            'years',    '-year ').strip() + ' '
 
         try:
             seconds = eval(age.replace(
@@ -1668,13 +1674,13 @@ def human2seconds(age):
                 'months', '*'+str(60*60*24*30)).replace(
                 'years', '*'+str(60*60*24*365)))
         except:
-            print_with_timestamp('Age:{} Syntax error'.format(age))
-            print_with_exit(human2seconds.__doc__) # EXIT
-
+            print('Age:{} Syntax error'.format(age))
+            print(human2seconds.__doc__) 
+            exit() ## cannot uee print_with_exit as this func is called before intialize the print_with_exit
         return seconds
 
     ##
-    return  sum([item2seconds(item) for item in split_items(age)])
+    return  sum([item2seconds(item) for item in split_items(age.lower())])
 
 
 def snapshot_creation_to_seconds(creation):
@@ -2058,7 +2064,7 @@ def delete_clones(vol_type):
             else:
                 print_with_timestamp('Cannot delete clone: {} of {} {}.'.format(clone_name, pool_name, volume_name))
     else:
-        print_with_timestamp('No clones older than {} found on {} {}.'.format(older_than_string_to_print, pool_name, volume_name))
+        print_with_timestamp('No clones older than {} found on {} {}.'.format(older_than_string_to_print.strip(), pool_name, volume_name))
 
 
 def delete_clone(vol_type,clone_name, snapshot_name):
@@ -2119,7 +2125,7 @@ def get_snapshot_clones(snapshot_name):
         clones_names = [clone['full_name'] for clone in clones]
     return clones_names or []
 
-## @@@
+####
 def get_all_volume_snapshots_older_than_given_age(vol_type):
     if vol_type in 'volume':
         snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=volume_name))
