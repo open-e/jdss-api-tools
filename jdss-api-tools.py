@@ -325,6 +325,29 @@ def get_args(batch_args_line=None):
     If the older_than option is missing, nothing will be deleted.
 
 
+{} {BOLD}Delete snapshots{END} (time-based).
+
+    Delete snapshots of provided volume and pool with creation date older than provided time period.
+
+    This example deletes snapshots of iSCSI zvol00 from Pool-0 with 1 seconds prompted delay, older than 2 months and 15 days.
+
+    {LG}%(prog)s delete_snapshots --pool Pool-0 --volume zvol00 --older_than 2months 15days --delay 1 --node 192.168.0.220{ENDF}
+
+    The older_than option is human readable clone age written with or without spaces with following units:
+    year(s),y   month(s),m   week(s),w   day(s),d   hour(s),h   minute(s),min   second(s),sec,s
+    Examples:  2m15d  -> two and a half months
+               3w1d12h -> three weeks, one day and twelf hours
+               2hours30min -> two and a half hours
+               2hours 30min -> two and a half hours (with space between)
+
+    {BOLD}Delete all (older_than 0 seconds) snapshots{END} of NAS volume vol00 from Pool-0.
+
+    {LG}%(prog)s delete_snapshots --pool Pool-0 --volume vol00 --older_than 0seconds --delay 1 --node 192.168.0.220{ENDF}
+
+    In order to delete all snapshots, the older_than must be zero.
+    If the older_than option is missing, nothing will be deleted.
+
+
 {} {BOLD}Create pool{END} on single node or cluster with single JBOD:
 
     Pool-0 with 2 * raidz1 (3 disks) total 6 disks.
@@ -762,7 +785,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='command',
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
-                 'delete_clone', 'delete_clones', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+                 'delete_clone', 'delete_clones', 'delete_snapshots', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
                  'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
@@ -1216,7 +1239,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    test_command_line =  'set_mirror_path  --mirror_nics bond1 bond1               --node 192.168.0.80'
+    test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
+    #test_command_line =  'set_mirror_path  --mirror_nics bond1 bond1               --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
@@ -1279,7 +1303,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    volume_name                 = 'auto' if not volume_name and action not in 'delete_clones' else volume_name  ## set default to auto except 'delete_clones'
+                                                                   ## set default to auto except 'delete_clones', 'delete_snapshots'
+    volume_name                 = 'auto' if not volume_name and action not in ('delete_clones','delete_snapshots') else volume_name  
 
     storage_type                = args['storage_type']			## it will be converted to upper below
 
@@ -2097,10 +2122,16 @@ def get_all_volume_clones_older_than_given_age(vol_type):
     return clones_pools_volumes_snapshots
 
 
-def delete_snapshots():
-    snapshots_names = get_snapshots_names()
+def delete_snapshots(vol_type):
+    global action_message
+    action_message = 'Sending delete snapshots request to: {}'.format(node)
+    #snapshots_names = get_snapshots_names()
+    snapshots_names = get_all_volume_snapshots_older_than_given_age(vol_type)
+    display_delay('DELETING snapshot ...')
+    print()
+
     for snapshot_name in snapshots_names:
-        resp = delete_snapshot(snapshot_name)
+        resp = delete_snapshot(vol_type,snapshot_name)
         if resp:
             print_with_timestamp('Snapshot: {} deleted.'.format(snapshot_name))
         else:
@@ -4345,6 +4376,13 @@ def command_processor() :
             sys_exit_with_timestamp( 'Error: delete_clones command expects 2 arguments (pool, volume), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         delete_clones( vol_type )
+
+    elif action == 'delete_snapshots':
+        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
+        if c < 2:
+            sys_exit_with_timestamp( 'Error: delete_snapshots command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        vol_type = check_given_volume_name()
+        delete_snapshots( vol_type )
 
     elif action == 'delete_clone_existing_snapshot':
         c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
