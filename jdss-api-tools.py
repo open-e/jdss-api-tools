@@ -64,6 +64,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-07-07  add delay to Move function
 2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
 2019-08-22  add delete clones
+2019-09-09  add delete snapshots
 """
 
 from __future__ import print_function
@@ -1239,7 +1240,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
+    test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.80'
+    #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line =  'set_mirror_path  --mirror_nics bond1 bond1               --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
@@ -2789,12 +2791,24 @@ def get_cluster_nodes_addresses():
     
 
 def get_cluster_node_id(node):
-    if get('/cluster/nodes')[0]['address'] in '127.0.0.1':
+    result = get('/cluster/nodes')
+    if len(result) < 2:
         ## cluster not configured yet
         sys_exit_with_timestamp('Error: Cluster not bound yet.')
     else:
-        result = get('/cluster/nodes')
-        return (cluster_node['id']for cluster_node in result if cluster_node['address'] in node).next()
+        out = [ cluster_node['id'] for cluster_node in result if cluster_node['address'] in node][0] 
+        return out
+
+
+def get_cluster_nodes_ids():
+    result = get('/cluster/nodes')
+    if len(result) < 2:
+        single_node_cluster_id = result[0]['id']    ## NO Cluster, just single node
+        return single_node_cluster_id
+    else:
+        cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
+        cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
+        return cluster_id_local, cluster_id_remote
 
 
 def get_vips():
@@ -2822,30 +2836,28 @@ def create_vip():
 
     if not pool_name:
         sys_exit_with_timestamp( 'Error: Pool name missing.')
-
+    ######
     #nics = convert_comma_separated_to_list(vip_nics)
-    nics = list(vip_nics)
+    ###### nics = list(vip_nics)
+    nics = vip_nics
     if len(nics)==1:
         nics.append(nics[0])
     if len(nics)==2:
         nic_a, nic_b = nics
     else:
         sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
-    cluster_ip_addresses = get_cluster_nodes_addresses()
-    cluster = True if cluster_ip_addresses and len(cluster_ip_addresses) > 1 else False
+    cluster_nodes_ids = get_cluster_nodes_ids()
+    #cluster_ip_addresses = get_cluster_nodes_addresses()
+    cluster = True if cluster_nodes_ids and len(cluster_nodes_ids) > 1 else False
     endpoint = '/pools/{pool_name}/vips'.format(pool_name=pool_name)
     if cluster:
-        node_b_address = cluster_ip_addresses[:]
-        node_b_address.remove(node) # this will not work if ring is diff than management
-        ## cluster
         data = dict(name=vip_name,
                     address = vip_ip,
                     netmask = vip_mask,
                     interface = nic_a,
-                    remote_interface = [ dict( node_id = get_cluster_node_id(node_b_address),
+                    remote_interface = [ dict( node_id = cluster_nodes_ids[-1],
                                                interface = nic_b)])
-    else:
-        ## single node
+    else: ## single node  
         data = dict(name=vip_name,
                     address = vip_ip,
                     netmask = vip_mask,
@@ -2862,15 +2874,15 @@ def set_mirror_path():
     global action_message
     action_message = 'Sending mirror path setting request to: {}'.format(node)
 
-    interfaces_items = []
     cluster_nodes_addresses = get_cluster_nodes_addresses()
+    cluster_nodes_ids = get_cluster_nodes_ids()
     ## first cluster node must be same as node from args
     if cluster_nodes_addresses[0] != node:
         cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
         cluster_nodes_addresses[1], cluster_nodes_addresses[0]
+    interfaces_items = []
     for i, cluster_node_address in enumerate(cluster_nodes_addresses):
-        node_id = get_cluster_node_id(cluster_node_address)
-        interfaces_items.append(dict(interface=mirror_nics[i], node_id=node_id))
+        interfaces_items.append(dict(interface=mirror_nics[i], node_id=cluster_nodes_ids[i]))
     data = dict(interfaces=interfaces_items)
     return_code = {}
     ## POST
