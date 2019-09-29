@@ -102,7 +102,7 @@ auto_snap_name          = "auto_api_backup_snap"
 auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
 increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
-time_periods = ['year','month','week','day','hour','minute','second']
+time_periods            = ['year','month','week','day','hour','minute','second']
 
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
@@ -1242,7 +1242,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_mode = True
     test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.80'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
-    #test_command_line =  'set_mirror_path  --mirror_nics bond1 bond1               --node 192.168.0.80'
+    #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
@@ -1305,8 +1305,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     action                      = args['cmd']					## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-                                                                   ## set default to auto except 'delete_clones', 'delete_snapshots'
-    volume_name                 = 'auto' if not volume_name and action not in ('delete_clones','delete_snapshots') else volume_name  
+
+    volume_name                 = 'auto' if not volume_name and action not in ('delete_clones','delete_snapshots') else volume_name		## set default to auto except 'delete_clones', 'delete_snapshots'
 
     storage_type                = args['storage_type']			## it will be converted to upper below
 
@@ -1406,7 +1406,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ignore_missing_write_log    = args['ignore_missing_write_log']
     ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
 
-    
+
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
     number_of_disks_in_jbod = 1
@@ -1657,7 +1657,7 @@ def human2seconds(age):
     global older_than_string_to_print
     older_than_string_to_print  = ''
 
-    
+
     def split_items(age):
         out=''; previous = '0'
         for char in age:
@@ -1681,7 +1681,7 @@ def human2seconds(age):
         if alpha in 'm'         : age = age.replace('m','months')
         if alpha in 'y'         : age = age.replace('y','years')
 
-        
+
         global older_than_string_to_print
         older_than_string_to_print += age.replace(
             'seconds','-second ').replace(
@@ -1703,12 +1703,12 @@ def human2seconds(age):
                 'years', '*'+str(60*60*24*365)))
         except:
             print('Age:{} Syntax error'.format(age))
-            print(human2seconds.__doc__) 
-            exit() ## cannot uee print_with_exit as this func is called before intialize the print_with_exit
+            print(human2seconds.__doc__)
+            exit() ## cannot use print_with_exit as this func is called before intialize the print_with_exit
         return seconds
 
     ##
-    return  sum([item2seconds(item) for item in split_items(age.lower())])
+    return sum([item2seconds(item) for item in split_items(age.lower())])
 
 
 def snapshot_creation_to_seconds(creation):
@@ -2777,7 +2777,7 @@ def get_ring_interface_of_first_node():
 def get_cluster_nodes_addresses():
     global is_cluster
     resp = get('/cluster/nodes')
-    if resp and len(resp) > 1 :
+    if resp and len(resp) > 1:
         is_cluster = True
         resp = get('/cluster/nodes')
         ## single-node  [{u'localnode': True, u'status': None, u'hostname': u'node-32', u'reachable': True, u'address': u'127.0.0.1', u'id': u'5c913a76'}]
@@ -2788,7 +2788,7 @@ def get_cluster_nodes_addresses():
     else:
         is_cluster = False
         return [node]  ## the node as single item list
-    
+
 
 def get_cluster_node_id(node):
     result = get('/cluster/nodes')
@@ -2796,14 +2796,14 @@ def get_cluster_node_id(node):
         ## cluster not configured yet
         sys_exit_with_timestamp('Error: Cluster not bound yet.')
     else:
-        out = [ cluster_node['id'] for cluster_node in result if cluster_node['address'] in node][0] 
+        out = [ cluster_node['id'] for cluster_node in result if cluster_node['address'] in node][0]
         return out
 
 
 def get_cluster_nodes_ids():
     result = get('/cluster/nodes')
     if len(result) < 2:
-        single_node_cluster_id = result[0]['id']    ## NO Cluster, just single node
+        single_node_cluster_id = result[0]['id']    ## NO cluster, just single node
         return single_node_cluster_id
     else:
         cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
@@ -2857,7 +2857,7 @@ def create_vip():
                     interface = nic_a,
                     remote_interface = [ dict( node_id = cluster_nodes_ids[-1],
                                                interface = nic_b)])
-    else: ## single node  
+    else: ## single node
         data = dict(name=vip_name,
                     address = vip_ip,
                     netmask = vip_mask,
