@@ -65,6 +65,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
 2019-08-22  add delete clones
 2019-09-09  add delete snapshots
+2020-01-10  validation removed: in up28 it is NOT required to keep ping in the same subnet as ring
 """
 
 from __future__ import print_function
@@ -2929,9 +2930,10 @@ def set_ping_nodes():
         if ping_node in current_ping_nodes:
             print_with_timestamp('Error: Ping node {} already set.'.format(ping_node))
             continue
-        ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
-        if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
-            sys_exit_with_timestamp( 'Error: Given ping node IP address {} in not in ring subnet'.format(ping_node))
+        ## in up28 it is NOT required to keep ping in the same subnet as ring
+        #ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
+        #if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
+        #    sys_exit_with_timestamp( 'Error: Given ping node IP address {} in not in ring subnet'.format(ping_node))
         data = dict(address=ping_node)
 
         ## POST
