@@ -34,15 +34,19 @@ create_factory_setup_files    	activate                      	import
 
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
 
+    By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+        jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220
+        jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220
 
     <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
-    The example is using default password and port and makes the share <b>visible</b> with default share name.
+    The example is using default password and port and makes the share <b>visible</b> with default share name
+    and primarycache set to metadata only.
 
-        jdss-api-tools.exe clone --pool Pool-0 --volume vol00 --visible --node 192.168.0.220
-
+        jdss-api-tools.exe clone --pool Pool-0 --volume vol00 --visible --primarycache metadata --node 192.168.0.220
+    
     The following examples are using default password and port and make the shares <b>invisible</b>.
 
         jdss-api-tools.exe clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220

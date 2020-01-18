@@ -66,6 +66,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-08-22  add delete clones
 2019-09-09  add delete snapshots
 2020-01-10  validation removed: in up28 it is NOT required to keep ping in the same subnet as ring
+2020-01-17  add primarycache and secondarycache option for create clones
 """
 
 from __future__ import print_function
@@ -250,15 +251,19 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
+    By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+    {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220{ENDF}
+    {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220{ENDF}
 
     {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
     Every time it runs, it will delete the clone created last run and re-create new one.
     So, the share exports most recent data every run. The share is invisible by default.
-    The example is using default password and port and makes the share {BOLD}visible{END} with default share name.
+    The example is using default password and port and makes the share {BOLD}visible{END} with default share name
+    and primarycache set to metadata only.
 
-    {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --node 192.168.0.220{ENDF}
-
+    {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --primarycache metadata --node 192.168.0.220{ENDF}
+    
     The following examples are using default password and port and make the shares {BOLD}invisible{END}.
 
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220{ENDF}
@@ -872,6 +877,18 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         help='Enter write cache logging (sync): always, standard, disabled'
     )
     parser.add_argument(
+        '--primarycache',
+        metavar='all|none|metadata',
+        default='all',
+        help='Enter primarycache: all, none, metadata'
+    )
+    parser.add_argument(
+        '--secondarycache',
+        metavar='all|none|metadata',
+        default='all',
+        help='Enter secondarycache: all, none, metadata'
+    )
+    parser.add_argument(
         '--target',
         metavar='name',
         default='auto',
@@ -1241,7 +1258,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.80'
+    #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.80'
+    test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
@@ -1277,7 +1295,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
 
     global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
-    global size, blocksize, recordsize, quota, reservation, sync, sparse, snapshot_name
+    global size, blocksize, recordsize, quota, reservation, sync, sparse, primarycache, secondarycache, snapshot_name
     global nodes, ping_nodes, node
     global delay, menu
     global older_than
@@ -1330,6 +1348,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     reservation                 = human_to_bytes(reservation)
 
     sync                        = args['sync']
+    primarycache                = args['primarycache']
+    secondarycache              = args['secondarycache']
     target_name                 = args['target']
 
     start_with                  = args['start_with']
@@ -3810,14 +3830,16 @@ def create_clone(vol_type, ignore_error=None):
                 POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
             ## vol
             clone_name = volume_name + time_stamp_clone_syntax() + auto_vol_clone_name
-            data = dict(name=clone_name)
+            data = dict(name=clone_name, primarycache=primarycache, secondarycache=secondarycache)
         ## Create clone of SAN zvol = volume
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
                 POOL_NAME=pool_name, VOLUME_NAME=volume_name)
-            ## zvol
+            ## zvol - must use properties sub-dict !
+            properties = dict(primarycache=primarycache,secondarycache=secondarycache)
             clone_name = volume_name + time_stamp_clone_syntax() + auto_zvol_clone_name
-            data = dict(name=clone_name, snapshot=auto_snap_name)
+            data = dict(name=clone_name, snapshot=auto_snap_name, properties=properties)
+
 
         ## POST
         post(endpoint, data)
