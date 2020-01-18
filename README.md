@@ -35,6 +35,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
 
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+    
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220
 

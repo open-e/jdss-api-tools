@@ -252,6 +252,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+    
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220{ENDF}
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220{ENDF}
 
