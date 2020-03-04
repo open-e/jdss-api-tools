@@ -67,6 +67,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2019-09-09  add delete snapshots
 2020-01-10  validation removed: in up28 it is NOT required to keep ping in the same subnet as ring
 2020-01-17  add primarycache and secondarycache option for create clones
+2020-01-23  add primarycache and secondarycache option for create storage resource
+2020-01-23  fixed get_all_volume_snapshots_older_than_given_age for detasets
 """
 
 from __future__ import print_function
@@ -175,7 +177,7 @@ def wait_for_node():
     global waiting_dots_printed
     waiting_dots_printed = False
     ## PING
-    repeat = 100
+    repeat = 1000
     counter = 0
     while ping.quiet_ping(node)[0]>0:
         if counter < 2:
@@ -190,7 +192,7 @@ def wait_for_node():
     waiting_dots_printed = False
 
     ## REST API
-    repeat = 100
+    repeat = 1000
     counter = 0
     while True:
         try:
@@ -555,6 +557,10 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220{ENDF}
 
+    By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+
+    {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --primarycache metadata --secondarycache none --node 192.168.0.220{ENDF}
+    
     If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
@@ -828,7 +834,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--volume',
         metavar='name',
-        #default='auto',
+        #default='auto',  # 
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -874,8 +880,14 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     parser.add_argument(
         '--sync',
         metavar='always|standard|disabled',
-        default=None,
-        help='Enter write cache logging (sync): always, standard, disabled'
+        default='always',
+        help='Enter write cache logging (sync): always, standard, disabled. Default=always'
+    )
+    parser.add_argument(
+        '--logbias',
+        metavar='latency|throughput',
+        default='latency',
+        help='Enter logbias . Default=latency'
     )
     parser.add_argument(
         '--primarycache',
@@ -888,6 +900,18 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='all|none|metadata',
         default='all',
         help='Enter secondarycache: all, none, metadata'
+    )
+    parser.add_argument(
+        '--compression',
+        metavar='off|lz4|lzjb|zle|gzip|gzip-1|gzip-2|gzip-3|gzip-4|gzip-5|gzip-6|gzip-7|gzip-8|gzip-9',
+        default='lz4',
+        help='Enter compression type or disable with "off"'
+    )
+    parser.add_argument(
+        '--dedup',
+        metavar='off|on|verify|sha256|sha256|verify',
+        default='off',
+        help='Enter dedup type or disable with "off"'
     )
     parser.add_argument(
         '--target',
@@ -1259,8 +1283,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.80'
-    test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
+    test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
+    #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.82'
+    #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
@@ -1296,7 +1321,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
 
     global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
-    global size, blocksize, recordsize, quota, reservation, sync, sparse, primarycache, secondarycache, snapshot_name
+    global size, blocksize, recordsize, quota, reservation, sync, logbias, sparse, primarycache, secondarycache, compression, dedup, snapshot_name
+    global properties
     global nodes, ping_nodes, node
     global delay, menu
     global older_than
@@ -1318,19 +1344,19 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
     global to_print_timestamp_msg, waiting_dots_printed
-    
+        
     api_port                    = args['port']
     api_user                    = args['user']
     api_password                = args['pswd']
-    action                      = args['cmd']					## the command
+    action                      = args['cmd']				## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-
-    volume_name                 = 'auto' if not volume_name and action not in ('delete_clones','delete_snapshots') else volume_name		## set default to auto except 'delete_clones', 'delete_snapshots'
-
+    
+                                ## set default to auto except 'delete_clones', 'delete_snapshots'
+    volume_name                 = volume_name if volume_name or action in ('delete_clones','delete_snapshots') else 'auto' 
     storage_type                = args['storage_type']			## it will be converted to upper below
 
-    sparse                      = args['provisioning'].upper()	## THICK | THIN, default==THIN
+    sparse                      = args['provisioning'].upper()	        ## THICK | THIN, default==THIN
     sparse                      = True if sparse in 'THIN' else False
 
     size                        = args['size']
@@ -1349,8 +1375,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     reservation                 = human_to_bytes(reservation)
 
     sync                        = args['sync']
+    logbias                     = args['logbias']
     primarycache                = args['primarycache']
     secondarycache              = args['secondarycache']
+    compression                 = args['compression']
+    dedup                       = args['dedup']
     target_name                 = args['target']
 
     start_with                  = args['start_with']
@@ -1428,7 +1457,15 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     ignore_missing_write_log    = args['ignore_missing_write_log']
     ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
 
-
+    ## volumes use properties dict, but datasets not
+    properties                  = dict( sync=sync,
+                                        compression=compression,
+                                        primarycache=primarycache,
+                                        secondarycache=secondarycache,
+                                        logbias=logbias,
+                                        dedup=dedup,
+                                        copies=1)
+    
     ## if vdev_type is raidz2 and vdev_disks = 2 * number of jbods
     ## or vdev_type is raidz3 and vdev_disks = 3 * number of jbods
     number_of_disks_in_jbod = 1
@@ -2186,11 +2223,13 @@ def get_snapshot_clones(snapshot_name):
 def get_all_volume_snapshots_older_than_given_age(vol_type):
     if vol_type in 'volume':
         snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=volume_name))
+        if snapshots:
+            # snapshots['entries'][0]['creation'] -> u'2019-8-15 14:0:1'
+            snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
     if vol_type in 'dataset':
         snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=volume_name))
-    # snapshots['entries'][0]['creation'] -> u'2019-8-15 14:0:1'
-    if snapshots:
-        snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
+        if snapshots:
+            snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] for prop_item in snapshot['properties'] if prop_item['name']=='creation' and snapshot_creation_to_seconds(prop_item['value']) > older_than  ]
     return snapshots_names or []
 
 
@@ -3668,14 +3707,13 @@ def create_volume(vol_type):
     if vol_type == 'volume':
         endpoint = '/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'always'      # set default sync for zvol
-        properties = dict(sync=sync,compression='lz4',primarycache='all',secondarycache='all',logbias='latency',dedup='off',copies=1)
         data = dict(name=volume_name, sparse=sparse, size=size, blocksize=blocksize, properties=properties)
         result = post(endpoint,data)
 
     if vol_type == 'dataset':
         endpoint = '/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name)
         sync = sync if sync else 'standard'    # set default sync for dataset
-        data = dict(name=volume_name, compression='lz4', recordsize=int(recordsize), sync=sync, quota=quota, reservation=reservation)
+        data = dict(name=volume_name, recordsize=int(recordsize), sync=sync, logbias=logbias, compression=compression, dedup=dedup, quota=quota, reservation=reservation)
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
@@ -3836,8 +3874,6 @@ def create_clone(vol_type, ignore_error=None):
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
                 POOL_NAME=pool_name, VOLUME_NAME=volume_name)
-            ## zvol - must use properties sub-dict !
-            properties = dict(primarycache=primarycache,secondarycache=secondarycache)
             clone_name = volume_name + time_stamp_clone_syntax() + auto_zvol_clone_name
             data = dict(name=clone_name, snapshot=auto_snap_name, properties=properties)
 

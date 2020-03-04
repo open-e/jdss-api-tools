@@ -338,6 +338,10 @@ create_factory_setup_files    	activate                      	import
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.220
 
+    By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
+
+        jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --primarycache metadata --secondarycache none --node 192.168.0.220
+    
     If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220
