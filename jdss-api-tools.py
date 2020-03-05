@@ -68,7 +68,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-01-10  validation removed: in up28 it is NOT required to keep ping in the same subnet as ring
 2020-01-17  add primarycache and secondarycache option for create clones
 2020-01-23  add primarycache and secondarycache option for create storage resource
-2020-01-23  fixed get_all_volume_snapshots_older_than_given_age for detasets
+2020-03-05  fixed get_all_volume_snapshots_older_than_given_age for detasets
+2020-03-05  add ".iscsi" segement into iscsi target template & add Europe/Amsterdam zone
 """
 
 from __future__ import print_function
@@ -112,7 +113,7 @@ time_periods            = ['year','month','week','day','hour','minute','second']
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
 
 ## TARGET NAME
-target_name_prefix= "iqn.%s-%s:jdss.target" % (time.strftime("%Y"),time.strftime("%m"))
+target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.strftime("%m"))
 
 ## ZVOL NAME
 zvol_name_prefix = 'zvol00'
@@ -452,6 +453,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s set_time --timezone America/Chicago --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone America/Los_Angeles --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Asia/Tokyo --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_time --timezone Europe/Amsterdam --node 192.168.0.220{ENDF}
     {LG}%(prog)s set_time --timezone Europe/Berlin --node 192.168.0.220{ENDF}
 
     Set NTP servers only.
@@ -4631,6 +4633,7 @@ set_time --timezone Europe/Berlin                  --node _node-a-ip-address_   
 #   set_time  --timezone Asia/Tokyo                    --node _node-a-ip-address_       # SET TIME
 #   set_time  --timezone Asia/Taipei                   --node _node-a-ip-address_       # SET TIME
 #   set_time  --timezone Europe/Moscow                 --node _node-a-ip-address_       # SET TIME
+#   set_time  --timezone Europe/Amsterdam              --node _node-a-ip-address_       # SET TIME
 
 info                                               --node _node-a-ip-address_           # PRINT SYSTEM INFO
 list_snapshots                                     --node _node-a-ip-address_           # PRINT ONLY SNAPSHOT INFO
