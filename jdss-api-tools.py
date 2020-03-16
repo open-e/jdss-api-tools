@@ -70,6 +70,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-01-23  add primarycache and secondarycache option for create storage resource
 2020-03-05  fixed get_all_volume_snapshots_older_than_given_age for detasets
 2020-03-05  add ".iscsi" segement into iscsi target template & add Europe/Amsterdam zone
+2020-03-16  add forced reboot be used as hard-reset equivalent(require up29 or newer)
 """
 
 from __future__ import print_function
@@ -440,6 +441,14 @@ def get_args(batch_args_line=None):
 {} {BOLD}Reboot{END} single JovianDSS server.
 
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
+
+    Forced reboot with optional 10 seconds delay.
+    
+    {LG}%(prog)s reboot --force --delay 10 --node 192.168.0.220{ENDF}
+
+    The forced reboot can be used as hard-reset equivalent for deployment tests.
+    NOTE: The shutdown command does not support forced option.
+    Please use reboot command if hard-reset equivalent is required.
 
 
 {} {BOLD}Set host name{END} to "node220", server name to "server220" and server description to "jdss220".
@@ -1254,10 +1263,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     )
     parser.add_argument(
         '--force',
-        dest='force',
         action='store_true',
-        default=False,
-        help='Force pool import'
+        help='Force action'
     )
     parser.add_argument(
         '--recovery_import',
@@ -1285,7 +1292,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
+    #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
+    test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
     #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
@@ -1931,8 +1939,9 @@ def shutdown_nodes():
     global action_message
     action_message = 'Sending shutdown request to: {}'.format(node)
     _nodes = get_cluster_nodes_addresses()
-    passive_node = [_node for _node in _nodes if _node not in node][0]
-    wait_for_move_destination_node(passive_node)
+    if len(_nodes)>1:
+        passive_node = [_node for _node in _nodes if _node not in node][0]
+        wait_for_move_destination_node(passive_node)
     wait_for_zero_unmanaged_pools()
     display_delay('Shutdown')
     for node in nodes:
@@ -1946,12 +1955,13 @@ def reboot_nodes():
     global action_message
     action_message = 'Sending reboot request to: {}'.format(node)
     _nodes = get_cluster_nodes_addresses()
-    passive_node = [_node for _node in _nodes if _node not in node][0]
-    wait_for_move_destination_node(passive_node)
+    if len(_nodes)>1:
+        passive_node = [_node for _node in _nodes if _node not in node][0]
+        wait_for_move_destination_node(passive_node)
     wait_for_zero_unmanaged_pools()
     display_delay('Reboot')
     for node in nodes:
-        post('/power/reboot', dict(force=False))
+        post('/power/reboot', dict(force=force))
         print_with_timestamp( 'Reboot: {}'.format(node))
     time.sleep(60)
 
@@ -4669,14 +4679,24 @@ move            --pool Pool-1   --node _node-a-ip-address_
 """,
     api_test_cluster = """
 #   The '#' comments-out the rest of the line
-move      --pool Pool-1                --node _node-a-ip-address_    # move
 scrub                                  --node _node-a-ip-address_    # scrub all
-reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+reboot    --force      --delay 10      --node _node-a-ip-address_    # reboot node-a
+reboot    --force      --delay 10      --node _node-b-ip-address_    # reboot node-b
+scrub                                  --node _node-a-ip-address_    # scrub all
+reboot                 --delay 10      --node _node-a-ip-address_    # reboot node-a
+reboot                 --delay 10      --node _node-b-ip-address_    # reboot node-b
+scrub                                  --node _node-a-ip-address_    # scrub all
+
 move      --delay 15   --pool Pool-0   --node _node-a-ip-address_    # move
 move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
-reboot    --delay 10                   --node _node-a-ip-address_    # reboot
+
+move      --delay 15   --pool Pool-0   --node _node-a-ip-address_    # move
+move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
+
+reboot    --force      --delay 10      --node _node-a-ip-address_    # reboot node-a
+reboot    --force      --delay 10      --node _node-b-ip-address_    # reboot node-b
 scrub                                  --node _node-a-ip-address_    # scrub all
-reboot    --delay 10                   --node _node-b-ip-address_    # reboot node-b
+
 move      --delay 15   --pool Pool-1   --node _node-a-ip-address_    # move
 scrub                                  --node _node-a-ip-address_    # scrub all
 """)

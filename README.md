@@ -221,6 +221,14 @@ create_factory_setup_files    	activate                      	import
 
         jdss-api-tools.exe reboot --node 192.168.0.220
 
+    Forced reboot with optional 10 seconds delay.
+    
+        jdss-api-tools.exe reboot --force --delay 10 --node 192.168.0.220
+
+    The forced reboot can be used as hard-reset equivalent for deployment tests.
+    NOTE: The shutdown command does not support forced option.
+    Please use reboot command if hard-reset equivalent is required.
+
 
  9. <b>Set host name</b> to "node220", server name to "server220" and server description to "jdss220".
 
