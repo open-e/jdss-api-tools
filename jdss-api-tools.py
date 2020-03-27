@@ -71,6 +71,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-03-05  fixed get_all_volume_snapshots_older_than_given_age for detasets
 2020-03-05  add ".iscsi" segement into iscsi target template & add Europe/Amsterdam zone
 2020-03-16  add forced reboot be used as hard-reset equivalent(require up29 or newer)
+2020-03-27  add cluster second ring
 """
 
 from __future__ import print_function
@@ -510,6 +511,18 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
+{} {BOLD}Add ring{END}. Add second ring to the cluster.
+
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+    The second ring to be set on bond2 on first node and also on bond2 on the second cluster node.
+
+    {LG}%(prog)s add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2  --node 192.168.0.80{ENDF}
+
+    Same, but using default user & password.
+
+    {LG}%(prog)s add_ring --ring_nics bond2 bond2  --node 192.168.0.80{ENDF}
+
+
 {} {BOLD}Set HA-cluster ping nodes{END}.
 
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
@@ -811,7 +824,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
                  'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
                  'delete_clone', 'delete_clones', 'delete_snapshots', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
-                 'bind_cluster', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
+                 'bind_cluster', 'add_ring', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
                  'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
     )
@@ -1098,6 +1111,13 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         help='Enter space separated mirror path NICs'
     )
     parser.add_argument(
+        '--ring_nics',
+        metavar='nics',
+        nargs='+',
+        default=None,
+        help='Enter space separated ring NICs'
+    )
+    parser.add_argument(
         '--vip_name',
         metavar='name',
         default=None,
@@ -1292,8 +1312,10 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
+    #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
+    test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
-    test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
+    #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
     #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
@@ -1340,7 +1362,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     global jbod_disks_num, vdev_disks_num, jbods_num, vdevs_num, vdev_type, disk_size_tolerance, disk_size_range
     global number_of_disks_in_jbod
     global disk_wwn
-    global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics
+    global nic_name, new_ip_addr, new_mask, new_gw, new_dns, bond_type, bond_nics, mirror_nics, ring_nics
     global host_name, server_name, server_description, timezone, ntp, ntp_servers
     global vip_name, vip_nics, vip_ip, vip_mask
     global bind_node_password
@@ -1435,6 +1457,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     bond_nics                   = args['bond_nics']
     bind_node_password          = args['bind_node_password']
     mirror_nics                 = args['mirror_nics']
+    ring_nics                   = args['ring_nics']
 
     vip_name                    = args['vip_name']
     vip_nics                    = args['vip_nics']
@@ -2830,6 +2853,33 @@ def get_ring_interface_of_first_node():
     sys_exit_with_timestamp( 'Error getting ring interface: Cluster not bound yet.')
 
 
+def get_number_of_rings():
+    rings = get('/cluster/rings')
+    return len([ ring['interfaces'][0]['interface'] for ring in rings ])
+
+def get_rings():
+    ''' rings = get('/cluster/rings')
+    [{u'status': u'n/a', u'interfaces': [{u'interface': u'bond0', u'node_id': u'e5c83031'}, {u'interface': u'bond0', u'node_id': u'e2cb9ad2'}],u'id': 0},
+     {u'status': u'n/a', u'interfaces': [{u'interface': u'eth3', u'node_id': u'e5c83031'}, {u'interface': u'eth3', u'node_id': u'e2cb9ad2'}], u'id': 1}]
+    '''
+    n = 5; rings = []
+    while n:
+        rings = get('/cluster/rings')
+        if rings:
+            break
+        n -= 1
+        time.sleep(1)
+    if len(rings) == 2:
+        first_ring =  rings[0]['interfaces'][0]['interface'],rings[0]['interfaces'][1]['interface']
+        second_ring = rings[1]['interfaces'][0]['interface'],rings[1]['interfaces'][1]['interface']
+    elif len(rings) == 1:
+        first_ring =  rings[0]['interfaces'][0]['interface'],rings[0]['interfaces'][1]['interface']
+        second_ring = []
+    elif len(rings) == 0:
+        first_ring = []
+        second_ring = []
+    return tuple(first_ring), tuple(second_ring)
+    
 ##def get_cluster_nodes_addresses():
 ##    global is_cluster
 ##    is_cluster = False
@@ -3347,6 +3397,47 @@ def bind_cluster(bind_ip_addr):
         print_with_timestamp('Cluster bound: {}<=>{}'.format(node,bind_ip_addr))
     else:
         sys_exit_with_timestamp('Error: cluster bind {}<=>{} failed'.format(node,bind_ip_addr))
+
+
+def add_ring():
+    global action_message
+    action_message = 'Sending Add Ring request to: {}'.format(node)
+
+    if not cluster_bind_set():
+        print_with_timestamp('Cluster bind was not set yet')
+        return
+
+    rings = get_rings()
+    number_of_rings = sum(1 for ring in rings if ring)
+    if number_of_rings == 2 :
+        print_with_timestamp('Cluster has 2 rings allready')
+        print_with_timestamp(' First Ring: {} {}'.format(rings[0][0],rings[0][1]))
+        print_with_timestamp('Second Ring: {} {}'.format(rings[1][0],rings[1][1]))
+        return
+
+    ##same code for "data" as in bing_cluster for "mirror_nics"
+    cluster_nodes_addresses = get_cluster_nodes_addresses()
+    cluster_nodes_ids = get_cluster_nodes_ids()
+    ## first cluster node must be same as node from args
+    if cluster_nodes_addresses[0] != node:
+        cluster_nodes_addresses[0], cluster_nodes_addresses[1] =  \
+        cluster_nodes_addresses[1], cluster_nodes_addresses[0]
+    interfaces_items = []
+    for i, cluster_node_address in enumerate(cluster_nodes_addresses):
+        interfaces_items.append(dict(interface=ring_nics[i], node_id=cluster_nodes_ids[i]))
+    data = dict(interfaces=interfaces_items)
+    ## POST
+    post('/cluster/rings', data)
+
+    ## GET and check
+    rings = get_rings()
+    number_of_rings = sum(1 for ring in rings if ring)
+    if number_of_rings == 2 :
+        print_with_timestamp('The second cluster ring added successfully.')
+        print_with_timestamp(' First Ring: {} {}'.format(rings[0][0],rings[0][1]))
+        print_with_timestamp('Second Ring: {} {}'.format(rings[1][0],rings[1][1]))
+    else:
+        print_with_timestamp('Error: cluster add ring {}<=>{} failed'.format(ring_nics[0],ring_nics[1]))
 
 
 def import_pool():
@@ -4561,6 +4652,14 @@ def command_processor() :
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
 
+    elif action == 'add_ring':
+        if len(nodes) !=1:
+            sys_exit_with_timestamp( 'Error: add_ring command expects exactly 1 IP address')
+        c = count_provided_args( ring_nics )
+        if c not in (1,):
+            sys_exit_with_timestamp( 'Error: add_ring command expects --ring_nics')
+        add_ring()
+
     elif action == 'set_ping_nodes':
         if len(ping_nodes) < 1:
             sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 1 IP address')
@@ -4657,6 +4756,7 @@ bind_cluster     --nodes _node-a-ip-address_ _node-b-ip-address_
 set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node _node-a-ip-address_
 
 set_mirror_path  --mirror_nics bond1 bond1               --node _node-a-ip-address_
+add_ring         --ring_nics   bond1 bond1               --node _node-a-ip-address_
 
 start_cluster                                            --node _node-a-ip-address_
 

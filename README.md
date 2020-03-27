@@ -13,12 +13,12 @@ modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from
 detach_disk_from_pool         	delete_clone                  	delete_clones
 delete_snapshots              	delete_clone_existing_snapshot	set_host
 set_time                      	network                       	create_bond
-delete_bond                   	bind_cluster                  	set_ping_nodes
-set_mirror_path               	create_vip                    	start_cluster
-move                          	info                          	list_snapshots
-shutdown                      	reboot                        	batch_setup
-create_factory_setup_files    	activate                      	import
-</pre>
+delete_bond                   	bind_cluster                  	add_ring
+set_ping_nodes                	set_mirror_path               	create_vip
+start_cluster                 	move                          	info
+list_snapshots                	shutdown                      	reboot
+batch_setup                   	create_factory_setup_files    	activate
+import                        	</pre>
 
 <b>Commands description:</b>
 
@@ -289,7 +289,19 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81
 
 
-15. <b>Set HA-cluster ping nodes</b>.
+15. <b>Add ring</b>. Add second ring to the cluster.
+
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+    The second ring to be set on bond2 on first node and also on bond2 on the second cluster node.
+
+        jdss-api-tools.exe add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2  --node 192.168.0.80
+
+    Same, but using default user & password.
+
+        jdss-api-tools.exe add_ring --ring_nics bond2 bond2  --node 192.168.0.80
+
+
+16. <b>Set HA-cluster ping nodes</b>.
 
     RESTapi user = administrator, RESTapi password = password, netmask = 255.255.0.0.
 
@@ -300,12 +312,12 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80
 
 
-16. <b>Set HA-cluster mirror path</b>. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
+17. <b>Set HA-cluster mirror path</b>. Please enter space separated NICs, the first NIC must be from the same node as the specified access IP.
 
         jdss-api-tools.exe set_mirror_path --mirror_nics eth4 eth4 --node 192.168.0.82
 
 
-17. <b>Create VIP (Virtual IP)</b> examples.
+18. <b>Create VIP (Virtual IP)</b> examples.
 
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip21 --vip_nics eth2 eth2 --vip_ip 192.168.21.100 --vip_mask 255.255.0.0 --node 192.168.0.80
         jdss-api-tools.exe create_vip --pool Pool-0 --vip_name vip31 --vip_nics eth2 --vip_ip 192.168.31.100 --node 192.168.0.80
@@ -316,12 +328,12 @@ create_factory_setup_files    	activate                      	import
     Default vip_mask = 255.255.255.0.
 
 
-18. <b>Start HA-cluster</b>. Please enter first node IP address only.
+19. <b>Start HA-cluster</b>. Please enter first node IP address only.
 
         jdss-api-tools.exe start_cluster --node 192.168.0.82
 
 
-19. <b>Move (failover)</b> given pool.
+20. <b>Move (failover)</b> given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node
     with optional delay in seconds.
@@ -329,7 +341,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe move --pool Pool-0 --delay 120 --node 192.168.0.82
 
 
-20. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
+21. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
     Defaults are: size = 1TB, blocksize = 128KB, recordsize = 1MB, provisioning = thin, volume = auto, target = auto, share_name = auto.
     The blocksize or recordsize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB.
@@ -390,7 +402,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 2 --start_with 100 --increment 100 --zvols_per_target 4 --node 192.168.0.220
 
 
-21. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
+22. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
 
     Current version modify only: Write cache logging (sync) settings.
 
@@ -406,17 +418,17 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220
 
 
-22. <b>Attach volume to iSCSI target</b>.
+23. <b>Attach volume to iSCSI target</b>.
 
         jdss-api-tools.exe attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-23. <b>Detach volume form iSCSI target</b>.
+24. <b>Detach volume form iSCSI target</b>.
 
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-24. <b>Detach disk form pool</b>.
+25. <b>Detach disk form pool</b>.
 
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
@@ -424,7 +436,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
 
 
-25. <b>Scrub</b> start|stop|status.
+26. <b>Scrub</b> start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
 
@@ -444,7 +456,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe scrub --action status --node 192.168.0.220
 
 
-26. <b>Set scrub scheduler</b>.
+27. <b>Set scrub scheduler</b>.
 
     By default the command searches all pools on node or cluster (if configured) and set default schedule: every month at 0:15 AM.
     Every pool will be set on different month day.
@@ -473,7 +485,7 @@ create_factory_setup_files    	activate                      	import
      <b>https:</b>//<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-27. <b>Generate factory setup files for batch setup</b>.
+28. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -485,7 +497,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1
 
 
-28. <b>Execute factory setup files for batch setup</b>.
+29. <b>Execute factory setup files for batch setup</b>.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -498,7 +510,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-29. <b>Product activation</b>.
+30. <b>Product activation</b>.
 
         jdss-api-tools.exe activate --online --node 192.168.0.220
 
@@ -507,7 +519,7 @@ create_factory_setup_files    	activate                      	import
     Note: The off-line activation is not implemented yet.
 
 
-30. <b>Print system info</b>.
+31. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -521,7 +533,7 @@ create_factory_setup_files    	activate                      	import
         jdss-api-tools.exe info --all --node 192.168.0.220
 
 
-31. <b>Print only snapshot info</b>.
+32. <b>Print only snapshot info</b>.
 
         jdss-api-tools.exe list_snapshots --node 192.168.0.220
 
@@ -577,11 +589,11 @@ modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from
 detach_disk_from_pool         	delete_clone                  	delete_clones
 delete_snapshots              	delete_clone_existing_snapshot	set_host
 set_time                      	network                       	create_bond
-delete_bond                   	bind_cluster                  	set_ping_nodes
-set_mirror_path               	create_vip                    	start_cluster
-move                          	info                          	list_snapshots
-shutdown                      	reboot                        	batch_setup
-create_factory_setup_files    	activate                      	import
-</pre>
+delete_bond                   	bind_cluster                  	add_ring
+set_ping_nodes                	set_mirror_path               	create_vip
+start_cluster                 	move                          	info
+list_snapshots                	shutdown                      	reboot
+batch_setup                   	create_factory_setup_files    	activate
+import                        	</pre>
  
  
