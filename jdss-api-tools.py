@@ -2842,7 +2842,7 @@ def get_ring_interface_of_first_node():
     [{u'status': u'ok', u'interfaces': [{u'interface': u'bond0', u'node_id': u'f46f6d14'},
                         {u'interface': u'bond0', u'node_id': u'ae4b08ce'}], u'id': 0}]
     '''
-    n = 5
+    n = 30
     while n:
         output = get('/cluster/rings')
         if output:
@@ -2862,7 +2862,7 @@ def get_rings():
     [{u'status': u'n/a', u'interfaces': [{u'interface': u'bond0', u'node_id': u'e5c83031'}, {u'interface': u'bond0', u'node_id': u'e2cb9ad2'}],u'id': 0},
      {u'status': u'n/a', u'interfaces': [{u'interface': u'eth3', u'node_id': u'e5c83031'}, {u'interface': u'eth3', u'node_id': u'e2cb9ad2'}], u'id': 1}]
     '''
-    n = 5; rings = []
+    n = 30; rings = []
     while n:
         rings = get('/cluster/rings')
         if rings:
@@ -4753,10 +4753,11 @@ activate                                 --online  --node _node-a-ip-address_   
 
 bind_cluster     --nodes _node-a-ip-address_ _node-b-ip-address_
 
+add_ring         --ring_nics bond1 bond1                 --node _node-a-ip-address_
+
 set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node _node-a-ip-address_
 
 set_mirror_path  --mirror_nics bond1 bond1               --node _node-a-ip-address_
-add_ring         --ring_nics   bond1 bond1               --node _node-a-ip-address_
 
 start_cluster                                            --node _node-a-ip-address_
 
@@ -4850,8 +4851,11 @@ def main() :
                     content = content.replace('_node-b-ip-address_',nodes[0])
                 if ping_nodes:
                     content = content.replace('192.168.0.30 192.168.0.40',' '.join(ping_nodes))
-                if mirror_nics:
+                if mirror_nics:   ## same for mirror_nics & ring_nics if ring_nics not specified
                     content = content.replace('--mirror_nics bond1 bond1', '--mirror_nics ' + ' '.join(mirror_nics))
+                    content = content.replace('--ring_nics bond1 bond1', '--ring_nics ' + ' '.join(mirror_nics))
+                if ring_nics: 
+                    content = content.replace('--ring_nics bond1 bond1', '--ring_nics ' + ' '.join(ring_nics))
             ending = current_node.split('.')[-1]
             file_name =  '{}_{}.txt'.format(factory_file_name, ending)
             with open(file_name,'w') as f:
