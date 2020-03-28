@@ -2914,7 +2914,14 @@ def get_cluster_nodes_addresses():
 
 
 def get_cluster_node_id(node):
-    result = get('/cluster/nodes')
+    n = 30 ; result = None
+    while n:
+        result = get('/cluster/nodes')
+        if result:
+            break
+        n -= 1
+        time.sleep(1)
+
     if len(result) < 2:
         ## cluster not configured yet
         sys_exit_with_timestamp('Error: Cluster not bound yet.')
@@ -2923,8 +2930,25 @@ def get_cluster_node_id(node):
         return out
 
 
+#def get_cluster_nodes_ids():
+#    result = get('/cluster/nodes')
+#    if len(result) < 2:
+#        single_node_cluster_id = result[0]['id']    ## NO cluster, just single node
+#        return single_node_cluster_id
+#    else:
+#        cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
+#        cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
+#        return cluster_id_local, cluster_id_remote
+
 def get_cluster_nodes_ids():
-    result = get('/cluster/nodes')
+    n = 30 ; result = None
+    while n:
+        result = get('/cluster/nodes')
+        if result:
+            break
+        n -= 1
+        time.sleep(1)
+    
     if len(result) < 2:
         single_node_cluster_id = result[0]['id']    ## NO cluster, just single node
         return single_node_cluster_id
@@ -2932,6 +2956,8 @@ def get_cluster_nodes_ids():
         cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
         cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
         return cluster_id_local, cluster_id_remote
+
+
 
 
 def get_vips():
@@ -4753,7 +4779,7 @@ activate                                 --online  --node _node-a-ip-address_   
 
 bind_cluster     --nodes _node-a-ip-address_ _node-b-ip-address_
 
-add_ring         --ring_nics bond1 bond1                 --node _node-a-ip-address_
+add_ring         --ring_nics bond1 bond1  g               --node _node-a-ip-address_
 
 set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node _node-a-ip-address_
 
