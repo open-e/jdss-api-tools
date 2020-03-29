@@ -4774,6 +4774,8 @@ start_cluster                                            --node _node-a-ip-addre
 create_pool --pool Pool-0 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
 create_pool --pool Pool-1 --vdevs 1 --vdev mirror --vdev_disks 4 --tolerance 20GB --node _node-a-ip-address_
 
+set_scrub_scheduler             --node _node-a-ip-address_
+
 create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
 create_vip --pool Pool-0 --vip_name vip31 --vip_ip 192.168.31.100 --vip_nics eth3 eth3 --node _node-a-ip-address_
 create_vip --pool Pool-1 --vip_name vip22 --vip_ip 192.168.22.100 --vip_nics eth2 eth2 --node _node-a-ip-address_
@@ -4783,8 +4785,6 @@ create_storage_resource --pool Pool-0 --storage_type iscsi   --quantity 2 --star
 create_storage_resource --pool Pool-0 --storage_type smb nfs --quantity 2 --start_with 100 --increment 100 --node _node-a-ip-address_
 
 scrub                           --node _node-a-ip-address_
-
-set_scrub_scheduler             --node _node-a-ip-address_
 
 move            --pool Pool-1   --node _node-a-ip-address_
 """,
