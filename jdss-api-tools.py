@@ -132,7 +132,10 @@ def get(endpoint):
     error = ''
     api=interface()
     try:
-        result = api.driver.get(endpoint)['data']
+        for i in range(30):
+            result = api.driver.get(endpoint)['data']
+            if result: break
+            time.sleep(1)
     except Exception as e:
         error = str(e[0])
     result = natural_list_sort(result)
@@ -2914,14 +2917,10 @@ def get_cluster_nodes_addresses():
 
 
 def get_cluster_node_id(node):
-    n = 30 ; result = None
-    while n:
-        result = get('/cluster/nodes')
-        if result:
-            break
-        n -= 1
-        time.sleep(1)
 
+    result = get('/cluster/nodes')
+    result = result if result else []
+    
     if len(result) < 2:
         ## cluster not configured yet
         sys_exit_with_timestamp('Error: Cluster not bound yet.')
@@ -2930,25 +2929,11 @@ def get_cluster_node_id(node):
         return out
 
 
-#def get_cluster_nodes_ids():
-#    result = get('/cluster/nodes')
-#    if len(result) < 2:
-#        single_node_cluster_id = result[0]['id']    ## NO cluster, just single node
-#        return single_node_cluster_id
-#    else:
-#        cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
-#        cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
-#        return cluster_id_local, cluster_id_remote
-
 def get_cluster_nodes_ids():
-    n = 30 ; result = None
-    while n:
-        result = get('/cluster/nodes')
-        if result:
-            break
-        n -= 1
-        time.sleep(1)
-    
+
+    result = get('/cluster/nodes')
+    result = result if result else []
+
     if len(result) < 2:
         single_node_cluster_id = result[0]['id']    ## NO cluster, just single node
         return single_node_cluster_id
@@ -2956,7 +2941,6 @@ def get_cluster_nodes_ids():
         cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
         cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
         return cluster_id_local, cluster_id_remote
-
 
 
 
