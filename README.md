@@ -404,7 +404,8 @@ import                        	</pre>
 
 22. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
 
-    Current version modify only: Write cache logging (sync) settings.
+    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets(NAS)
+    and volume size for volumes(SAN).
 
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --sync always --node 192.168.0.220
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --sync disabled --node 192.168.0.220
@@ -416,6 +417,11 @@ import                        	</pre>
     Modify quota and reservation.
 
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220
+
+    Modify SAN volume size in human readable format i.e. 100GB, 1TB, etc.
+    New size must be bigger than current size, but not bigger than double of current size.
+
+        jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB  --node 192.168.0.220
 
 
 23. <b>Attach volume to iSCSI target</b>.

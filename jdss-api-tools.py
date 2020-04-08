@@ -72,6 +72,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-03-05  add ".iscsi" segement into iscsi target template & add Europe/Amsterdam zone
 2020-03-16  add forced reboot be used as hard-reset equivalent(require up29 or newer)
 2020-03-27  add cluster second ring
+2020-04-09  add volume size modify
+
 """
 
 from __future__ import print_function
@@ -629,7 +631,8 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
-    Current version modify only: Write cache logging (sync) settings.
+    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets(NAS)
+    and volume size for volumes(SAN).
 
     {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync always --node 192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync disabled --node 192.168.0.220{ENDF}
@@ -641,6 +644,11 @@ def get_args(batch_args_line=None):
     Modify quota and reservation.
 
     {LG}%(prog)s modify_volume --pool Pool-0 --volume vol00 --quota 200GB --reservation 80GB --node 192.168.0.220{ENDF}
+
+    Modify SAN volume size in human readable format i.e. 100GB, 1TB, etc.
+    New size must be bigger than current size, but not bigger than double of current size.
+
+    {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB  --node 192.168.0.220{ENDF}
 
 
 {} {BOLD}Attach volume to iSCSI target{END}.
@@ -875,6 +883,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
         metavar='size',
         default='1TB',
         help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
+    )
+    parser.add_argument(
+        '--new_size',
+        metavar='new_size',
+        help='Enter SAN (zvol) NEW bigger size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
     )
     parser.add_argument(
         '--blocksize',
@@ -1315,8 +1328,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
+    test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
-    test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
+    #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
     #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.82'
@@ -1326,7 +1340,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.32'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
@@ -1356,7 +1370,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                 args[key] = ""
 
     global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
-    global size, blocksize, recordsize, quota, reservation, sync, logbias, sparse, primarycache, secondarycache, compression, dedup, snapshot_name
+    global size, new_size, blocksize, recordsize, quota, reservation, sync, logbias, sparse, primarycache, secondarycache, compression, dedup, snapshot_name
     global properties
     global nodes, ping_nodes, node
     global delay, menu
@@ -1396,6 +1410,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     size                        = args['size']
     size                        = human_to_bytes(size)
+
+    new_size                    = args['new_size']
+    new_size                    = human_to_bytes(new_size)
 
     blocksize                   = args['blocksize']
     blocksize                   = human_to_bytes(blocksize)
@@ -2805,6 +2822,9 @@ def get_san_volumes_names():
     else:
         return []
 
+def get_san_volume_size():
+    volume_properties = get('/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/properties'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name))
+    return [ property_item['value'] for property_item in volume_properties if 'volsize' in property_item['name']][0]
 
 def get_nic_name_of_given_ip_address(ip_address):
     interfaces = get('/network/interfaces')
@@ -3378,7 +3398,7 @@ def delete_bond(bond_name):
 
 def node_id():
     ## GET
-    version = get('/product')["header"]
+    version = get('/product')["version"]   ## it was 'header' till up29
     serial_number = get('/product')["serial_number"]
     server_name = get('/product')["server_name"]
     host_name = get('/product')["host_name"]
@@ -3546,7 +3566,7 @@ def info():
     for node in nodes:
         ## GET
         action_message = 'Reading setup details from: {}'.format(node)
-        version = get('/product')["header"]
+        version = get('/product')["version"]   ## it was 'header' till up29
         serial_number = get('/product')["serial_number"]
         serial_number = '{} TRIAL'.format(serial_number) if serial_number.startswith('T') else serial_number
         storage_capacity = get('/product')['storage_capacity']     ## -1  means Unlimited
@@ -3845,6 +3865,19 @@ def modify_volume(vol_type):
     if vol_type == 'volume':
         endpoint='/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/properties'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name)
         data=dict(property_name='sync',property_value=sync)
+        if new_size:
+            current_size = get_san_volume_size()
+            #print(new_size,current_size )
+            if int(new_size) < int(current_size):
+                print_with_timestamp('Error: {}/{} Provided new size: {} is smaller then current size:{}.'.format(pool_name,volume_name,bytes2human(new_size),bytes2human(current_size)))
+                return
+            if int(new_size) == int(current_size):
+                print_with_timestamp('Error: {}/{} Provided new size: {} is euqal to current size:{}.'.format(pool_name,volume_name,bytes2human(new_size),bytes2human(current_size)))
+                return
+            if int(new_size) > 2* int(current_size):
+                print_with_timestamp('Error: {}/{} Provided new size: {} cannot be bigger than double of current size:{}.'.format(pool_name,volume_name,bytes2human(new_size),bytes2human(current_size)))
+                return
+            data=dict(property_name='volsize',property_value=new_size) 
         result=put(endpoint,data)
     if vol_type == 'dataset':
         endpoint='/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}'.format(POOL_NAME=pool_name, DATASET_NAME=volume_name)
@@ -3853,7 +3886,10 @@ def modify_volume(vol_type):
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
     if result and (result['error'] is None):
-        print_with_timestamp('{}/{}: Write cache logging (sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
+        if new_size:
+            print_with_timestamp('{}/{}: New volume size set to: {}.'.format(pool_name,volume_name, bytes2human(new_size)))
+        else:
+            print_with_timestamp('{}/{}: Write cache logging (sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
     else:
         print_with_timestamp('Error: {}/{} Modify volume request failed.'.format(pool_name,volume_name,sync))
 
@@ -4622,7 +4658,7 @@ def command_processor() :
         if volume_name == 'auto':
             sys_exit_with_timestamp( 'Error: modify_volume command expects volume name to be specified')
         if c < 3:
-            sys_exit_with_timestamp( 'Error: modify_volume command expects (pool, volume, sync), {} provided.'.format(c))
+            sys_exit_with_timestamp( 'Error: modify_volume command expects (pool, volume, sync or new_size), {} provided.'.format(c))
         vol_type = check_given_volume_name()
         modify_volume(vol_type)
 
