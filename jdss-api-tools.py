@@ -73,6 +73,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-03-16  add forced reboot be used as hard-reset equivalent(require up29 or newer)
 2020-03-27  add cluster second ring
 2020-04-09  add volume size modify
+2020-05-20  add ".iscsi" segement into auto generated iscsi target
 
 """
 
@@ -1328,7 +1329,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
     ## TESTING ONLY!
     #test_mode = True
-    test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
+    #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
@@ -1340,9 +1341,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.32'
+    test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
-    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.80'
+    #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
@@ -2428,6 +2429,8 @@ def print_san_snapshots_details(header,fields):
                     elif field in ('age',):
                         #time_stamp_string = snapshot_name.split('_')[-1]
                         #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        ####
+                        print('________________creation:',snapshot['creation'])
                         value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
                         if 'org.znapzend:src_plan' in snapshot.keys():
                             plan = snapshot['org.znapzend:src_plan']
@@ -2782,7 +2785,7 @@ def generate_iscsi_target_and_volume_name(pool_name):
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
     consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
     ## target name MUST use lower case only 
-    iscsi_target_name = "iqn.{}:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
+    iscsi_target_name = "iqn.{}.iscsi:{}.target{}".format(time.strftime("%Y-%m"), host_name.lower(), consecutive_string_target)
     if is_cluster_configured():
         # default cluster name = ha-00
         iscsi_target_name = iscsi_target_name.replace(host_name,cluster_name if cluster_name else 'ha-00')
