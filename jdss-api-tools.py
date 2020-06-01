@@ -833,16 +833,11 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     commands = parser.add_argument(
         'cmd',
         metavar='command',
-         choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume     \
-                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones \
-                    delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond              \
-                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster move info list_snapshots         \
+         choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
+                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones  \
+                    delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond               \
+                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster move info list_snapshots          \
 		    shutdown reboot batch_setup create_factory_setup_files activate import'.split(),
-        #choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-        #         'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
-        #         'delete_clone', 'delete_clones', 'delete_snapshots', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
-        #         'bind_cluster', 'add_ring', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
-        #         'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
     )
 
@@ -2360,7 +2355,7 @@ def print_nas_snapshots_details(header,fields):
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))   
                         value = seconds2human(snapshot_creation_to_seconds(property_dict['creation']))
                         if 'src_plan' in property_dict.keys():
                             plan = property_dict['src_plan']
@@ -2435,7 +2430,7 @@ def print_san_snapshots_details(header,fields):
                         #time_stamp_string = snapshot_name.split('_')[-1]
                         #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
                         ####
-                        print('________________creation:',snapshot['creation'])
+                        #### print('________________creation:',snapshot['creation'])
                         value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
                         if 'org.znapzend:src_plan' in snapshot.keys():
                             plan = snapshot['org.znapzend:src_plan']
@@ -2700,8 +2695,10 @@ def scrub():
             post(endpoint, dict(action=scrub_action))
 
     ## print scrub pools details
-    header= ('pool','state', 'scrub_start_time', 'end_time', 'rate', 'mins_left','examined', '%', 'total')
-    fields= ('pool','state', 'start_time', 'end_time', 'rate', 'mins_left', 'examined', 'percent', 'total')
+    #header= ('pool','state', 'scrub_start_time', 'end_time', 'rate', 'mins_left','examined', '%', 'total')
+    #fields= ('pool','state', 'start_time', 'end_time', 'rate', 'mins_left', 'examined', 'percent', 'total')
+    header= tuple('pool  state  scrub_start_time  end_time  rate  mins_left  examined  %        total'.split())
+    fields= tuple('pool  state  start_time        end_time  rate  mins_left  examined  percent  total'.split())
     print_scrub_pools_details(header,fields)
 
 
@@ -2911,22 +2908,6 @@ def get_rings():
         second_ring = []
     return tuple(first_ring), tuple(second_ring)
     
-##def get_cluster_nodes_addresses():
-##    global is_cluster
-##    is_cluster = False
-##    result = get('/cluster/nodes')
-##
-##    cluster_nodes = get('/cluster/nodes')
-##    if cluster_nodes:
-##        cluster_nodes_addresses = [cluster_node['address']for cluster_node in cluster_nodes]
-##    else:
-##        cluster_nodes_addresses = []
-##    if ('127.0.0.1' not in cluster_nodes_addresses) and (len(cluster_nodes_addresses)>1):
-##        is_cluster = True
-##    else:
-##        cluster_nodes_addresses = node.split()  ## the node as single item list
-##    return cluster_nodes_addresses
-
 
 def get_cluster_nodes_addresses():
     global is_cluster
