@@ -112,7 +112,7 @@ auto_snap_name          = "auto_api_backup_snap"
 auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
 increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
-time_periods            = ['year','month','week','day','hour','minute','second']
+time_periods            = 'year month week day hour minute second'.split()
 
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
@@ -833,11 +833,16 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     commands = parser.add_argument(
         'cmd',
         metavar='command',
-        choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
-                 'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
-                 'delete_clone', 'delete_clones', 'delete_snapshots', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
-                 'bind_cluster', 'add_ring', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
-                 'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
+         choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume     \
+                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones \
+                    delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond              \
+                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster move info list_snapshots         \
+		    shutdown reboot batch_setup create_factory_setup_files activate import'.split(),
+        #choices=['clone', 'clone_existing_snapshot', 'create_pool', 'scrub', 'set_scrub_scheduler', 'create_storage_resource', 'modify_volume',
+        #         'attach_volume_to_iscsi_target', 'detach_volume_from_iscsi_target', 'detach_disk_from_pool',
+        #         'delete_clone', 'delete_clones', 'delete_snapshots', 'delete_clone_existing_snapshot', 'set_host', 'set_time', 'network', 'create_bond', 'delete_bond',
+        #         'bind_cluster', 'add_ring', 'set_ping_nodes', 'set_mirror_path', 'create_vip', 'start_cluster', 'move', 'info', 'list_snapshots',
+        #         'shutdown', 'reboot', 'batch_setup', 'create_factory_setup_files', 'activate', 'import'],
         help='Commands:   %(choices)s.'
     )
 
@@ -4802,7 +4807,7 @@ activate                                 --online  --node _node-a-ip-address_   
 
 bind_cluster     --nodes _node-a-ip-address_ _node-b-ip-address_
 
-add_ring         --ring_nics bond1 bond1  g               --node _node-a-ip-address_
+add_ring         --ring_nics bond1 bond1                 --node _node-a-ip-address_
 
 set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node _node-a-ip-address_
 
