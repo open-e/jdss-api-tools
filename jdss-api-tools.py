@@ -1,3 +1,5 @@
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
 """
 jdss-api-tools send REST API commands to JovianDSS servers
 
