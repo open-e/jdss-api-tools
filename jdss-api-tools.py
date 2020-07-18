@@ -1,6 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 https://github.com/open-e/jdss-api-tools/blob/master/jdss-api-tools.py
-
 jdss-api-tools send REST API commands to JovianDSS servers
 
 In order to create single exe file run:
@@ -87,12 +89,12 @@ import time
 import datetime
 import argparse
 import collections
-import ipcalc
 import ping
+
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
 from colorama import init
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 
 __author__ = 'janusz.bak@open-e.com'
 __version__ = 1.1
@@ -253,8 +255,9 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Create clone{END} of iSCSI volume zvol00 from Pool-0 and attach to iSCSI target.
 
-    Every time it runs, it will delete the clone created last run and re-create new one.
-    So, the target exports most recent data every run.
+    Every time it runs, it will delete the clone and re-create new one.
+    If clone name and snapshot name is not provided it will reuse auto clone & snapshot name created last run, so
+    the target exports most recent data every run.
     The example is using default password and port.
     Tools automatically recognize the volume type. If given volume is iSCSI volume,
     the clone of the iSCSI volume will be attached to iSCSI target.
@@ -270,12 +273,14 @@ def get_args(batch_args_line=None):
 
     {BOLD}Create clone{END} of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
-    Every time it runs, it will delete the clone created last run and re-create new one.
-    So, the share exports most recent data every run. The share is invisible by default.
+    Every time it runs, it will delete the clone and re-create new one.
+    If clone name and snapshot name is not provided it will reuse auto clone & snapshot name created last run, so
+    the target exports most recent data every run.
     The example is using default password and port and makes the share {BOLD}visible{END} with default share name
     and primarycache set to metadata only.
 
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --primarycache metadata --node 192.168.0.220{ENDF}
+		--snapshot --clone_name and --share_name are optional parameter
 
     The following examples are using default password and port and make the shares {BOLD}invisible{END}.
 
@@ -288,7 +293,6 @@ def get_args(batch_args_line=None):
     The example is using password 12345 and default port.
 
     {LG}%(prog)s clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
-
 
     {BOLD}Create clone{END} of existing snapshot on NAS volume vol00 from Pool-0 and share via new created SMB share.
 
@@ -310,14 +314,14 @@ def get_args(batch_args_line=None):
 
     {BOLD}Delete clone{END} of existing snapshot on iSCSI volume zvol00 from Pool-0.
 
-    The example is using password 12345 and default port.
+    The example is using password 12345 and default port. Snapshot will not be removed.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume zvol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
 
     {BOLD}Delete clone{END} of existing snapshot on NAS volume vol00 from Pool-0.
 
-    The example is using password 12345 and default port.
+    The example is using password 12345 and default port. Snapshot will not be removed.
 
     {LG}%(prog)s delete_clone_existing_snapshot --pool Pool-0 --volume vol00 --snapshot autosnap_2018-06-07-080000 --node 192.168.0.220 --pswd 12345{ENDF}
 
@@ -2009,7 +2013,7 @@ def display_delay(msg):
 		sys.stdout.write((b'\x08' * n).decode())  # use \x08 char to go back
 
 	for sec in range(delay, 0, -1):
-		print
+		print ()
 		s = '{} in {:>2} seconds ...          '.format(msg, sec)
 		sys.stdout.write(s)  # just print
 		sys.stdout.flush()  # needed for flush when using \x08
@@ -2311,7 +2315,7 @@ def delete_snapshot(vol_type, snapshot_name):
 	return resp.code if resp is not None else None  # Http code 204 on success
 
 
-def get_snapshot_clones(snapshot_name):
+def get_snapshot_clones(vol_type, snapshot_name):
 	clones = clones_names = None
 	if vol_type in 'volume':
 		clones = get('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones'.format(POOL=pool_name, VOLUME=volume_name,
@@ -4081,10 +4085,10 @@ def create_snapshot(vol_type, ignore_error=None):
 
 		## POST
 		post(endpoint, data)
-		print_with_timestamp('Snapshot {} of {}/{} has been successfully created.'.format(snapshot_name, pool_name, volume_name))
 		if error:
 			if ignore_error is None:
 				sys_exit_with_timestamp('Error: Target: {} creation on Node: {} failed'.format(auto_target_name, node))
+		print_with_timestamp('Snapshot {} of {}/{} has been successfully created.'.format(snapshot_name, pool_name, volume_name))
 
 
 def create_clone(vol_type, ignore_error=None):
@@ -4113,17 +4117,29 @@ def create_clone(vol_type, ignore_error=None):
 
 		## POST
 		post(endpoint, data)
-		print_with_timestamp(
-			'Clone of {}/{}/{} has been successfully created.'.format(pool_name, volume_name, snapshot_name))
 		if error:
 			if ignore_error is None:
-				sys_exit_with_timestamp('Error: Clone: {} creation on Node: {} failed'.format(clone_name, node))
+				print_with_timestamp('Error: Clone: {} creation on Node: {} failed'.format(clone_name, node))
+				print()
+		print_with_timestamp(
+			'Clone of {}/{}/{} has been successfully created.'.format(pool_name, volume_name, snapshot_name))
+		print()
+
+
+def delete_snapshot_and_or_clone(vol_type, ignore_error=None):
+	# deletes a snapshot and clone if clone belongs to provided snapshot name. If not, just clone would be deleted.
+	snapshot = find_snapshot_from_clone(clone_name=clone_name, pool_name=pool_name, volume_name=volume_name)
+	if snapshot is None or snapshot or snapshot != snapshot_name:
+		delete_clone_existing_snapshot(vol_type, ignore_error=ignore_error)
+	else: delete_snapshot_and_clone(vol_type, ignore_error=ignore_error)
 
 
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
+	# deletes a snapshot and clone. Snapshot name must be provided
 	global node
 	for node in nodes:
 		api = interface()
+
 		## Delete snapshot. It auto-deletes clone and share of NAS vol
 		if vol_type == 'dataset':
 			endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
@@ -4151,64 +4167,38 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
 				print()
 
 
-def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
-	global node
-	for node in nodes:
-		global clone_name
-		## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-		api = interface()
-		## Create clone of NAS vol = dataset
-		if vol_type == 'dataset':
-			endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
-				POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
-			## vol
-			clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
-			data = dict(name=clone_name, snapshot=snapshot_name)
-		## Create clone of SAN zvol = volume
-		elif vol_type == 'volume':
-			endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
-				POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
-			## zvol
-			clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
-			data = dict(name=clone_name, snapshot=snapshot_name)
-
-		## POST
-		post(endpoint, data)
-		print_with_timestamp(
-			'Clone of {}/{}/{} has been successfully created.'.format(pool_name, volume_name, snapshot_name))
-		if error:
-			if ignore_error is None:
-				sys_exit_with_timestamp('Error: Clone: {} creation on Node: {} failed'.format(clone_name, node))
-
-
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
+	# delete a clone while snapshot is not being removed. Snapshot name must not be provided
 	global node
 	for node in nodes:
 		api = interface()
+
+		# find snapshot name as clone could be done from another snapshot before
+		loc_snapshot_name = find_snapshot_from_clone(clone_name=clone_name, pool_name=pool_name, volume_name=volume_name)
+		loc_snapshot_name = snapshot_name if loc_snapshot_name is None else loc_snapshot_name
+
 		## Delete existing clone and share of NAS vol
 		if vol_type == 'dataset':
-			clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
-			endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{VOL_CLONE_NAME}'.format(
-				POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, VOL_CLONE_NAME=vol_clone_name)
+			endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
+				POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=loc_snapshot_name, CLONE_NAME=clone_name)
 			data = dict(name=clone_name)
 			try:
 				api.driver.delete(endpoint, data)
-				print_with_timestamp(
-					'Share and clone of {}/{}/{} have been successfully deleted.'.format(pool_name, volume_name, snapshot_name))
+				print_with_timestamp('Share and clone of {}/{}/{} have been successfully deleted.'.format(
+					pool_name, volume_name, loc_snapshot_name))
 				print()
 			except:
 				print_with_timestamp('Clone delete error: {} does not exist on Node: {}'.format(clone_name, node))
 				print()
 		## Delete existing clone of SAN zvol
 		elif vol_type == 'volume':
-			clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
 			endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
-				POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, CLONE_NAME=clone_name)
+				POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=loc_snapshot_name, CLONE_NAME=clone_name)
 			data = dict(name=clone_name)
 			try:
 				api.driver.delete(endpoint, data)
 				print_with_timestamp(
-					'Clone of {}/{}/{} has been successfully deleted.'.format(pool_name, volume_name, snapshot_name))
+					'Clone of {}/{}/{} has been successfully deleted.'.format(pool_name, volume_name, loc_snapshot_name))
 				print()
 			except:
 				print_with_timestamp('Clone delete error: {} does not exist on Node: {}'.format(clone_name, node))
@@ -4334,7 +4324,7 @@ def attach_clone_to_target(ignore_error=None):
 		print("\tClone:\t{}\n".format(clone_name))
 
 
-def create_share_for_auto_clone(ignore_error=None):
+def create_share_for_clone(ignore_error=None):
 	global node
 	for node in nodes:
 		endpoint = '/shares'
@@ -4353,7 +4343,7 @@ def create_share_for_auto_clone(ignore_error=None):
 
 		print_with_timestamp('Share for {}/{} has been successfully created.'.format(
 			pool_name, clone_name))
-		print("\n\tShare:\t\\\\{}\{}".format(node, share_name))
+		print("\tShare:\t\\\\{}\{}".format(node, share_name))
 		print("\tClone:\t{}/{}\n".format(pool_name, clone_name))
 
 
@@ -4382,20 +4372,11 @@ def create_share(ignore_error=None):
 			print("\tDataset:\t{}/{}\n".format(pool_name, volume_name))
 
 
-def create_new_backup_clone(vol_type):
-	create_snapshot(vol_type)
+def create_backup_clone(vol_type, snapshot_exists):
+	if not snapshot_exists: create_snapshot(vol_type)
 	create_clone(vol_type)
 	if vol_type == 'dataset':
-		create_share_for_auto_clone()
-	elif vol_type == 'volume':
-		create_target(ignore_error=True)
-		attach_clone_to_target()
-
-
-def create_existing_backup_clone(vol_type):
-	create_clone_of_existing_snapshot(vol_type)
-	if vol_type == 'dataset':
-		create_share_for_auto_clone()
+		create_share_for_clone()
 	elif vol_type == 'volume':
 		create_target(ignore_error=True)
 		attach_clone_to_target()
@@ -4658,33 +4639,72 @@ def read_jbods_and_create_pool(choice='0'):
 	if pool_name in pools_names:
 		print("\n\tNode {} {}: {}*{}[{} disk]".format(node, pool_name, *get_pool_details(node, pool_name)))
 
+def find_volume(pool_name, origin=None, full_name=None, name=None) :
+	# type: (string, regex, regex, regex) -> object
+	for node in nodes:
+		## GET /pools/<pool_name>/nas-volumes
+		volumes = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
+		res =  find_volumes(volumes=volumes, origin=origin, full_name=full_name, name=name)
+		if res is None:
+			## GET /pools/<pool_name>/volumes
+			volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
+			res = find_volumes(volumes=volumes, origin=origin, full_name=full_name, name=name)
+		return res
+
+def find_volumes(volumes, origin=None, full_name=None, name=None):
+	# type: (string, regex, regex, regex) -> object
+	if volumes:
+		for volume in volumes:
+			if origin is not None and volume['origin'] is not None:
+				f_origin = re.search(origin, volume['origin'])
+			else: f_origin = False
+			if full_name is not None and volume['full_name'] is not None:
+				f_full_name = re.search(full_name, volume['full_name'])
+			else: f_full_name = False
+			if name is not None and volume['name'] is not None:
+				f_name = re.search(name, volume['name'])
+			else: f_name = False
+
+			if (origin is None or f_origin) and (full_name is None or f_full_name) and (name is None or f_name):
+				return volume
+		return None
+
+def find_snapshot_from_clone(clone_name, pool_name, volume_name=None):
+	# find a snapshot name from a given clone name, pool and optional volume name
+	# returns None or snapshot name
+	snapshot=None
+	origin = '/{}@'.format(volume_name) if volume_name is not None else None
+	volume = find_volume(pool_name=pool_name, name=clone_name, origin=origin)
+	if volume:	snapshot = re.findall('@(.*)', volume['origin'])
+	if snapshot is not None: snapshot = snapshot[0].encode('ascii', 'ignore')
+	return snapshot
 
 def command_processor():
 	print()
 
 	if action == 'clone':
 		c = count_provided_args(pool_name, volume_name)  ## if both provided (not None), c must be equal 2
-		if c < 2:
+		if c < 2 and action == 'clone':
 			sys_exit_with_timestamp('Error: clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
 		vol_type = check_given_volume_name()
-		delete_snapshot_and_clone(vol_type, ignore_error=True)
-		create_new_backup_clone(vol_type)
+		delete_snapshot_and_or_clone(vol_type, ignore_error=True)
+		create_backup_clone(vol_type, snapshot_exists=False)
 
 	elif action == 'clone_existing_snapshot':
-		c = count_provided_args(pool_name, volume_name, snapshot_name)  ## if all provided (not None), c must be equal 3
-		if c < 3:
-			sys_exit_with_timestamp(
-				'Error: clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
+		c = count_provided_args(pool_name, volume_name, snapshot_name, clone_name)
+		if c < 4:
+			sys_exit_with_timestamp('Error: clone_existing_snapshot command expects 4 arguments (pool, volume, snapshot,' \
+					'clone), {} provided.'.format(c))
 		vol_type = check_given_volume_name()
 		delete_clone_existing_snapshot(vol_type, ignore_error=True)
-		create_existing_backup_clone(vol_type)
+		create_backup_clone(vol_type, snapshot_exists=True)
 
 	elif action == 'delete_clone':
 		c = count_provided_args(pool_name, volume_name)  ## if both provided (not None), c must be equal 2
 		if c < 2:
 			sys_exit_with_timestamp('Error: delete_clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
 		vol_type = check_given_volume_name()
-		delete_snapshot_and_clone(vol_type, ignore_error=True)
+		delete_snapshot_and_or_clone(vol_type, ignore_error=True)
 
 	elif action == 'delete_clones':
 		c = count_provided_args(pool_name, volume_name)  ## if both provided (not None), c must be equal 2
@@ -4702,11 +4722,11 @@ def command_processor():
 		delete_snapshots(vol_type)
 
 	elif action == 'delete_clone_existing_snapshot':
-		c = count_provided_args(pool_name, volume_name, snapshot_name)  ## if all provided (not None), c must be equal 3
-		if c < 3:
+		c = count_provided_args(pool_name, volume_name, snapshot_name)  ## if all provided (not None), c must be equal 4
+		if c < 4:
 			sys_exit_with_timestamp(
-				'Error: delete_clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(
-					c))
+				'Error: delete_clone_existing_snapshot command expects 4 arguments (pool, volume, snapshot, clone),'\
+					'{} provided.'.format(c))
 		vol_type = check_given_volume_name()
 		delete_clone_existing_snapshot(vol_type, ignore_error=True)
 
