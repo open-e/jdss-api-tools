@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """
 https://github.com/open-e/jdss-api-tools/blob/master/jdss-api-tools.py
 jdss-api-tools send REST API commands to JovianDSS servers
