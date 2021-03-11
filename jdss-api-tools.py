@@ -1410,6 +1410,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 			if value in "''":
 				args[key] = ""
 
+	return args
 
 def assign_args(args):
 	global api_port, api_user, api_password, action, pool_name, pools_names, volume_name, storage_type, storage_volume_type
@@ -1510,7 +1511,7 @@ def assign_args(args):
 	share_name = args['share_name'] if 'share_name' in args else 'auto'
 	share_name = 'auto_api_backup_share' if 'clone' in action and share_name == 'auto' else share_name
 	if 'visible' in args:
-		visible = True if args['visible'].upper() != 'FALSE' else False
+		visible = True if args['visible'] else False
 	else: visible = False
 	bind_node_password = args['bind_node_password'] if 'bind_node_password' in args else 'admin'
 	scrub_action = args['scrub_action'] if 'scrub_action' in args else 'start'
@@ -1523,32 +1524,32 @@ def assign_args(args):
 	older_than = ''.join(older_than)  ## list to string
 	older_than = human2seconds(older_than)  ## string to seconds
 	if 'menu' in args:
-		menu = True if args['menu'].upper() != 'FALSE' else False
+		menu = True if args['menu'] else False
 	else: menu =  False
 	setup_files = args['setup_files'] if 'setup_files' in args else None
 	if 'all_snapshots' in args:
-		all_snapshots = True if args['all_snapshots'].upper() != 'FALSE' else False
+		all_snapshots = True if args['all_snapshots'] else False
 	else: all_snapshots = False
 	if 'online' in args:
-		online = True if args['online'].upper() != 'FALSE' else False
+		online = True if args['online'] else False
 	else: online = False
 	if 'force' in args:
-		force = True if args['force'].upper() != 'FALSE' else False
+		force = True if args['force'] else False
 	else: force = False
 	if 'recovery_import' in args:
-		recovery_import = True if args['recovery_import'].upper() != 'FALSE' else False
+		recovery_import = True if args['recovery_import'] else False
 	else: recovery_import = False
 	if 'ignore_missing_write_log' in args:
-		ignore_missing_write_log = True if args['ignore_missing_write_log'].upper() != 'FALSE' else False
+		ignore_missing_write_log = True if args['ignore_missing_write_log'] else False
 	else: ignore_missing_write_log = False
 	if 'ignore_unfinished_resilver' in args:
-		ignore_unfinished_resilver = True if args['ignore_unfinished_resilver'].upper() != 'FALSE' else False
+		ignore_unfinished_resilver = True if args['ignore_unfinished_resilver'] else False
 	else: ignore_unfinished_resilver = False
 	clone_name = args['clone_name'] if 'clone_name' in args else 'auto'
 	vol_path = args['vol_path'] if 'vol_path' in args else ''
 	sync_data_record = args['sync_data_record'] if 'sync_data_record' in args else True
 	if 'no_root_squash' in args:
-		no_root_squash = True if args['no_root_squash'].upper() != 'FALSE' else False
+		no_root_squash = True if args['no_root_squash'] else False
 	else: no_root_squash = False
 	allow_write_ip = args['allow_write_ip'] if 'allow_write_ip' in args else []
 	allow_access_ip = args['allow_access_ip'] if 'allow_access_ip' in args else []
@@ -5087,10 +5088,10 @@ def print_README_md_for_GitHub():
 if __name__ == '__main__':
 
 	init()  ## colorama
-	get_args()  ## args
+	args = get_args()  ## args
 
 	try:
-		main()
+		main(args)
 	except KeyboardInterrupt:
 		sys_exit('Interrupted             ')
 	print()
