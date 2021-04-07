@@ -74,6 +74,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-03-27  add cluster second ring
 2020-04-09  add volume size modify
 2020-05-20  add ".iscsi" segement into auto generated iscsi target
+2021-04-07  add export pool command
 
 """
 
@@ -436,6 +437,18 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s import --pool Pool-0 --force --recovery_import --ignore_unfinished_resilver --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Export pool{END}:
+
+    Export pools. If the node belongs to cluster, export given pool in cluster.
+
+    {LG}%(prog)s export --pool Pool-0 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s export --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220{ENDF}
+
+    Export with optional 5 seconds delay.
+
+    {LG}%(prog)s export --pool Pool-0 --delay 5 --node 192.168.0.220{ENDF}
+    
+
 {} {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
     {LG}%(prog)s --pswd password shutdown --nodes 192.168.0.220 192.168.0.221 192.168.0.222{ENDF}
@@ -443,6 +456,10 @@ def get_args(batch_args_line=None):
     or with IP range syntax "..".
 
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
+
+    Shutdown with optional 10 seconds delay.
+    
+    {LG}%(prog)s shutdown --delay 10 --node 192.168.0.220{ENDF}
 
 
 {} {BOLD}Reboot{END} single JovianDSS server.
@@ -837,7 +854,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
                     attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones  \
                     delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond               \
                     bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster move info list_snapshots          \
-		    shutdown reboot batch_setup create_factory_setup_files activate import'.split(),
+		    shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
         help='Commands:   %(choices)s.'
     )
 
@@ -2695,11 +2712,33 @@ def scrub():
             post(endpoint, dict(action=scrub_action))
 
     ## print scrub pools details
-    #header= ('pool','state', 'scrub_start_time', 'end_time', 'rate', 'mins_left','examined', '%', 'total')
-    #fields= ('pool','state', 'start_time', 'end_time', 'rate', 'mins_left', 'examined', 'percent', 'total')
     header= tuple('pool  state  scrub_start_time  end_time  rate  mins_left  examined  %        total'.split())
     fields= tuple('pool  state  start_time        end_time  rate  mins_left  examined  percent  total'.split())
     print_scrub_pools_details(header,fields)
+
+
+def export():
+    global node
+    global action_message
+    global pool_name
+    action_message = 'Sending export {} request to: {}'.format(scrub_action,node)
+    if pools_names:
+        pools_names_to_export = pools_names
+        cluster_pools_names = get_cluster_pools_names()
+        for pool_name in pools_names_to_export:
+            if pool_name not in cluster_pools_names:
+                sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+    else:
+        pools_names_to_export = get_cluster_pools_names()
+    pools_names_to_export.sort()
+    for pool_name in pools_names_to_export:
+        to_print_timestamp_msg[node] = False
+        node = get_active_cluster_node_address_of_given_pool(pool_name)
+        to_print_timestamp_msg[node] = True
+        display_delay('Export')
+        endpoint = '/pools/{POOL}/export'.format(POOL=pool_name)
+        action_message = 'Sending export request to {} on : {}'.format(pool_name, node)
+        post(endpoint, dict())
 
 
 def get_pools_names():
@@ -3169,13 +3208,13 @@ def move():
             ## POST
             post(endpoint,data)
             if error:
-                sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
+                sys_exit_with_timestamp( 'Cannot move pool {}. Error: {} len={}'.format(pool_name, error,str(len(error))))
             else:
                 break
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
-    for _ in range(15):
+    for _ in range(25):
         for node in nodes:
             ## GET
             pools = get('/pools')
@@ -3191,7 +3230,7 @@ def move():
         print_with_timestamp('Moving in progress...')
         time.sleep(10)
     if new_active_node == passive_node: ## after move (failover) passive node is active
-        time.sleep(15)
+        #time.sleep(15)
         print_with_timestamp('{} is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
         sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
@@ -4605,6 +4644,12 @@ def command_processor() :
     elif action == 'create_pool':
         ##c = count_provided_args( pool_name )
         read_jbods_and_create_pool()
+
+    elif action == 'export':
+        c = count_provided_args( pool_name )   ## if all provided (not None), c must be equal 1
+        if c < 1:
+            sys_exit_with_timestamp( 'Error: export command expects pool name), {} provided.'.format(c))
+        export()
 
     elif action == 'scrub':
         scrub()
