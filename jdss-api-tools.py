@@ -209,7 +209,7 @@ def wait_for_node():
             endpoint = '/conn_test'
             api.driver.get(endpoint)['data']  ## GET
         except Exception as e:
-            error = str(e[0])
+            error = str(e)
             if counter in (2,3):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
             elif counter == 4:
