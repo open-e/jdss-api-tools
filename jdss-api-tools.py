@@ -140,7 +140,7 @@ def get(endpoint):
             if result: break
             time.sleep(1)
     except Exception as e:
-        error = str(e[0])
+        error = str(e)
     result = natural_list_sort(result)
     result = natural_sub_dict_sort_by_name_key(result)
     return result
