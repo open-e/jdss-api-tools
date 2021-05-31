@@ -75,10 +75,9 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2020-04-09  add volume size modify
 2020-05-20  add ".iscsi" segement into auto generated iscsi target
 2021-04-07  add export pool command
-
+2021-05-31  move to python ver.3.9.5
 """
 
-from __future__ import print_function
 import sys
 import re
 import time
@@ -86,7 +85,7 @@ import datetime
 import argparse
 import collections
 import ipcalc
-import ping
+import ping3
 from jovianapi import API
 from jovianapi.resource.pool import PoolModel
 from colorama import init
@@ -94,7 +93,7 @@ from colorama import Fore, Back, Style
 
 
 __author__  = 'janusz.bak@open-e.com'
-__version__ = 1.0
+__version__ = 1.1
 
 ## Script global variables
 BOLD     = Style.BRIGHT         ## '\x1b[1m'
@@ -189,7 +188,7 @@ def wait_for_node():
     ## PING
     repeat = 1000
     counter = 0
-    while ping.quiet_ping(node)[0]>0:
+    while ping3.ping(node) is (False or None):
         if counter < 2:
             print_with_timestamp( 'Node {} does not respond to ping command.'.format(node))
         elif counter > 1:
@@ -235,6 +234,7 @@ def wait_for_node():
         time.sleep(3)
         if counter == repeat:   ## Connection timed out
             sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
+    
 
 
 def get_args(batch_args_line=None):
@@ -813,7 +813,7 @@ And try it:
 Missing Python modules need to be installed with pip, e.g.:
 
 	C:\Python27\Scripts>pip install ipcalc
-	C:\Python27\Scripts>pip install ping
+	C:\Python27\Scripts>pip install ping3
 	C:\Python27\Scripts>pip install colorama
 
 NOTE:
@@ -1358,7 +1358,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
+    test_command_line = 'info --node 192.168.0.42'
+    #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
@@ -1800,17 +1801,16 @@ def human2seconds(age):
         if age in '0': age = '0sec'
         alpha = filter(str.isalpha,age)
         seconds = 3600*24*365*99 # 99 years
-        if alpha in ('second','minute','hour','day','week','month','year'):
+        if ('second','minute','hour','day','week','month','year') in alpha:
             age = age + 's'
-        if alpha in 'sec'       : age = age.replace('sec','seconds')
-        if alpha in 's'         : age = age.replace('s','seconds')
-        if alpha in 'min'       : age = age.replace('min','minutes')
-        if alpha in 'h'         : age = age.replace('h','hours')
-        if alpha in 'd'         : age = age.replace('d','days')
-        if alpha in 'w'         : age = age.replace('w','weeks')
-        if alpha in 'm'         : age = age.replace('m','months')
-        if alpha in 'y'         : age = age.replace('y','years')
-
+        if 'sec' in alpha: age = age.replace('sec','seconds')
+        if 's'   in alpha: age = age.replace('s','seconds')
+        if 'min' in alpha: age = age.replace('min','minutes')
+        if 'h'   in alpha: age = age.replace('h','hours')
+        if 'd'   in alpha: age = age.replace('d','days')
+        if 'w'   in alpha: age = age.replace('w','weeks')
+        if 'm'   in alpha: age = age.replace('m','months')
+        if 'y'   in alpha: age = age.replace('y','years')
 
         global older_than_string_to_print
         older_than_string_to_print += age.replace(
@@ -1904,7 +1904,7 @@ def initialize_pool_based_consecutive_number_generator():
 def convert_comma_separated_to_list(arg):
     if arg is None:
         return None
-    if arg is '':
+    if arg == '':
         return []
     for sep in ',;':
         if sep in arg:
@@ -2076,7 +2076,7 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
 
     if timezone:
         print_with_timestamp( 'Set timezone: {}'.format(timezone))
-    if ntp is 'ON':
+    if ntp == 'ON':
         print_with_timestamp( 'Set time from NTP: {}'.format("Yes"))
     if ntp_servers:
         print_with_timestamp( 'Set NTP servers: {}'.format(' '.join(ntp_servers)))
@@ -2095,16 +2095,16 @@ def add_fields_seperator(fields,fields_length,seperator_length):
 def natural_sub_dict_sort_by_name_key(items):
     if items and type(items) is list and type(items[0]) is dict and 'name' in items[0].keys():
         format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}'   ## for natural sorting
-        items.sort(key=lambda k : format_string.format(k['name']).lower())            ## natural (human) sort
+        items.sort(key=lambda k : format_string.format(str(k['name'])).lower())            ## natural (human) sort
         return items
     else:
         return items
 
 
 def natural_list_sort(items):
-    if type(items) is list and len(items)>0:
+    if items and type(items) is list:
         format_string = '{0:0>'+str(max((len(item) for item in items)))+'}'   ## for natural sorting
-        items.sort(key=lambda k : format_string.format(k).lower())            ## natural (human) sort
+        items.sort(key=lambda k : format_string.format(str(k)).lower())            ## natural (human) sort
         return items
     else:
         return items
@@ -2323,16 +2323,20 @@ def print_nas_snapshots_details(header,fields):
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
                 ## convert list of properties into dict of name:values
-                property_dict = {item['name']:item['value'] for item in snapshot['properties']}
+                try:
+                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ##properties list is optional.
+                except:
+                    property_dict = False
+                    
                 for i,field in enumerate(fields):
                     value = '-'
                     if field in ('name',):
                         value = snapshot_name
                     elif field in ('referenced',):
-                        value = property_dict['referenced']
+                        value = property_dict['referenced'] if property_dict else snapshot['referenced']
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('written',):
-                        value = property_dict['written']
+                        value = property_dict['written'] if property_dict else snapshot['written']
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         value = 'xx minutes' ## fake value as only few snaps are checked in the loop
@@ -2359,23 +2363,32 @@ def print_nas_snapshots_details(header,fields):
                 snapshot_details = []
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
                 ## convert list of properties into dict of name:values
-                property_dict = {item['name']:item['value'] for item in snapshot['properties']}
+                #property_dict = {item['name']:item['value'] for item in snapshot['properties']}
+                try:
+                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ##properties list is optional.
+                except:
+                    property_dict = False
+                    
                 for field in fields:
                     value = '-'
                     if field in ('name',):
                         value = snapshot_name
                     elif field in ('referenced',):
-                        value = property_dict['referenced']
+                        value = property_dict['referenced'] if property_dict else snapshot['referenced']
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('written',):
-                        value = property_dict['written']
+                        value = property_dict['written'] if property_dict else snapshot['written']
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
                         #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))   
-                        value = seconds2human(snapshot_creation_to_seconds(property_dict['creation']))
-                        if 'src_plan' in property_dict.keys():
-                            plan = property_dict['src_plan']
+                        value = seconds2human(snapshot_creation_to_seconds(property_dict['creation'] if property_dict else snapshot['creation']))
+                        try:
+                            source_plan = property_dict['org.znapzend:src_plan'] if property_dict else snapshot['org.znapzend:src_plan']
+                        except:
+                            source_plan = False
+                        if source_plan:
+                            plan = source_plan
                         else:
                             plan = ""
                     snapshot_details.append(value)
@@ -3606,15 +3619,14 @@ def info():
         time_zone = get('/time')['timezone']
         ntp_status = get('/time')['daemon']
         ntp_status = 'Yes' if ntp_status else 'No'
-        product_key = get('/licenses/product').keys()[0]
+        product_key, = get('/licenses/product').keys()
         dns = get('/network/dns')['servers']
         default_gateway = get('/network/default-gateway')['interface']
-
         key_name={"strg":"Storage extension key",
                   "ha_rd":"Advanced HA Metro Cluster",
                   "ha_aa":"Standard HA Cluster"}
 
-        extensions = get('/licenses/extensions')
+        extensions = get('/licenses/extensions') if not serial_number.startswith('T') else {}
         print_out_licence_keys = []
         for lic_key in extensions.keys():
             licence_type = key_name[ extensions[lic_key]['type']]

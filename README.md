@@ -584,7 +584,7 @@ And try it:
 Missing Python modules need to be installed with pip, e.g.:
 
 	C:\Python27\Scripts>pip install ipcalc
-	C:\Python27\Scripts>pip install ping
+	C:\Python27\Scripts>pip install ping3
 	C:\Python27\Scripts>pip install colorama
 
 NOTE:
