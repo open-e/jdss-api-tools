@@ -1624,6 +1624,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 
 def is_node_alive(test_node):
+    ## this function do can not use global node variable, this is why cannot use get function.
     api = API.via_rest(test_node, api_port, api_user, api_password)
     try:
         result = api.driver.get('/conn_test')['data']
