@@ -808,14 +808,14 @@ def get_args(batch_args_line=None):
 
     Note: If you want complete system information, please use the info command instead.
 
-
-#################################################################################################
+########################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
 	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
 
  And try it:
+ 
         C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
 	
  Missing Python modules need to be installed with pip, e.g.:
@@ -826,6 +826,7 @@ def get_args(batch_args_line=None):
         ... 
 	
  The --key option of pyinstaller requires:
+ 
 	pip install tinyaes
 
  NOTE:
@@ -833,7 +834,7 @@ def get_args(batch_args_line=None):
  https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-#################################################################################################
+########################################################################################
 
 {BOLD}Get help:{END}
 
