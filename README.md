@@ -572,25 +572,31 @@ import                        	export                        	</pre>
     Note: If you want complete system information, please use the info command instead.
 
 
-#############################################################################################
-After any modifications of source jdss-api-tools.py, run pyinstaller to create new jdss-api-tools.exe:
+#################################################################################################
+ After any modifications of source of jdss-api-tools.py,
+ run pyinstaller to create new jdss-api-tools.exe:
 
-	C:\Python27\Scripts>pyinstaller.exe --onefile jdss-api-tools.py
+	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
 
-And try it:
+ And try it:
+        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+	
+ Missing Python modules need to be installed with pip, e.g.:
 
-	C:\Python27>dist\jdss-api-tools.exe -h
+	pip install ipcalc
+	pip install ping3
+	pip install colorama
+        ... 
+	
+ The --key option of pyinstaller requires:
+	pip install tinyaes
 
-Missing Python modules need to be installed with pip, e.g.:
-
-	C:\Python27\Scripts>pip install ipcalc
-	C:\Python27\Scripts>pip install ping3
-	C:\Python27\Scripts>pip install colorama
-
-NOTE:
-In case of error: "msvcr100.dll missing...",
-download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-#############################################################################################
+ NOTE:
+ The "tinyaes" module requries MS Visual Studio:
+ https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
+ In case of error: "msvcr100.dll missing...",
+ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+#################################################################################################
 
 <b>Get help:</b>
 

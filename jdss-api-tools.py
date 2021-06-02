@@ -1,19 +1,28 @@
-"""
-jdss-api-tools send REST API commands to JovianDSS servers
+r"""
+ After any modifications of source of jdss-api-tools.py,
+ run pyinstaller to create new jdss-api-tools.exe:
 
-In order to create single exe file run:
-pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
+	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
 
-And try it:
-C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+ And try it:
+        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+	
+ Missing Python modules need to be installed with pip, e.g.:
 
-Missing Python modules need to be installed with pip, e.g.:
-pip install ipcalc
+	pip install ipcalc
+	pip install ping3
+	pip install colorama
+        ... 
+	
+ The --key option of pyinstaller requires:
+	pip install tinyaes
 
-NOTE:
-In case of error "msvcr100.dll missing...",
-download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-
+ NOTE:
+ The "tinyaes" module requries MS Visual Studio:
+ https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
+ In case of error: "msvcr100.dll missing...",
+ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+ 
 
 2018-02-07  initial release
 2018-03-06  add create_pool
@@ -77,6 +86,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2021-04-07  add export pool command
 2021-05-31  move to python ver.3.9.5
 """
+
 
 import sys
 import re
@@ -237,7 +247,7 @@ def wait_for_node():
 
 
 def get_args(batch_args_line=None):
-    '''
+    r'''
 {LG}jdss-api-tools{ENDF}
 
 
@@ -814,6 +824,7 @@ def get_args(batch_args_line=None):
 	pip install ipcalc
 	pip install ping3
 	pip install colorama
+        ... 
 	
  The --key option of pyinstaller requires:
 	pip install tinyaes
