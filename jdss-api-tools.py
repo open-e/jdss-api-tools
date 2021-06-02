@@ -87,7 +87,6 @@ r"""
 2021-05-31  move to python ver.3.9.5
 """
 
-
 import sys
 import re
 import time
