@@ -148,8 +148,8 @@ def get(endpoint):
             result = api.driver.get(endpoint)['data']
             if result: break
             time.sleep(1)
-    except Exception as error:
-        pass
+    except Exception as e:
+        error = str(e)
     result = natural_list_sort(result)
     result = natural_sub_dict_sort_by_name_key(result)
     return result
@@ -162,8 +162,8 @@ def put(endpoint,data):
     api=interface()
     try:
         result = api.driver.put(endpoint,data)
-    except Exception as error:
-        pass
+    except Exception as e:
+        error = str(e)
     return result
 
 
@@ -174,8 +174,8 @@ def post(endpoint,data):
     api=interface()
     try:
         result = api.driver.post(endpoint,data)
-    except Exception as error:
-        pass
+    except Exception as e:
+        error = str(e)
     return result
 
 
@@ -186,8 +186,8 @@ def delete(endpoint,data):
     api=interface()
     try:
         result = api.driver.delete(endpoint,data)
-    except Exception as error:
-        pass
+    except Exception as e:
+        error = str(e)
     return result
 
 
@@ -217,7 +217,8 @@ def wait_for_node():
             api = API.via_rest(node, api_port, api_user, api_password)
             endpoint = '/conn_test'
             api.driver.get(endpoint)['data']  ## GET
-        except Exception as error:
+        except Exception as e:
+            error = str(e)
             if counter in (2,3):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
             elif counter == 4:
@@ -235,8 +236,8 @@ def wait_for_node():
                         print_with_timestamp('Node {} is running.'.format(node))
                     to_print_timestamp_msg[node] = False
 
-            except Exception as error:
-                pass
+            except Exception as e:
+                error = str(e)
             break
         counter += 1
         time.sleep(3)
@@ -3398,7 +3399,8 @@ def delete_bond(bond_name):
     endpoint = '/network/interfaces/{}'.format(bond_name)
     try:
         delete(endpoint,None)
-    except Exception as error:
+    except Exception as e:
+        error = str(e)
         ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
         ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
         timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
@@ -3872,7 +3874,8 @@ def create_pool(pool_name,vdev_type,jbods):
         pool = api.storage.pools.create(
             name = pool_name,
             vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)) ) ## zip disks over JBODs
-    except Exception as error:
+    except Exception as e:
+        error = str(e)
         if 'timeout' not in error:
             sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
 
