@@ -1364,6 +1364,8 @@ def get_args(batch_args_line=None):
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
+    test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
+    test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
@@ -1382,7 +1384,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
-    test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
+    #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --quantity 3 --node 192.168.0.80'
@@ -1390,7 +1392,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
-    ## ARGS
+    ## ARGSg
     if test_mode:
          args = parser.parse_args(test_command_line.split())
     elif batch_args_line:
@@ -2708,13 +2710,20 @@ def set_scrub_scheduler():
     global node
     global action_message
     action_message = 'Sending set scrub schedule request to: {}'.format(node)
-    if not pool_name:
-        cluster_pools_names = get_cluster_pools_names()
-    incr = 28 / len(cluster_pools_names)
+    _pools_names = []
+    if pool_name:
+        _pools_names.append(pool_name)
+    else:
+        _pools_names = get_cluster_pools_names()
+    incr = int(28 / len(_pools_names))
     _day_of_the_month = day_of_the_month
-    for _pool_name in sorted(cluster_pools_names):
+    for _pool_name in sorted(_pools_names):
         data = dict(day_of_the_month=_day_of_the_month, hour=hour, month_of_the_year=month_of_the_year, day_of_the_week=day_of_the_week, minute=minute)
-        node = get_active_cluster_node_address_of_given_pool(_pool_name)
+        _node = get_active_cluster_node_address_of_given_pool(_pool_name)
+        if _node:
+            node = _node
+        else:
+            continue
         post('/pools/{POOL}/scrub/scheduler'.format(POOL = _pool_name), data)
         print_with_timestamp( 'Scrub schedule set for: {} on {}'.format(_pool_name,node))
         _day_of_the_month = str(int(_day_of_the_month)+incr)
@@ -2853,7 +2862,7 @@ def generate_iscsi_target_and_volume_name(pool_name):
     host_name = get('/product')["host_name"]
     if cluster_name:
         host_name = cluster_name
-    consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_integer_tuple = next(pool_based_consecutive_number_generator[pool_name])
     consecutive_integer_volume, consecutive_integer_target = consecutive_integer_tuple
     consecutive_string_volume = "{:0>3}".format(consecutive_integer_volume)
     consecutive_string_target = "{:0>3}".format(consecutive_integer_target)
@@ -2867,7 +2876,7 @@ def generate_iscsi_target_and_volume_name(pool_name):
 
 
 def generate_share_and_volume_name(pool_name):
-    consecutive_integer_tuple = pool_based_consecutive_number_generator[pool_name].next()
+    consecutive_integer_tuple = next(pool_based_consecutive_number_generator[pool_name])
     consecutive_integer = consecutive_integer_tuple[0]
     consecutive_string = "{:0>3}".format(consecutive_integer)
     share_name = "data{}".format(consecutive_string)
@@ -3756,7 +3765,7 @@ def get_pool_details(node, pool_name):
     data_groups_type = data_groups_vdevs[0].split("-")[0]
     vdevs_num = len( data_groups_vdevs )
     disks_num = len( data_groups_disks )
-    vdev_disks_num = disks_num / vdevs_num
+    vdev_disks_num = int(disks_num / vdevs_num)
     return vdevs_num, data_groups_type, vdev_disks_num
 
 
