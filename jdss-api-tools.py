@@ -87,6 +87,7 @@ r"""
 2021-05-31  move to python ver.3.9.5
 """
 
+    
 import sys
 import re
 import time
@@ -1374,14 +1375,15 @@ def get_args(batch_args_line=None):
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
-    test_command_line = 'info --node 192.168.0.42'
+    #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
-    #test_command_line = 'create_pool --pool Pool-10 --vdev mirror --vdevs 1 --vdev_disks 3 --disk_size_range 20GB 20GB --node 192.168.0.80'
+    test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
+    #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare --quantity 3 --node 192.168.0.80'
@@ -3853,8 +3855,8 @@ def zip_n(number_of_items_a_time,*args):
         (the orginal zip function take single item a time only)
     '''
     iter_args = map(iter,args)
-    while 1:
-        yield tuple([next(item) for item in iter_args for _ in range(number_of_items_a_time)])
+    for _ in range(number_of_items_a_time):
+        yield tuple([next(item) for item in iter_args])
 
 
 def create_pool(pool_name,vdev_type,jbods):
@@ -3863,20 +3865,19 @@ def create_pool(pool_name,vdev_type,jbods):
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
 
-    api = interface()
     vdev_type = vdev_type.replace('single','')
     print_with_timestamp("Creating pool. Please wait...")
 
     ## CREATE
     error = ''
-
+    endpoint = '/pools'
+    data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)])
     try:
-        pool = api.storage.pools.create(
-            name = pool_name,
-            vdevs = (PoolModel.VdevModel(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)) ) ## zip disks over JBODs
+        result = post(endpoint,data)
     except Exception as e:
         error = str(e)
         if 'timeout' not in error:
+            print(error)
             sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
 
     for _ in range(10):
@@ -4396,7 +4397,7 @@ def split_for_metro_cluster(jbods,vdev_disks=2):
         ## split into 4 JBODs for 4-way mirror (2 local and 2 remote)
         jbods_4way_mirrors =[]
         for i in range(4):
-            jbods_4way_mirrors.append(jbods_2way_mirrors[i%2][i/2::2])
+            jbods_4way_mirrors.append(jbods_2way_mirrors[i%2][int(i/2)::2])
         return jbods_4way_mirrors
 
 
