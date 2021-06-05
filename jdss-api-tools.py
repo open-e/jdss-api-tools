@@ -2,10 +2,22 @@ r"""
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
-	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
+	pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
         C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+
+ NOTE:
+ To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
+
+    1) git clone https://github.com/pyinstaller/pyinstaller             # download the source
+    2) cd pyinstaller
+    3) cd bootloader
+    4) python ./waf distclean all                   # to build the bootloader for your system
+    5) cd ..                            
+    5) python setup.py install                 # to install the fresh re-compiled pyinstaller  
+    6) pyinstaller.exe --onefile jdss-api-tools.py                 # to create the executable
 	
  Missing Python modules need to be installed with pip, e.g.:
 
@@ -13,12 +25,9 @@ r"""
 	pip install ping3
 	pip install colorama
         ... 
-	
- The --key option of pyinstaller requires:
-	pip install tinyaes
 
  NOTE:
- The "tinyaes" module requries MS Visual Studio:
+ Some modules may requrie MS Visual Studio:
  https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
@@ -814,11 +823,23 @@ def get_args(batch_args_line=None):
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
-	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
+	pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
  
         C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+
+ NOTE:
+ To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
+
+        1) git clone https://github.com/pyinstaller/pyinstaller         # download the source
+        2) cd pyinstaller
+        3) cd bootloader
+        4) python ./waf distclean all               # to build the bootloader for your system
+        5) cd ..                            
+        5) python setup.py install             # to install the fresh re-compiled pyinstaller  
+        6) pyinstaller.exe --onefile jdss-api-tools.py             # to create the executable
 	
  Missing Python modules need to be installed with pip, e.g.:
 
@@ -826,17 +847,13 @@ def get_args(batch_args_line=None):
 	pip install ping3
 	pip install colorama
         ... 
-	
- The --key option of pyinstaller requires:
- 
-	pip install tinyaes
 
  NOTE:
- The "tinyaes" module requries MS Visual Studio:
+ Some modules may requrie MS Visual Studio:
  https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-########################################################################################
+ ########################################################################################
 
 {BOLD}Get help:{END}
 
@@ -1365,7 +1382,7 @@ def get_args(batch_args_line=None):
     #test_mode = True
     #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
     test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
-    test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
+    #test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
@@ -3749,10 +3766,28 @@ def list_snapshots():
         fields= ('name', 'referenced','written','age')
         print_san_snapshots_details(header,fields)
 
-
+'''
 def get_pool_details(node, pool_name):
     api = interface()
     pools = api.storage.driver.list_pools()["data"]
+    data_groups_vdevs = [
+        vdev["name"] for pool in pools if pool["name"] in pool_name
+                        for vdev in pool["vdevs"] if vdev["name"] not in ("logs","cache","spares")
+        ]
+    data_groups_disks = [
+        disk["name"] for pool in pools if pool["name"] in pool_name
+                        for vdev in pool["vdevs"] if vdev["name"] not in ("logs","cache","spares")
+                            for disk in vdev["disks"]
+        ]
+    data_groups_type = data_groups_vdevs[0].split("-")[0]
+    vdevs_num = len( data_groups_vdevs )
+    disks_num = len( data_groups_disks )
+    vdev_disks_num = int(disks_num / vdevs_num)
+    return vdevs_num, data_groups_type, vdev_disks_num
+'''
+
+def get_pool_details(node, pool_name):
+    pools = get('/pools')
     data_groups_vdevs = [
         vdev["name"] for pool in pools if pool["name"] in pool_name
                         for vdev in pool["vdevs"] if vdev["name"] not in ("logs","cache","spares")

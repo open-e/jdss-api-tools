@@ -575,11 +575,23 @@ import                        	export                        	</pre>
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
-	pyinstaller.exe --onefile --key jdss-api-tools jdss-api-tools.py
+	pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
  
         C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+
+ NOTE:
+ To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
+
+        1) git clone https://github.com/pyinstaller/pyinstaller         # download the source
+        2) cd pyinstaller
+        3) cd bootloader
+        4) python ./waf distclean all               # to build the bootloader for your system
+        5) cd ..                            
+        5) python setup.py install             # to install the fresh re-compiled pyinstaller  
+        6) pyinstaller.exe --onefile jdss-api-tools.py             # to create the executable
 	
  Missing Python modules need to be installed with pip, e.g.:
 
@@ -587,17 +599,13 @@ import                        	export                        	</pre>
 	pip install ping3
 	pip install colorama
         ... 
-	
- The --key option of pyinstaller requires:
- 
-	pip install tinyaes
 
  NOTE:
- The "tinyaes" module requries MS Visual Studio:
+ Some modules may requrie MS Visual Studio:
  https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-########################################################################################
+ ########################################################################################
 
 <b>Get help:</b>
 
