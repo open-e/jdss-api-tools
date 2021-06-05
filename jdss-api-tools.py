@@ -1837,19 +1837,19 @@ def human2seconds(age):
 
     def item2seconds(age):
         if age in '0': age = '0sec'
-        alpha = filter(str.isalpha,age)
+        alpha = ''.join(list(filter(str.isalpha,age)))
         seconds = 3600*24*365*99 # 99 years
-        if ('second','minute','hour','day','week','month','year') in alpha:
+        if alpha in ('second','minute','hour','day','week','month','year'):
             age = age + 's'
-        if 'sec' in alpha: age = age.replace('sec','seconds')
-        if 's'   in alpha: age = age.replace('s','seconds')
-        if 'min' in alpha: age = age.replace('min','minutes')
-        if 'h'   in alpha: age = age.replace('h','hours')
-        if 'd'   in alpha: age = age.replace('d','days')
-        if 'w'   in alpha: age = age.replace('w','weeks')
-        if 'm'   in alpha: age = age.replace('m','months')
-        if 'y'   in alpha: age = age.replace('y','years')
-
+        if alpha in 'sec'       : age = age.replace('sec','seconds')
+        if alpha in 's'         : age = age.replace('s','seconds')
+        if alpha in 'min'       : age = age.replace('min','minutes')
+        if alpha in 'h'         : age = age.replace('h','hours')
+        if alpha in 'd'         : age = age.replace('d','days')
+        if alpha in 'w'         : age = age.replace('w','weeks')
+        if alpha in 'm'         : age = age.replace('m','months')
+        if alpha in 'y'         : age = age.replace('y','years')
+        
         global older_than_string_to_print
         older_than_string_to_print += age.replace(
             'seconds','-second ').replace(
@@ -4085,7 +4085,6 @@ def create_storage_resource():
 def create_snapshot(vol_type,ignore_error=None):
     global node
     for node in nodes:
-        api = interface()
         ## Create snapshot of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots'.format(
@@ -4112,7 +4111,6 @@ def create_clone(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
@@ -4170,7 +4168,6 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
     for node in nodes:
         global clone_name
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
-        api = interface()
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
