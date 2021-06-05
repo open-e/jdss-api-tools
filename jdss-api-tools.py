@@ -100,6 +100,7 @@ r"""
 import sys
 import re
 import time
+import string
 import datetime
 import argparse
 import collections
@@ -1837,7 +1838,8 @@ def human2seconds(age):
 
     def item2seconds(age):
         if age in '0': age = '0sec'
-        alpha = ''.join(list(filter(str.isalpha,age)))
+        #alpha = ''.join(list(filter(str.isalpha,age)))
+        alpha = age.strip(string.digits)
         seconds = 3600*24*365*99 # 99 years
         if alpha in ('second','minute','hour','day','week','month','year'):
             age = age + 's'
