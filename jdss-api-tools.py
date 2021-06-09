@@ -94,34 +94,22 @@ r"""
 2020-05-20  add ".iscsi" segement into auto generated iscsi target
 2021-04-07  add export pool command
 2021-05-31  move to python ver.3.9.5
+2021-06-09  replace imported module jovianapi with local function call_requests
 """
 
     
-import sys
-import re
-import time
-import string
-import datetime
-import argparse
-import collections
-import ipcalc
-import ping3
-from jovianapi import API
-from jovianapi.resource.pool import PoolModel
+import sys, re, time, string, datetime, argparse, collections, ipcalc, ping3
 from colorama import init
 from colorama import Fore, Back, Style
-
+import requests, json, urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 __author__  = 'janusz.bak@open-e.com'
-__version__ = 1.1
+__version__ = 1.2
 
 ## Script global variables
-BOLD     = Style.BRIGHT         ## '\x1b[1m'
-END      = Style.NORMAL         ## '\x1b[22m'
-LG       = Fore.LIGHTGREEN_EX   ## '\x1b[92m'
-ENDF     = Fore.RESET           ## '\x1b[39m'
-
-line_separator          = '='*62
+api_version             = '/api/v3'
+api_timeout             = None
 action                  = ''
 action_message          = ''
 delay                   = 0
@@ -133,7 +121,11 @@ auto_vol_clone_name     = "_auto_api_vol_clone"
 auto_zvol_clone_name    = "_auto_api_zvol_clone"
 increment_options       = [1,5,10,15,20,50,100,150,200,500,1000]
 time_periods            = 'year month week day hour minute second'.split()
-
+line_separator          = '='*62
+BOLD     = Style.BRIGHT         ## '\x1b[1m'
+END      = Style.NORMAL         ## '\x1b[22m'
+LG       = Fore.LIGHTGREEN_EX   ## '\x1b[92m'
+ENDF     = Fore.RESET           ## '\x1b[39m'
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
 
@@ -143,63 +135,35 @@ target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.st
 ## ZVOL NAME
 zvol_name_prefix = 'zvol00'
 
-
-def interface():
-    wait_for_node()
-    return API.via_rest(node, api_port, api_user, api_password)
-
-
-def get(endpoint):
+    
+def call_requests(method,endpoint='/conn_test',data={}):
     global error
-    result = None
     error = ''
-    api=interface()
+    response = None
+    call = dict(GET = requests.get,
+                PUT = requests.put,
+                POST = requests.post,
+                DELETE = requests.delete)
+
+    if endpoint not in '/conn_test':
+        wait_for_node()
+
+    params = dict(url = 'https://{}:{}{}{}'.format(node,api_port,api_version,endpoint),
+            json = data, headers = {'Content-Type': 'application/json'},
+            auth = (api_user, api_password), timeout = api_timeout, verify = False)
+    ## print(method, params)
     try:
-        for i in range(30):
-            result = api.driver.get(endpoint)['data']
-            if result: break
-            time.sleep(1)
-    except Exception as e:
-        error = str(e)
-    result = natural_list_sort(result)
-    result = natural_sub_dict_sort_by_name_key(result)
-    return result
+        response = call[method](**params).json()['data']
+    except Exception as err:
+        error = err
+    return response
 
 
-def put(endpoint,data):
-    global error
-    result = None
-    error = ''
-    api=interface()
-    try:
-        result = api.driver.put(endpoint,data)
-    except Exception as e:
-        error = str(e)
-    return result
-
-
-def post(endpoint,data):
-    global error
-    result = None
-    error = ''
-    api=interface()
-    try:
-        result = api.driver.post(endpoint,data)
-    except Exception as e:
-        error = str(e)
-    return result
-
-
-def delete(endpoint,data):
-    global error
-    result = None
-    error = ''
-    api=interface()
-    try:
-        result = api.driver.delete(endpoint,data)
-    except Exception as e:
-        error = str(e)
-    return result
+def api_connection_test(): return call_requests('GET') 
+def get(endpoint):         return call_requests('GET',endpoint)
+def put(endpoint,data):    return call_requests('PUT',endpoint,data)
+def post(endpoint,data):   return call_requests('POST',endpoint,data)
+def delete(endpoint,data): return call_requests('DELETE',endpoint,data)
 
 
 def wait_for_node():
@@ -225,9 +189,7 @@ def wait_for_node():
     counter = 0
     while True:
         try:
-            api = API.via_rest(node, api_port, api_user, api_password)
-            endpoint = '/conn_test'
-            api.driver.get(endpoint)['data']  ## GET
+            api_connection_test()
         except Exception as e:
             error = str(e)
             if counter in (2,3):
@@ -1382,7 +1344,8 @@ def get_args(batch_args_line=None):
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
-    test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
+    #test_command_line =  'set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node 192.168.0.82'
+    #test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
     #test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
@@ -1394,7 +1357,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'start_cluster --node 192.168.0.80'
+    test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
@@ -1664,12 +1627,8 @@ def get_args(batch_args_line=None):
 
 def is_node_alive(test_node):
     ## this function do can not use global node variable, this is why cannot use get function.
-    api = API.via_rest(test_node, api_port, api_user, api_password)
-    try:
-        result = api.driver.get('/conn_test')['data']
-    except:
-        result = None
-    return True if result else False
+    result = get('/conn_test')
+    return True if result in 'OK' else False
 
 
 def wait_for_move_destination_node(test_node):
@@ -3152,7 +3111,7 @@ def get_ping_nodes():
     ping_nodes = [ping_node['address'] for ping_node in get(endpoint)]
     if error:
         print_with_timestamp('Error getting ping nodes. {}'.format(error))
-    return None if error else ping_nodes
+    return [] if error else ping_nodes
 
 
 def set_ping_nodes():
@@ -3160,10 +3119,7 @@ def set_ping_nodes():
     action_message = 'Sending ping node setting request to: {}'.format(node)
 
     current_ping_nodes = get_ping_nodes()
-    if current_ping_nodes is None:
-        sys_exit_with_timestamp( 'Cannot set ping nodes on {}'.format(node))
-    endpoint = '/cluster/ping-nodes'
-    #e = None
+
     if len(ping_nodes)<2:
         print_with_timestamp( 'Warning: One ping node provided. At least 2 ping nodes are recommended')
     for ping_node in ping_nodes:   
@@ -3174,11 +3130,8 @@ def set_ping_nodes():
         #ring_ip_addres_of_first_node = get_interface_ip_addr(get_ring_interface_of_first_node())
         #if ping_node not in ipcalc.Network(ring_ip_addres_of_first_node, new_mask):
         #    sys_exit_with_timestamp( 'Error: Given ping node IP address {} in not in ring subnet'.format(ping_node))
-        data = dict(address=ping_node)
-
         ## POST
-        post('/cluster/ping-nodes',data)
-
+        post('/cluster/ping-nodes', dict(address=ping_node))
         if ping_node in get_ping_nodes():
             print_with_timestamp('New ping node {} set.'.format(ping_node))
 
@@ -3198,17 +3151,12 @@ def start_cluster():
 
     started = status[0]['status'] == status[1]['status'] == 'online'
     if started:
-        sys_exit_with_timestamp( 'Cluster on {} is already started.'.format(node))
-
-    data=dict(mode='cluster')
+        print_with_timestamp( 'Cluster on {} is already started.'.format(node))
+        return
 
     ## POST
-    post('/cluster/start-cluster',data)
-    if 'timeout' not in error:
-        sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error))
-
     print_with_timestamp('Cluster service starting...')
-    time.sleep(20)  ##
+    post('/cluster/start-cluster', dict(mode='cluster'))
 
     ## check start
     is_started = False
@@ -3274,7 +3222,7 @@ def move():
     ## wait for pool import
     time.sleep(15)
     new_active_node = ''
-    for _ in range(25):
+    for _ in range(50):
         for node in nodes:
             ## GET
             pools = get('/pools')
@@ -3288,9 +3236,8 @@ def move():
         if new_active_node:
             break
         print_with_timestamp('Moving in progress...')
-        time.sleep(10)
+        time.sleep(5)
     if new_active_node == passive_node: ## after move (failover) passive node is active
-        #time.sleep(15)
         print_with_timestamp('{} is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
     else:
         sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
@@ -3885,14 +3832,12 @@ def read_jbod(n):
     jbod = []
     global metro
     metro = False
-
-    api = interface()
-    unused_disks = api.storage.disks.unused
+    unused_disks = get('/disks/unused')
     for disk in unused_disks:
-        if disk.origin in "iscsi":
-            disk.origin = "remote"
+        if disk['origin'] in "iscsi":
+            disk['origin'] = "remote"
             metro = True
-        jbod.append((disk.size,disk.name,disk.id,disk.origin))
+        jbod.append((disk['size'],disk['name'],disk['id'],disk['origin']))
     return jbod
 
 
@@ -3918,13 +3863,9 @@ def create_pool(pool_name,vdev_type,jbods):
     error = ''
     endpoint = '/pools'
     data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)])
-    try:
-        result = post(endpoint,data)
-    except Exception as e:
-        error = str(e)
-        if 'timeout' not in error:
-            print(error)
-            sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
+    result = post(endpoint,data)
+    #if 'timeout' not in error:
+    #    sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
 
     for _ in range(10):
         if check_given_pool_name(ignore_error=True):
@@ -3953,7 +3894,7 @@ def create_volume(vol_type):
         result = post(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
-    if result and (result['error'] is None):
+    if error == '':
         print_with_timestamp('{}/{}: Write cache logging (sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
     else:
         print_with_timestamp('Error: {}/{} Volume create request failed.'.format(pool_name,volume_name,sync))
@@ -4973,7 +4914,7 @@ def main() :
             nodes = nodes + nodes           # fake second node if missing in cli for simpler code
             factory_files_names = factory_setup_files_content.keys()
         else:
-            factory_files_names = factory_setup_files_content.keys() + ['api_setup_single_node']
+            factory_files_names = list(factory_setup_files_content.keys()) + ['api_setup_single_node']
         for factory_file_name in factory_files_names:
             if 'api_setup_single_node' in factory_file_name:
                 current_node = nodes[0] if trigger else nodes[1]
