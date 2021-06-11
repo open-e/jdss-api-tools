@@ -170,9 +170,8 @@ def wait_for_node():
     global waiting_dots_printed
     waiting_dots_printed = False
     ## PING
-    repeat = 1000
-    counter = 0
-    while ping3.ping(node) is (False or None):
+    counter = 0; repeat = 1000
+    while type(ping3.ping(node)) is not float:
         if counter < 2:
             print_with_timestamp( 'Node {} does not respond to ping command.'.format(node))
         elif counter > 1:
@@ -185,13 +184,10 @@ def wait_for_node():
     waiting_dots_printed = False
 
     ## REST API
-    repeat = 1000
-    counter = 0
+    counter = 0; repeat = 1000
     while True:
-        try:
-            api_connection_test()
-        except Exception as e:
-            error = str(e)
+        api_connection_test()
+        if error:
             if counter in (2,3):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
             elif counter == 4:
@@ -201,23 +197,18 @@ def wait_for_node():
                 print('.',end='')
                 waiting_dots_printed = True
         else:
-            try:
-                if to_print_timestamp_msg[node]:
-                    if action_message:
-                        print_with_timestamp(action_message)
-                    else:
-                        print_with_timestamp('Node {} is running.'.format(node))
-                    to_print_timestamp_msg[node] = False
-
-            except Exception as e:
-                error = str(e)
+            if to_print_timestamp_msg.get(node):
+                if action_message:
+                    print_with_timestamp(action_message)
+                else:
+                    print_with_timestamp('Node {} is running.'.format(node))
+                to_print_timestamp_msg[node] = False
             break
         counter += 1
         time.sleep(3)
         if counter == repeat:   ## Connection timed out
             sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
     
-
 
 def get_args(batch_args_line=None):
     r'''
@@ -1351,13 +1342,13 @@ def get_args(batch_args_line=None):
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
-    #test_command_line = 'move --pool Pool-0 --delay 1 --node 192.168.0.82'
+    #test_command_line = 'move --pool Pool-0 --delay 0 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
-    test_command_line = 'start_cluster --node 192.168.0.82'
+    #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
@@ -3147,10 +3138,7 @@ def start_cluster():
         sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
 
     ## GET
-    status = get('/cluster/nodes')
-
-    started = status[0]['status'] == status[1]['status'] == 'online'
-    if started:
+    if is_cluster_started():
         print_with_timestamp( 'Cluster on {} is already started.'.format(node))
         return
 
@@ -3159,17 +3147,14 @@ def start_cluster():
     post('/cluster/start-cluster', dict(mode='cluster'))
 
     ## check start
-    is_started = False
     for _ in range(50):
-        time.sleep(5)
-        is_started = is_cluster_started()
-        if is_started:
+        if is_cluster_started():
             print()
             print_with_timestamp('Cluster service started successfully.')
             break
-        else:
-            print('.', end='')
-    if not is_started:
+        print('.', end='')
+        time.sleep(5)
+    else:
         print()
         sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error if error else ''))
 
