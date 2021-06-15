@@ -97,7 +97,6 @@ r"""
 2021-06-09  replace imported module jovianapi with local function call_requests
 """
 
-    
 import sys, re, time, string, datetime, argparse, collections, ipcalc, ping3
 from colorama import init
 from colorama import Fore, Back, Style
@@ -136,38 +135,45 @@ target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.st
 zvol_name_prefix = 'zvol00'
 
     
-def call_requests(method,endpoint='/conn_test',data={}):
+def call_requests(method,endpoint='conn_test',data={}):
     global error
+    global http_code
+    global timeouted
     error = ''
+    http_code = 0
+    timeouted = False
     response = None
     call = dict(GET = requests.get,
                 PUT = requests.put,
                 POST = requests.post,
                 DELETE = requests.delete)
-
-    if endpoint not in '/conn_test':
+    if endpoint not in 'conn_test':
         wait_for_node()
-
-    params = dict(url = 'https://{}:{}{}{}'.format(node,api_port,api_version,endpoint),
-            json = data, headers = {'Content-Type': 'application/json'},
-            auth = (api_user, api_password), timeout = api_timeout, verify = False)
-    ## print(method, params)
+    params = dict(url = 'https://{}:{}{}/{}'.format(node,api_port,api_version,endpoint.lstrip('/')),
+                  auth = (api_user, api_password), timeout = api_timeout, verify = False)
+    if method in ('PUT','POST'): params['json'] = data
     try:
-        response = call[method](**params).json()['data']
+        r = call[method](**params)
+        response = r.json()['data']
+        http_code = r.status_code
     except Exception as err:
-        error = err
-    return response
+        error = str(err)
+        timeouted = 'ConnectTimeoutError' in error
+        #error example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
+    #200, 201 or 204 = success, but JSONDecodeError passible        
+    if error and http_code in (200,201,204): error = ''
+    if not error and http_code > 204: error = http_code
+    return '' if response is None else response
 
 
 def api_connection_test(): return call_requests('GET') 
 def get(endpoint):         return call_requests('GET',endpoint)
 def put(endpoint,data):    return call_requests('PUT',endpoint,data)
 def post(endpoint,data):   return call_requests('POST',endpoint,data)
-def delete(endpoint,data): return call_requests('DELETE',endpoint,data)
+def delete(endpoint):      return call_requests('DELETE',endpoint)
 
 
 def wait_for_node():
-    global waiting_dots_printed
     waiting_dots_printed = False
     ## PING
     counter = 0; repeat = 1000
@@ -181,6 +187,7 @@ def wait_for_node():
         if counter == repeat:   ## Connection timed out
             sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
 
+    if waiting_dots_printed: print()
     waiting_dots_printed = False
 
     ## REST API
@@ -198,6 +205,7 @@ def wait_for_node():
                 waiting_dots_printed = True
         else:
             if to_print_timestamp_msg.get(node):
+                if waiting_dots_printed: print()
                 if action_message:
                     print_with_timestamp(action_message)
                 else:
@@ -208,7 +216,7 @@ def wait_for_node():
         time.sleep(3)
         if counter == repeat:   ## Connection timed out
             sys_exit_with_timestamp( 'Connection timed out: {}'.format(node))
-    
+
 
 def get_args(batch_args_line=None):
     r'''
@@ -1335,6 +1343,7 @@ def get_args(batch_args_line=None):
     ## TESTING ONLY!
     #test_mode = True
     #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
+    #test_command_line =  'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
     #test_command_line =  'set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node 192.168.0.82'
     #test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
     #test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
@@ -1342,6 +1351,8 @@ def get_args(batch_args_line=None):
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
+    #test_command_line = 'delete_bond --nic bond0 --node 192.168.0.82'
+    #test_command_line = 'create_bond --bond_nics eth2 eth3 --bond_type active-backup --new_ip 192.168.33.82  --node 192.168.0.82'
     #test_command_line = 'move --pool Pool-0 --delay 0 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
@@ -1403,7 +1414,7 @@ def get_args(batch_args_line=None):
     global setup_files, all_snapshots
     global online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
-    global to_print_timestamp_msg, waiting_dots_printed
+    global to_print_timestamp_msg
         
     api_port                    = args['port']
     api_user                    = args['user']
@@ -1567,8 +1578,6 @@ def get_args(batch_args_line=None):
         vt = dict(ISCSI='volume',FC='volume',SMB='dataset',NFS='dataset')
         storage_volume_type = vt[storage_type[0]]
 
-
-    waiting_dots_printed = False
     expanded_nodes = []
 
     if not nodes and not setup_files:
@@ -1593,7 +1602,6 @@ def get_args(batch_args_line=None):
         node = nodes[0]
         ## True if action msg need to be printed
         to_print_timestamp_msg = dict(zip(nodes,(True for i in nodes)))
-        waiting_dots_printed = False
         ## validate all-ip-addr => (nodes + new_ip, new_gw, new_dns)
         all_ip_addr = nodes[:]  ## copy
         all_ip_addr = all_ip_addr + ping_nodes if ping_nodes else all_ip_addr
@@ -1921,9 +1929,7 @@ def time_stamp_clone_syntax():
 
 
 def print_with_timestamp(msg):
-    if waiting_dots_printed:
-        print()
-    print('{}  {}'.format(time_stamp(), msg))
+    print('{}  {}'.format(time_stamp(),msg))
 
 
 def sys_exit_with_timestamp(msg):
@@ -3231,6 +3237,9 @@ def move():
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node    ## the node IP can be changed
     global action_message
+    global api_timeout
+    api_timeout = 5
+    access_nic_changed = False
     action_message = 'Sending network setting request to: {}'.format(node)
     timeouted = False
 
@@ -3258,15 +3267,12 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     ## PUT
     put(endpoint,data)
 
-    if error:
-        ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-        ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
-        if timeouted:
-            node = new_ip_addr  ## the node IP was changed
+    if not api_connection_test():
+        node = new_ip_addr  ## the node IP was changed
+        access_nic_changed = True
         time.sleep(1)
 
-    if "HTTPSConnectionPool" in error and "timeout" in error:
+    if access_nic_changed:
         print_with_timestamp( 'The acccess NIC {} changed to {}'.format(nic_name, new_ip_addr))
     else:
         if get_interface_ip_addr(nic_name) == new_ip_addr:
@@ -3288,8 +3294,6 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     global action_message
     action_message = 'Sending create bond request to: {}'.format(node)
 
-    timeouted = False
-
     if len(bond_nics) <2:
         sys_exit_with_timestamp( 'Error: at least two NICs required')
     ip_addr = new_ip_addr if new_ip_addr else node
@@ -3302,7 +3306,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
                 slaves = bond_nics,
                 bond_mode = bond_type.lower(),
                 primary_interface = bond_nics[0],
-                bond_primary_reselect = 'failure')
+                bond_primary_reselect = 'always')
     if 'balance-rr' in bond_type.lower():
         data = dict(type = 'bonding',
                 configuration = 'static',
@@ -3311,18 +3315,13 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
                 slaves = bond_nics,
                 bond_mode = bond_type.lower(),
                 bond_primary_reselect = 'always')
-
-    if new_gw or new_gw == '':
-        data["gateway"]=new_gw if new_gw else None
+    if new_gw: data["gateway"]=new_gw
     ## POST
     post(endpoint,data)
-    if error:
-        ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-        ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
-        if timeouted:
-            node = ip_addr  ## the node IP was changed (ip_addr set above & not new_ip_addr)
-        time.sleep(1)
+    if error: #bond already exist
+        print_with_timestamp( 'Error: cannot create bond with {} on {}.'.format(','.join(bond_nics), node))
+        return
+    time.sleep(1)
     ##
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  ## global nic_name
     if nic_name and ('bond' in nic_name):
@@ -3332,7 +3331,6 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     ## set default gateway interface
     if new_gw:
         set_default_gateway()
-
     ## set DNS
     if new_dns is not None:
         set_dns(new_dns)
@@ -3346,7 +3344,6 @@ def delete_bond(bond_name):
     node_id_220 = 0
     orginal_node_id = 1   ## just different init value than node_id_220
 
-    timeouted = False
 
     bond_slaves = get_bond_slaves(bond_name) ## list
     if bond_slaves is  None or len(bond_slaves)<2:
@@ -3359,29 +3356,13 @@ def delete_bond(bond_name):
     orginal_node_id = node_id()
 
     endpoint = '/network/interfaces/{}'.format(bond_name)
-    try:
-        delete(endpoint,None)
-    except Exception as e:
-        error = str(e)
-        ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-        ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
+    delete(endpoint)
+    if error:
+        sys_exit_with_timestamp( 'Error, bond: {} cannot be deleted as it is used in cluster cofigurstion.'.format(bond_name))
+    else:
+        print_with_timestamp( 'Bond: {} deleted.'.format(bond_name))
         if timeouted:
             node = new_ip_addr  ## the node IP was changed
-        else:
-            sys_exit_with_timestamp( 'Error: {}'.format(e[0]))
-        time.sleep(1)
-
-    ## default IP set after bond delete
-    node = '192.168.0.220'
-    try:
-        node_id_220 = node_id()
-    except  Exception as error:
-        ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-        ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-        timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
-        if timeouted:
-            sys_exit_with_timestamp( 'Error: Cannot access default IP 192.168.0.220')
 
     time.sleep(1)
     if node_id_220 == orginal_node_id:
@@ -3389,23 +3370,15 @@ def delete_bond(bond_name):
         data = dict(configuration="static", address=bond_ip_addr, netmask=bond_netmask)
         if bond_gw_ip_addr or bond_gw_ip_addr == '':
             data["gateway"]= bond_gw_ip_addr if bond_gw_ip_addr else None
-
         ## PUT
         put(endpoint,data)
-
         if error:
-            ## in case the node-ip-address changed, the RESTapi request cannot complete as the connection is lost due to IP change
-            ## e: HTTPSConnectionPool(host='192.168.0.80', port=82): Read timed out. (read timeout=30)
-            timeouted = ("HTTPSConnectionPool" in error) and ("timeout" in error)
-            if timeouted:
-                node = bond_ip_addr  ## the node IP was changed
-            time.sleep(1)
-
+            print_with_timestamp( 'Error: Cannot set gateway IP. {}'.format(error))
+        time.sleep(1)
         ## set node IP address back to bond_ip_addr
         node = bond_ip_addr
         endpoint = '/network/interfaces/{INTERFACE}'.format(INTERFACE=second_nic_name)
         data = dict(configuration="static", address=increment_3rd_ip_subnet(bond_ip_addr), netmask=bond_netmask)
-
         ## PUT
         put(endpoint,data)
 
@@ -3836,8 +3809,7 @@ def zip_n(number_of_items_a_time,*args):
 
 
 def create_pool(pool_name,vdev_type,jbods):
-    timeouted = False
-
+    
     if pool_name in get_pools_names():
         sys_exit_with_timestamp( 'Error: {} already exist on node {}.'.format(pool_name, node))
 
@@ -3849,8 +3821,6 @@ def create_pool(pool_name,vdev_type,jbods):
     endpoint = '/pools'
     data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)])
     result = post(endpoint,data)
-    #if 'timeout' not in error:
-    #    sys_exit_with_timestamp( 'Error: Cannot create {}. {}'.format(pool_name, ' '.join(error.split())))
 
     for _ in range(10):
         if check_given_pool_name(ignore_error=True):
