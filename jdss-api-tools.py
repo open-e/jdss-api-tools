@@ -135,14 +135,12 @@ target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.st
 zvol_name_prefix = 'zvol00'
 
     
-def call_requests(method,endpoint='conn_test',data={}):
+def call_requests(method,endpoint,data=None):
     global error
-    global http_code
     global timeouted
-    error = ''
+    response = error = err = error_message = None
     http_code = 0
     timeouted = False
-    response = None
     call = dict(GET = requests.get,
                 PUT = requests.put,
                 POST = requests.post,
@@ -155,21 +153,19 @@ def call_requests(method,endpoint='conn_test',data={}):
     try:
         r = call[method](**params)
         response = r.json()['data']
+        error_message = r.json()['error']['message']
         http_code = r.status_code
-    except Exception as err:
-        error = str(err)
-        timeouted = 'ConnectTimeoutError' in error
-        #error example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
-    #200, 201 or 204 = success, but JSONDecodeError passible        
-    if error and http_code in (200,201,204): error = ''
-    if not error and http_code > 204: error = http_code
+    except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
+        timeouted = 'ConnectTimeoutError' in str(err)
+   #200, 201 or 204 = success, but JSONDecodeError passible        
+    error = '' if http_code in (200,201,204) else error_message if error_message else http_code
     return '' if response is None else response
 
 
-def api_connection_test(): return call_requests('GET') 
+def api_connection_test(): return call_requests('GET','conn_test') 
 def get(endpoint):         return call_requests('GET',endpoint)
-def put(endpoint,data):    return call_requests('PUT',endpoint,data)
-def post(endpoint,data):   return call_requests('POST',endpoint,data)
+def put(endpoint,data={}):    return call_requests('PUT',endpoint,data)
+def post(endpoint,data={}):   return call_requests('POST',endpoint,data)
 def delete(endpoint):      return call_requests('DELETE',endpoint)
 
 
@@ -1342,6 +1338,7 @@ def get_args(batch_args_line=None):
 
     ## TESTING ONLY!
     #test_mode = True
+    #test_command_line =  'activate --online  --node 192.168.0.82'
     #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
     #test_command_line =  'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
     #test_command_line =  'set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node 192.168.0.82'
@@ -3532,21 +3529,16 @@ def activate():
     '''
     global node
     global action_message
-    result = ''
-
     for node in nodes:
         action_message = 'Sending Activation request, node: {}'.format(node)
         if online:
-            ## POST
-            result = post('/product/activation/activate-product',{})
-            # returns {u'data': None, u'error': None} if success
-            if result and not result['error']:
-                print_with_timestamp('Product successfully activated. Node: {}'.format(node))
+            post('/product/activation/activate-product')
+            if error:
+                print_with_timestamp('Error: Product activation failed. Node: {}'.format(node))
             else:
-                sys_exit_with_timestamp('Error: Product activation failed. Node: {}'.format(node))
-
+                print_with_timestamp('Product successfully activated. Node: {}'.format(node))
         else:
-            sys_exit_with_timestamp('Error: Offline activation not implemented yet. Please use --online option. Node: {}'.format(node))
+            print_with_timestamp('Error: Offline activation not implemented yet. Please use --online option. Node: {}'.format(node))
 
 
 def info():
