@@ -132,6 +132,12 @@ target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.st
 ## ZVOL NAME
 zvol_name_prefix = 'zvol00'
 
+
+def get(endpoint):            return call_requests('GET',endpoint)
+def put(endpoint,data={}):    return call_requests('PUT',endpoint,data)
+def post(endpoint,data={}):   return call_requests('POST',endpoint,data)
+def delete(endpoint,data={}): return call_requests('DELETE',endpoint,data)
+def api_connection_test():    return call_requests('GET','/conn_test')
     
 def call_requests(method,endpoint,data=None):
     global error
@@ -156,13 +162,6 @@ def call_requests(method,endpoint,data=None):
     #200, 201 or 204 = success, but JSONDecodeError passible        
     error = '' if http_code in (200,201,204) else error_message if error_message else http_code
     return '' if response is None else response
-
-
-def api_connection_test(): return call_requests('GET','/conn_test')
-def get(endpoint):         return call_requests('GET',endpoint)
-def put(endpoint,data={}):    return call_requests('PUT',endpoint,data)
-def post(endpoint,data={}):   return call_requests('POST',endpoint,data)
-def delete(endpoint):      return call_requests('DELETE',endpoint)
 
 
 def wait_for_node():
@@ -2206,12 +2205,11 @@ def delete_clones(vol_type):
         for clone in clones:
             clone_name = clone[0]
             snapshot_name = clone[3]
-            resp_code = delete_clone(vol_type,clone_name, snapshot_name)
-            #print(resp_code)
-            if resp_code == 204:
-                print_with_timestamp('Clone: {} of {} {} has been deleted.'.format(clone_name, pool_name, volume_name))
-            else:
+            resp = delete_clone(vol_type,clone_name, snapshot_name)
+            if error:
                 print_with_timestamp('Cannot delete clone: {} of {} {}.'.format(clone_name, pool_name, volume_name))
+            else:
+                print_with_timestamp('Clone: {} of {} {} has been deleted.'.format(clone_name, pool_name, volume_name))
     else:
         _older_than_string_to_print = ' '.join(sorted(older_than_string_to_print.split(), key=lambda item: time_periods.index(item.split('-')[-1])))
         print_with_timestamp('No clones older than {} found on {} {}.'.format(_older_than_string_to_print, pool_name, volume_name))
@@ -2220,14 +2218,13 @@ def delete_clones(vol_type):
 def delete_clone(vol_type,clone_name, snapshot_name):
     data = dict(umount=True, force_umount=True)
     if vol_type in 'volume':
-        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
+        delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
             POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name, CLONE=clone_name),data)
     if vol_type in 'dataset':
-        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
+        delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}/clones/{CLONE}'.format(
             POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name, CLONE=clone_name),data)
-    #print(vol_type,clone_name, snapshot_name, volume_name,pool_name)
-    return resp.code if resp is not None else None # Http code 204 on success
-
+    return False if error else True
+    
 
 def get_all_volume_clones_older_than_given_age(vol_type):
     if vol_type in 'volume':
@@ -2241,7 +2238,7 @@ def get_all_volume_clones_older_than_given_age(vol_type):
     # Example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
 
     ## filter-out clones of other volumes than volume_name
-    clones_pools_volumes_snapshots = filter(lambda item: item[2] in volume_name, clones_pools_volumes_snapshots)
+    clones_pools_volumes_snapshots = list(filter(lambda item: item[2] in volume_name, clones_pools_volumes_snapshots))
     return clones_pools_volumes_snapshots
 
 
@@ -2254,19 +2251,19 @@ def delete_snapshots(vol_type):
     print()
 
     for snapshot_name in snapshots_names:
-        resp = delete_snapshot(vol_type,snapshot_name)
-        if resp:
-            print_with_timestamp('Snapshot: {} deleted.'.format(snapshot_name))
-        else:
+        delete_snapshot(vol_type,snapshot_name)
+        if error:
             print_with_timestamp('Cannot delete snapshot: {}.'.format(snapshot_name))
+        else:
+            print_with_timestamp('Snapshot: {} deleted.'.format(snapshot_name))
 
 
 def delete_snapshot(vol_type, snapshot_name):
     #data = {'recursively_dependents':True}
     if vol_type in 'volume':
-        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
+        delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
     if vol_type in 'dataset':
-        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
+        delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
     return False if error else True
     
     
@@ -4013,25 +4010,23 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
                        POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
-            try:
-                api.driver.delete(endpoint)
-                print_with_timestamp('Share, clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
-                print()
-            except:
+            delete(endpoint)
+            if error:
                 print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name,node))
-                print()
+            else:
+                print_with_timestamp('Share, clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
+            print()
         ## Delete snapshot and clone of SAN zvol (using recursively options)
         if vol_type == 'volume':
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
                    POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
             data = dict(recursively_children=True, recursively_dependents=True, force_umount=True)
-            try:
-                api.driver.delete(endpoint,data)
-                print_with_timestamp('Clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
-                print()
-            except:
+            delete(endpoint,data)
+            if error:
                 print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name,node))
-                print()
+            else:
+                print_with_timestamp('Clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
+            print()
 
 
 def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
@@ -4072,26 +4067,24 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{VOL_CLONE_NAME}'.format(
                        POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, VOL_CLONE_NAME=vol_clone_name)
             data = dict(name=clone_name)
-            try:
-                api.driver.delete(endpoint,data)
-                print_with_timestamp('Share and clone of {}/{}/{} have been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
-                print()
-            except:
+            delete(endpoint,data)
+            if error:
                 print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
-                print()
+            else:
+                print_with_timestamp('Share and clone of {}/{}/{} have been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+            print()
         ## Delete existing clone of SAN zvol
         if vol_type == 'volume':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
                    POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, CLONE_NAME=clone_name)
             data = dict(name=clone_name)
-            try:
-                api.driver.delete(endpoint,data)
-                print_with_timestamp('Clone of {}/{}/{} has been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
-                print()
-            except:
+            delete(endpoint,data)
+            if error:
                 print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
-                print()
+            else:
+                print_with_timestamp('Clone of {}/{}/{} has been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+            print()
 
 
 def create_target(ignore_error=None):
@@ -4162,7 +4155,7 @@ def detach_volume_from_iscsi_target(ignore_error=None):
         endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns/{VOLUME_NAME}'.format(
                    POOL_NAME=pool_name, TARGET_NAME=target_name, VOLUME_NAME=volume_name)
         ## DELETE
-        delete(endpoint,None)
+        delete(endpoint)
         if error:
             if ignore_error is None:
                 print_with_timestamp('{}'.format(error))
