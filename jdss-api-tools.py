@@ -97,10 +97,8 @@ r"""
 2021-06-09  replace imported module jovianapi with local function call_requests
 """
 
-import sys, re, time, string, datetime, argparse, collections, ipcalc, ping3
-from colorama import init
-from colorama import Fore, Back, Style
-import requests, json, urllib3
+import sys, re, time, string, datetime, argparse, ipcalc, ping3, requests, json, urllib3
+from colorama import init, Fore, Back, Style
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 __author__  = 'janusz.bak@open-e.com'
@@ -141,28 +139,26 @@ def call_requests(method,endpoint,data=None):
     response = error = err = error_message = None
     http_code = 0
     timeouted = False
+    if endpoint not in '/conn_test':
+        wait_for_node()
     call = dict(GET = requests.get,
                 PUT = requests.put,
                 POST = requests.post,
                 DELETE = requests.delete)
-    if endpoint not in 'conn_test':
-        wait_for_node()
-    params = dict(url = 'https://{}:{}{}/{}'.format(node,api_port,api_version,endpoint.lstrip('/')),
-                  auth = (api_user, api_password), timeout = api_timeout, verify = False)
-    if method in ('PUT','POST'): params['json'] = data
     try:
-        r = call[method](**params)
+        r = call[method](url='https://{}:{}/{}/{}'.format(node,api_port,api_version.lstrip('/'),endpoint.lstrip('/')),
+                         json=data,auth=(api_user, api_password),timeout=api_timeout,verify=False)
         response = r.json()['data']
         error_message = r.json()['error']['message']
         http_code = r.status_code
     except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
         timeouted = 'ConnectTimeoutError' in str(err)
-   #200, 201 or 204 = success, but JSONDecodeError passible        
+    #200, 201 or 204 = success, but JSONDecodeError passible        
     error = '' if http_code in (200,201,204) else error_message if error_message else http_code
     return '' if response is None else response
 
 
-def api_connection_test(): return call_requests('GET','conn_test') 
+def api_connection_test(): return call_requests('GET','/conn_test')
 def get(endpoint):         return call_requests('GET',endpoint)
 def put(endpoint,data={}):    return call_requests('PUT',endpoint,data)
 def post(endpoint,data={}):   return call_requests('POST',endpoint,data)
@@ -1357,7 +1353,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
-    #test_command_line = 'info --node 192.168.0.42'
+    test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
@@ -1609,7 +1605,7 @@ def get_args(batch_args_line=None):
             if not valid_ip(ip):
                 sys_exit( 'IP address {} is invalid'.format(ip))
         ## detect doubles
-        doubles = [ip for ip, c in collections.Counter(nodes).items() if c > 1]
+        doubles =  len(nodes) != len(set(nodes))
         if doubles:
             sys_exit( 'Double IP address: {}'.format(', '.join(doubles)))
 
@@ -1630,10 +1626,10 @@ def is_node_alive(test_node):
 def wait_for_move_destination_node(test_node):
     repeat = 100
     counter = 0
-    time.sleep(15)
+    time.sleep(5)
     while not is_node_alive(test_node):
         counter += 1
-        time.sleep(30)
+        time.sleep(20)
         print_with_timestamp( 'Waiting for : {}.'.format(test_node))
         if counter == repeat:   ## timed out
             sys_exit_with_timestamp( 'Time out of waiting for : {}.'.format(test_node))
@@ -2267,14 +2263,13 @@ def delete_snapshots(vol_type):
 
 def delete_snapshot(vol_type, snapshot_name):
     #data = {'recursively_dependents':True}
-    data = {}
     if vol_type in 'volume':
-        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name), data)
+        resp = delete('/pools/{POOL}/volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
     if vol_type in 'dataset':
-        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name), data)
-    return resp.code if resp is not None else None # Http code 204 on success
-
-
+        resp = delete('/pools/{POOL}/nas-volumes/{VOLUME}/snapshots/{SNAPSHOT}'.format(POOL=pool_name,VOLUME=volume_name,SNAPSHOT=snapshot_name))
+    return False if error else True
+    
+    
 def get_snapshot_clones(snapshot_name):
     clones = clones_names = None
     if vol_type in 'volume':
@@ -2628,21 +2623,13 @@ def print_interfaces_details(header,fields):
 def set_default_gateway():
     global action_message
     action_message = 'Sending default gateway setting request to: {}'.format(node)
-
-    endpoint = '/network/default-gateway'
-    data = dict(interface=nic_name)
-
     ## PUT
-    put(endpoint,data)
-
-    endpoint = '/network/default-gateway'
-    dgw_interface = None
-
+    put('/network/default-gateway', dict(interface=nic_name))
     ## GET
-    dgw_interface = get(endpoint)['interface']
-
+    dgw_interface = None
+    dgw_interface = get('/network/default-gateway')['interface']
     if dgw_interface is None:
-        sys_exit_with_timestamp( 'No default gateway set')
+        print_with_timestamp( 'No default gateway set')
     else:
         print_with_timestamp( 'Default gateway set to: {}'.format(dgw_interface))
 
@@ -2650,16 +2637,10 @@ def set_default_gateway():
 def set_dns(dns):
     global action_message
     action_message = 'Sending DNS setting request to: {}'.format(node)
-
-    endpoint = '/network/dns'
-    data = dict(servers=dns)
-
     ## PUT
-    put(endpoint,data)
-
+    put('/network/dns', dict(servers=dns))
     if error:
-        sys_exit_with_timestamp( 'Error: setting DNS. {}'.format(error))
-
+        print_with_timestamp( 'Error: setting DNS. {}'.format(error))
     print_with_timestamp( 'DNS set to: {}'.format(', '.join(dns)))
 
 
@@ -2751,7 +2732,7 @@ def export():
         display_delay('Export')
         endpoint = '/pools/{POOL}/export'.format(POOL=pool_name)
         action_message = 'Sending export request to {} on : {}'.format(pool_name, node)
-        post(endpoint, dict())
+        post(endpoint)
 
 
 def get_pools_names():
