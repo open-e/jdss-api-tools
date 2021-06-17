@@ -1788,7 +1788,6 @@ def human2seconds(age):
 
     def item2seconds(age):
         if age in '0': age = '0sec'
-        #alpha = ''.join(list(filter(str.isalpha,age)))
         alpha = age.strip(string.digits)
         seconds = 3600*24*365*99 # 99 years
         if alpha in ('second','minute','hour','day','week','month','year'):
@@ -2238,7 +2237,7 @@ def get_all_volume_clones_older_than_given_age(vol_type):
     # Example: [(u'clone-zvol00', u'Pool-0', u'zvol00', u'autosnap_2019-08-15-193200')]
 
     ## filter-out clones of other volumes than volume_name
-    clones_pools_volumes_snapshots = list(filter(lambda item: item[2] in volume_name, clones_pools_volumes_snapshots))
+    clones_pools_volumes_snapshots = [item for item in  clones_pools_volumes_snapshots if item[2] in volume_name]
     return clones_pools_volumes_snapshots
 
 
