@@ -133,27 +133,23 @@ target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.st
 zvol_name_prefix = 'zvol00'
 
 
-def get(endpoint):            return call_requests('GET',endpoint)
-def put(endpoint,data={}):    return call_requests('PUT',endpoint,data)
-def post(endpoint,data={}):   return call_requests('POST',endpoint,data)
-def delete(endpoint,data={}): return call_requests('DELETE',endpoint,data)
-def api_connection_test():    return call_requests('GET','/conn_test')
+def get(endpoint):                return call_requests('GET',endpoint)
+def put(endpoint,data={}):        return call_requests('PUT',endpoint,data)
+def post(endpoint,data={}):       return call_requests('POST',endpoint,data)
+def delete(endpoint,data={}):     return call_requests('DELETE',endpoint,data)
+def api_connection_test_passed(): return call_requests('GET','/conn_test') # 'OK': if passed, '': if not passed
     
-def call_requests(method,endpoint,data=None):
-    global error
-    global timeouted
+def call_requests(method,endpoint,data = None):
+    global error, timeouted
     response = error = err = error_message = None
-    http_code = 0
-    timeouted = False
-    if endpoint not in '/conn_test':
-        wait_for_node()
-    call = dict(GET = requests.get,
-                PUT = requests.put,
-                POST = requests.post,
-                DELETE = requests.delete)
+    http_code = 0; timeouted = False
+    if endpoint not in '/conn_test': wait_for_node()
     try:
-        r = call[method](url='https://{}:{}/{}/{}'.format(node,api_port,api_version.lstrip('/'),endpoint.lstrip('/')),
-                         json=data,auth=(api_user, api_password),timeout=api_timeout,verify=False)
+        r = dict(GET    = requests.get,
+                 PUT    = requests.put,
+                 POST   = requests.post,
+                 DELETE = requests.delete)[method](url=f"https://{node}:{api_port}/{api_version.lstrip('/')}/{endpoint.lstrip('/')}",
+                                                   json=data, auth=(api_user, api_password), timeout=api_timeout, verify=False)
         response = r.json()['data']
         error_message = r.json()['error']['message']
         http_code = r.status_code
@@ -184,8 +180,7 @@ def wait_for_node():
     ## REST API
     counter = 0; repeat = 1000
     while True:
-        api_connection_test()
-        if error:
+        if not api_connection_test_passed():
             if counter in (2,3):
                 print_with_timestamp( 'Node {} does not respond to REST API commands.'.format(node))
             elif counter == 4:
@@ -1352,7 +1347,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
-    test_command_line = 'info --node 192.168.0.42'
+    #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
@@ -3241,7 +3236,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     ## PUT
     put(endpoint,data)
 
-    if not api_connection_test():
+    if not api_connection_test_passed():
         node = new_ip_addr  ## the node IP was changed
         access_nic_changed = True
         time.sleep(1)
@@ -3364,7 +3359,8 @@ def delete_bond(bond_name):
 
 def node_id():
     ## GET
-    version = get('/product')["version"]   ## it was 'header' till up29
+    product = get('/product')
+    version = product["version"] if product else '1.0'   ## it was 'header' till up29
     serial_number = get('/product')["serial_number"]
     server_name = get('/product')["server_name"]
     host_name = get('/product')["host_name"]
