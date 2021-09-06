@@ -95,6 +95,7 @@ r"""
 2021-04-07  add export pool command
 2021-05-31  move to python ver.3.9.5
 2021-06-09  replace imported module jovianapi with local function call_requests
+2021-09-06  fixed KeyError while delete snapshots
 """
 
 import sys, re, time, string, datetime, argparse, ipcalc, ping3, requests, json, urllib3
@@ -1336,7 +1337,7 @@ def get_args(batch_args_line=None):
     #test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
-    #test_command_line = 'delete_snapshots --pool Pool-prod --volume vol-prod --older_than 5min --delay 1 --node 192.168.0.42'
+    #test_command_line = 'delete_snapshots --pool Pool-NEW --volume vol00 --older_than 30min --delay 1 --node 192.168.0.32'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
     #test_command_line = 'delete_bond --nic bond0 --node 192.168.0.82'
     #test_command_line = 'create_bond --bond_nics eth2 eth3 --bond_type active-backup --new_ip 192.168.33.82  --node 192.168.0.82'
@@ -2281,7 +2282,10 @@ def get_all_volume_snapshots_older_than_given_age(vol_type):
     if vol_type in 'dataset':
         snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=volume_name))
         if snapshots:
-            snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] for prop_item in snapshot['properties'] if prop_item['name']=='creation' and snapshot_creation_to_seconds(prop_item['value']) > older_than  ]
+            try:
+                snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] for prop_item in snapshot['properties'] if prop_item['name']=='creation' and snapshot_creation_to_seconds(prop_item['value']) > older_than  ]
+            except KeyError:
+                snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than  ]
     return snapshots_names or []
 
 
