@@ -471,11 +471,11 @@ import                        	export                        	</pre>
 
     Stop scrub on all pools.
 
-        jdss-api-tools.exe scrub --action stop --node 192.168.0.220
+        jdss-api-tools.exe scrub --scrub_action stop --node 192.168.0.220
 
     Scrub status on all pools.
 
-        jdss-api-tools.exe scrub --action status --node 192.168.0.220
+        jdss-api-tools.exe scrub --scrub_action status --node 192.168.0.220
 
 
 28. <b>Set scrub scheduler</b>.

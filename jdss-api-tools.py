@@ -96,6 +96,7 @@ r"""
 2021-05-31  move to python ver.3.9.5
 2021-06-09  replace imported module jovianapi with local function call_requests
 2021-09-06  fixed KeyError while delete snapshots
+2022-01-13  fixed create & delete clone, help text for scrub_action
 """
 
 import sys, re, time, string, datetime, argparse, ipcalc, ping3, requests, json, urllib3
@@ -668,11 +669,11 @@ def get_args(batch_args_line=None):
 
     Stop scrub on all pools.
 
-    {LG}%(prog)s scrub --action stop --node 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --scrub_action stop --node 192.168.0.220{ENDF}
 
     Scrub status on all pools.
 
-    {LG}%(prog)s scrub --action status --node 192.168.0.220{ENDF}
+    {LG}%(prog)s scrub --scrub_action status --node 192.168.0.220{ENDF}
 
 
 {} {BOLD}Set scrub scheduler{END}.
@@ -1350,7 +1351,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
-    #test_command_line = 'clone --pool Pool-0 --volume zvol00 --node 192.168.0.80'
+    test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.52'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
@@ -4004,7 +4005,6 @@ def create_clone(vol_type, ignore_error=None):
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface()
         ## Delete snapshot. It auto-deletes clone and share of NAS vol
         if vol_type == 'dataset':
             endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
@@ -4059,7 +4059,6 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
     global node
     for node in nodes:
-        api = interface()
         ## Delete existing clone and share of NAS vol
         if vol_type == 'dataset':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
