@@ -595,7 +595,6 @@ import                        	export                        	</pre>
 	
  Missing Python modules need to be installed with pip, e.g.:
 
-	pip install ipcalc
 	pip install ping3
 	pip install colorama
         ... 
