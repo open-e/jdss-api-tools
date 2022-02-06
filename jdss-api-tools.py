@@ -96,6 +96,8 @@ r"""
 2021-06-09  replace imported module jovianapi with local function call_requests
 2021-09-06  fixed KeyError while delete snapshots
 2022-01-13  fixed create & delete clone, help text for scrub_action
+2022-02-03  Improve pylint score
+2022-02-06  Improve pylint score
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -372,7 +374,7 @@ def get_args(batch_args_line=None):
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "c" from the menu.
+    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "args_count" from the menu.
 
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
 
@@ -1356,7 +1358,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
-    test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.52'
+    test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
@@ -2034,11 +2036,11 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
     put('/product',data)
 
     if host_name:
-        print_with_timestamp( f"Set host name: {host_name}" )
+        print_with_timestamp(f"Set host name: {host_name}")
     if server_name:
-        print_with_timestamp( f"Set server name: {server_name}" )
+        print_with_timestamp(f"Set server name: {server_name}")
     if server_description:
-        print_with_timestamp( f"Set server description: {server_description}" )
+        print_with_timestamp(f"Set server description: {server_description}")
 
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
@@ -2058,20 +2060,20 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     ## exit if DNS is missing
     dns = get_dns()
     if ntp == 'ON' and not dns:
-        sys_exit_with_timestamp( f"Cannot set NTP. Missing DNS setting on node: {node}." )
+        sys_exit_with_timestamp(f"Cannot set NTP. Missing DNS setting on node: {node}.")
 
     ## PUT
     put('/time',data)
 
     if error:
-        print_with_timestamp( f"Cannot set NTP. Error: {error}." )
+        print_with_timestamp(f"Cannot set NTP. Error: {error}.")
 
     if timezone:
-        print_with_timestamp( f"Set timezone: {timezone}" )
+        print_with_timestamp(f"Set timezone: {timezone}")
     if ntp == 'ON':
-        print_with_timestamp( "Set time from NTP: Yes" )
+        print_with_timestamp("Set time from NTP: Yes")
     if ntp_servers:
-        print_with_timestamp( f"Set NTP servers: {' '.join(ntp_servers)}" )
+        print_with_timestamp(f"Set NTP servers: {' '.join(ntp_servers)}")
 
 
 def add_fields_seperator(fields,fields_length,seperator_length):
@@ -2308,7 +2310,7 @@ def print_nas_snapshots_details(header,fields):
         nas_volumes = get_nas_volumes_names()
         if not nas_volumes: continue    ## SKIP if no vol
         for nas_volume in nas_volumes:
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,DATASET=nas_volume))
+            snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
@@ -2347,8 +2349,7 @@ def print_nas_snapshots_details(header,fields):
 
         for nas_volume in nas_volumes:
             snapshot_details = []
-            snapshots = get('/pools/{POOL}/nas-volumes/{DATASET}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(
-			    POOL=pool_name,DATASET=nas_volume))
+            snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=0&sort_by=name&order=asc")
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
@@ -2404,7 +2405,7 @@ def print_san_snapshots_details(header,fields):
         if not san_volumes:
             continue            ## SKIP if no vol
         for san_volume in san_volumes:
-            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=10&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
+            snapshots = get(f"/pools/{pool_name}/volumes/{san_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
@@ -2438,7 +2439,7 @@ def print_san_snapshots_details(header,fields):
 
         for san_volume in san_volumes:
             snapshot_details = []
-            snapshots = get('/pools/{POOL}/volumes/{VOLUME}/snapshots?page=0&per_page=0&sort_by=name&order=asc'.format(POOL=pool_name,VOLUME=san_volume))
+            snapshots = get(f"/pools/{pool_name}/volumes/{san_volume}/snapshots?page=0&per_page=0&sort_by=name&order=asc")
             if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             for snapshot in snapshots['entries']:
                 snapshot_details = []
@@ -2658,8 +2659,7 @@ def get_dns():
         return None
     if len(dns['servers']) == 0:
         return None
-    else:
-        return dns['servers']
+    return dns['servers']
 
 
 def set_scrub_scheduler():
@@ -2680,7 +2680,7 @@ def set_scrub_scheduler():
             node = _node
         else:
             continue
-        post('/pools/{POOL}/scrub/scheduler'.format(POOL = _pool_name), data)
+        post(f"/pools/{_pool_name}/scrub/scheduler", data)
         print_with_timestamp( f"Scrub schedule set for: {_pool_name} on {node}" )
         _day_of_the_month = str(int(_day_of_the_month)+incr)
 
@@ -2840,27 +2840,27 @@ def generate_share_and_volume_name(pool_name):
 
 
 def get_iscsi_targets_names():
-    targets= get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
+    targets= get(f"/pools/{pool_name}/san/iscsi/targets")
     if targets:
         return [target['name'] for target in targets]
     return []
 
 
 def get_nas_volumes_names():
-    nas_volumes = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
+    nas_volumes = get(f"/pools/{pool_name}/nas-volumes")
     if nas_volumes:
         return natural_list_sort([nas_volume['name'] for nas_volume in nas_volumes])
     return []
 
 
 def get_san_volumes_names():
-    san_volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
+    san_volumes = get(f"/pools/{pool_name}/volumes")
     if san_volumes:
         return natural_list_sort([san_volume['name'] for san_volume in san_volumes])
     return []
 
 def get_san_volume_size():
-    volume_properties = get('/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/properties'.format(POOL_NAME=pool_name, VOLUME_NAME=volume_name))
+    volume_properties = get(f"/pools/{pool_name}/volumes/{volume_name}/properties")
     return [ property_item['value'] for property_item in volume_properties if 'volsize' in property_item['name']][0]
 
 def get_nic_name_of_given_ip_address(ip_address):
@@ -2944,12 +2944,11 @@ def get_rings():
 def get_cluster_nodes_addresses():
     global is_cluster
     resp = get('/cluster/nodes')
-    if resp and len(resp) > 1:
+    ## single-node  [{u'localnode': True, u'status': None, u'hostname': u'node-32', u'reachable': True, u'address': u'127.0.0.1', u'id': u'5c913a76'}]
+    ## cluster      [{u'localnode': False, u'status': u'online', u'hostname': u'node-81-ha00', u'reachable': True, u'address': u'192.168.0.81', u'id': u'8e126ece'},
+    ##               {u'localnode': True, u'status': u'online', u'hostname': u'node-80-ha00', u'reachable': True, u'address': u'192.168.0.80', u'id': u'67596e40'}]
+    if type(resp) is list and len(resp) > 1 :
         is_cluster = True
-        resp = get('/cluster/nodes')
-        ## single-node  [{u'localnode': True, u'status': None, u'hostname': u'node-32', u'reachable': True, u'address': u'127.0.0.1', u'id': u'5c913a76'}]
-        ## cluster      [{u'localnode': False, u'status': u'online', u'hostname': u'node-81-ha00', u'reachable': True, u'address': u'192.168.0.81', u'id': u'8e126ece'},
-        ##               {u'localnode': True, u'status': u'online', u'hostname': u'node-80-ha00', u'reachable': True, u'address': u'192.168.0.80', u'id': u'67596e40'}]
         resp.sort(key=lambda item:item['localnode'],reverse=True)
         return [item['address'] for item in resp]
     is_cluster = False
@@ -2960,12 +2959,16 @@ def get_cluster_node_id(node):
 
     result = get('/cluster/nodes')
     result = result if result else []
-    
-    if len(result) < 2:
-        ## cluster not configured yet
-        sys_exit_with_timestamp('Error: Cluster not bound yet.')
-    else:
+    if len(result) > 1:
         return [ cluster_node['id'] for cluster_node in result if cluster_node['address'] in node][0]
+    ## cluster not configured yet
+    sys_exit_with_timestamp('Error: Cluster not bound yet.')
+
+#    if len(result) < 2:
+##   cluster not configured yet
+#        sys_exit_with_timestamp('Error: Cluster not bound yet.')
+#    else:
+#       return [ cluster_node['id'] for cluster_node in result if cluster_node['address'] in node][0]
 
 
 def get_cluster_nodes_ids():
@@ -2980,7 +2983,6 @@ def get_cluster_nodes_ids():
     cluster_id_local  = [ cluster_node['id'] for cluster_node in result if     cluster_node['localnode']][0]
     cluster_id_remote = [ cluster_node['id'] for cluster_node in result if not cluster_node['localnode']][0]
     return cluster_id_local, cluster_id_remote
-
 
 
 def get_vips():
@@ -3004,7 +3006,7 @@ def cluster_bind_set():
 
 def create_vip():
     global action_message
-    action_message = 'Sending create VIP request to: {}'.format(node)
+    action_message = f"Sending create VIP request to: {node}"
 
     if not pool_name:
         sys_exit_with_timestamp( 'Error: Pool name missing.')
@@ -3017,7 +3019,7 @@ def create_vip():
     if len(nics)==2:
         nic_a, nic_b = nics
     else:
-        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs t')
+        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs')
     cluster_nodes_ids = get_cluster_nodes_ids()
     #cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = True if cluster_nodes_ids and len(cluster_nodes_ids) > 1 else False
@@ -3068,13 +3070,13 @@ def set_mirror_path():
             is_all_OK = all('OK' in interface['status'] for interface in result[0]['interfaces'])
         if is_all_OK:
             print()
-            print_with_timestamp( 'Mirror path set to: {}'.format(', '.join(mirror_nics)))
+            print_with_timestamp(f"Mirror path set to: {', '.join(mirror_nics)}")
             break
         else:
             print('.', end='')
     if not is_all_OK:
         print()
-        sys_exit_with_timestamp( 'Error setting mirror path with: {}. {}'.format(', '.join(mirror_nics),error))
+        sys_exit_with_timestamp(f"Error setting mirror path with: {', '.join(mirror_nics)}. {error}")
 
 
 def get_ping_nodes():
@@ -3083,13 +3085,13 @@ def get_ping_nodes():
     ## GET
     ping_nodes = [ping_node['address'] for ping_node in get(endpoint)]
     if error:
-        print_with_timestamp('Error getting ping nodes. {}'.format(error))
+        print_with_timestamp(f"Error getting ping nodes. {error}")
     return [] if error else ping_nodes
 
 
 def set_ping_nodes():
     global action_message
-    action_message = 'Sending ping node setting request to: {}'.format(node)
+    action_message = f"Sending ping node setting request to: {node}"
 
     current_ping_nodes = get_ping_nodes()
 
@@ -3097,28 +3099,28 @@ def set_ping_nodes():
         print_with_timestamp( 'Warning: One ping node provided. At least 2 ping nodes are recommended')
     for ping_node in ping_nodes:   
         if ping_node in current_ping_nodes:
-            print_with_timestamp('Error: Ping node {} already set.'.format(ping_node))
+            print_with_timestamp(f"Error: Ping node {ping_node} already set.")
             continue
         ## in up28 it is NOT required to keep ping in the same subnet as ring
         ## POST
         post('/cluster/ping-nodes', dict(address=ping_node))
         if ping_node in get_ping_nodes():
-            print_with_timestamp('New ping node {} set.'.format(ping_node))
+            print_with_timestamp(f"New ping node {ping_node} set.")
 
 
 def start_cluster():
     global action_message
-    action_message = 'Sending cluster service start request to: {}'.format(node)
+    action_message = f"Sending cluster service start request to: {node}"
 
     started = False
 
     ## to-do  cluster_nodes_addresses = get_cluster_nodes_addresses()
     if not cluster_bind_set():
-        sys_exit_with_timestamp( 'Cannot start cluster on {}. Nodes are not bound yet.'.format(node))
+        sys_exit_with_timestamp(f"Cannot start cluster on {node}. Nodes are not bound yet.")
 
     ## GET
     if is_cluster_started():
-        print_with_timestamp( 'Cluster on {} is already started.'.format(node))
+        print_with_timestamp(f"Cluster on {node} is already started.")
         return
 
     ## POST
@@ -3135,23 +3137,23 @@ def start_cluster():
         time.sleep(5)
     else:
         print()
-        sys_exit_with_timestamp( 'Error: Cluster service start failed. {}'.format(error if error else ''))
+        sys_exit_with_timestamp(f"Error: Cluster service start failed. {error if error else ''}")
 
 
 def move():
     global node
     global nodes
     global action_message
-    action_message = 'Sending failover (move) request to: {}'.format(node)
+    action_message = f"Sending failover (move) request to: {node}"
     command_line_node = node
     if not all((is_cluster_configured,is_cluster_started)):
-        sys_exit_with_timestamp( 'Error: Cluster not running on: {}.'.format(node))
+        sys_exit_with_timestamp(f"Error: Cluster not running on: {node}.")
     nodes = get_cluster_nodes_addresses() ## nodes are now just both cluster nodes
     if len(nodes)<2:
-        sys_exit_with_timestamp( 'Error: Cannot move. {} is running as single node.'.format(node))
+        sys_exit_with_timestamp(f"Error: Cannot move. {node} is running as single node.")
     cluster_pools_names = get_cluster_pools_names()
     if pool_name not in cluster_pools_names:
-        print_with_timestamp( 'Pool: {} was not found'.format(pool_name))
+        print_with_timestamp(f"Pool: {pool_name} was not found")
         return
 
     active_node = ''
@@ -3171,7 +3173,7 @@ def move():
             active_node = node
             passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
             display_delay('Move')
-            print_with_timestamp('{} is moving from: {} to: {} '.format(pool_name, active_node, passive_node))
+            print_with_timestamp(f"{pool_name} is moving from: {active_node} to: {passive_node} ")
             ## wait ...
             wait_for_move_destination_node(passive_node)
             wait_for_zero_unmanaged_pools()
@@ -3202,9 +3204,9 @@ def move():
         print_with_timestamp('Moving in progress...')
         time.sleep(5)
     if new_active_node == passive_node: ## after move (failover) passive node is active
-        print_with_timestamp('{} is moved from: {} to: {} '.format(pool_name, active_node, new_active_node))
+        print_with_timestamp(f"{pool_name} is moved from: {active_node} to: {new_active_node} ")
     else:
-        sys_exit_with_timestamp( 'Cannot move pool {}. Error: {}'.format(pool_name, error))
+        sys_exit_with_timestamp(f"Cannot move pool {pool_name}. Error: {error}")
 
 
 def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
@@ -3213,7 +3215,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global api_timeout
     api_timeout = 5
     access_nic_changed = False
-    action_message = 'Sending network setting request to: {}'.format(node)
+    action_message = f"Sending network setting request to: {node}"
     timeouted = False
 
     ## list_of_ip
@@ -3221,7 +3223,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     for ip in [new_ip_addr, new_mask, new_gw] + new_dns if new_dns else []:
         if ip:
             if not valid_ip(ip):
-                sys_exit( 'IP address {} is invalid'.format(new_ip_addr))
+                sys_exit(f"IP address {new_ip_addr} is invalid")
     endpoint = f"/network/interfaces/{nic_name}"
     data = dict(configuration="static", address=new_ip_addr, netmask=new_mask)
     if new_gw or new_gw == '':
@@ -3245,12 +3247,12 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         time.sleep(1)
 
     if access_nic_changed:
-        print_with_timestamp( 'The acccess NIC {} changed to {}'.format(nic_name, new_ip_addr))
+        print_with_timestamp(f"The acccess NIC {nic_name} changed to {new_ip_addr}")
     else:
         if get_interface_ip_addr(nic_name) == new_ip_addr:
-            print_with_timestamp('New IP address {} set to {}'.format(new_ip_addr,nic_name))
+            print_with_timestamp(f"New IP address {new_ip_addr} set to {nic_name}")
         else:
-            print_with_timestamp('ERROR: New IP address {} set to {} FAILED'.format(new_ip_addr,nic_name))
+            print_with_timestamp(f"ERROR: New IP address {new_ip_addr} set to {nic_name} FAILED")
 
     ## set default gateway interface
     if new_gw:
@@ -3396,7 +3398,7 @@ def bind_cluster(bind_ip_addr):
 
 def add_ring():
     global action_message
-    action_message = 'Sending Add Ring request to: {}'.format(node)
+    action_message = f"Sending Add Ring request to: {node}"
 
     if not cluster_bind_set():
         print_with_timestamp('Cluster bind was not set yet')
@@ -3406,8 +3408,8 @@ def add_ring():
     number_of_rings = sum(1 for ring in rings if ring)
     if number_of_rings == 2 :
         print_with_timestamp('Cluster has 2 rings allready')
-        print_with_timestamp(' First Ring: {} {}'.format(rings[0][0],rings[0][1]))
-        print_with_timestamp('Second Ring: {} {}'.format(rings[1][0],rings[1][1]))
+        print_with_timestamp(f" First Ring: {rings[0][0]} {rings[0][1]}")
+        print_with_timestamp(f"Second Ring: {rings[1][0]} {rings[1][1]}")
         return
 
     ##same code for "data" as in bing_cluster for "mirror_nics"
@@ -3429,10 +3431,10 @@ def add_ring():
     number_of_rings = sum(1 for ring in rings if ring)
     if number_of_rings == 2 :
         print_with_timestamp('The second cluster ring added successfully.')
-        print_with_timestamp(' First Ring: {} {}'.format(rings[0][0],rings[0][1]))
-        print_with_timestamp('Second Ring: {} {}'.format(rings[1][0],rings[1][1]))
+        print_with_timestamp(f" First Ring: {rings[0][0]} {rings[0][1]}")
+        print_with_timestamp(f"Second Ring: {rings[1][0]} {rings[1][1]}")
     else:
-        print_with_timestamp('Error: cluster add ring {}<=>{} failed'.format(ring_nics[0],ring_nics[1]))
+        print_with_timestamp(f"Error: cluster add ring {ring_nics[0]}<=>{ring_nics[1]} failed")
 
 
 def import_pool():
@@ -3444,29 +3446,29 @@ def import_pool():
 
     def print_pools_available_for_import(pools_details):
         for pool_details in pools_details:
-            print('\nPool available for IMPORT:\n  {} Size: {} Status: {} '.format(pool_details['name'],bytes2human(pool_details['size']),pool_details['health']))
+            print(f"\nPool available for IMPORT:\n  {pool_details['name']} Size: {bytes2human(pool_details['size'])} Status: {pool_details['health']}")
             for vdev in pool_details['vdevs']:
                 vdev_name = vdev['name']
                 vdev_name = 'single' if vdev_name.startswith('wwn-') else vdev_name
-                print('    {}'.format(vdev_name))
+                print(f"    {vdev_name}")
                 disk_name_to_replace = [ vdev_replacing['to_replace']['name'] for vdev_replacing in vdev['vdev_replacings']]
                 for disk in vdev['disks']:
                     if disk['name'] in disk_name_to_replace:
                         continue
-                    print('\t{} {} Status: {} SN: {}'.format(disk['name'],bytes2human(disk['size']),disk['health'],disk['sn']),end=' IOErors: ')
+                    print(f"\t{disk['name']} {bytes2human(disk['size'])} Status: {disk['health']} SN: {disk['sn']}",end=' IOErors: ')
                     for stat in disk['iostats']:
-                        print('{}: {}'.format(stat,disk['iostats'][stat]),end=' ')
+                        print(f"{stat}: {disk['iostats'][stat]}",end=' ')
                     print()
                 for vdev_replacing in vdev['vdev_replacings']:
-                    print('\t{} Status: {}'.format(vdev_replacing['name'],vdev_replacing['health']))
+                    print(f"\t{vdev_replacing['name']} Status: {vdev_replacing['health']}")
                     disk_to_replace = vdev_replacing['to_replace']
                     disk_replacing = vdev_replacing['replacement']
-                    print('\t\t{} {} (to-replace) SN: {}'.format( disk_to_replace['name'],bytes2human(disk_to_replace['size']), disk_to_replace['sn']))
-                    print('\t\t{} {} (replacing)  SN: {}'.format( disk_replacing['name'],bytes2human(disk_replacing['size']), disk_replacing['sn']))
+                    print(f"\t\t{disk_to_replace['name']} {bytes2human(disk_to_replace['size'])} (to-replace) SN: {disk_to_replace['sn']}")
+                    print(f"\t\t{disk_replacing['name']} {bytes2human(disk_replacing['size'])} (replacing)  SN: {disk_replacing['sn']}")
         print()
 
     for node in nodes:
-        action_message = 'Sending import pool request, Node: {}, Pool: {}'.format(node,pool_name)
+        action_message = f"Sending import pool request, Node: {node}, Pool: {pool_name}"
         pools_details = get('/pools/import')
         if pools_details:
             if pool_name:
@@ -3475,46 +3477,46 @@ def import_pool():
                 if pool_id_list:
                     pool_id = pool_id_list[0]
                 else:
-                    sys_exit_with_timestamp('Pool: {} is NOT available for import. Node: {}'.format(pool_name,node))
+                    sys_exit_with_timestamp(f"Pool: {pool_name} is NOT available for import. Node: {node}")
                 # exit if "--force" is missing if one of options provided: recovery_import or ignore_missing_write_log or ignore_unfinished_resilver
                 if (recovery_import or ignore_missing_write_log or ignore_unfinished_resilver) and not force:
                     options_names = dict( recovery_import               = recovery_import,
                                           ignore_missing_write_log      = ignore_missing_write_log,
                                           ignore_unfinished_resilver    = ignore_unfinished_resilver)
                     options_names = ', '.join(option_name for option_name in options_names if options_names[option_name])
-                    sys_exit_with_timestamp('{} option requires --force option. Node: {}'.format(options_names, node))
+                    sys_exit_with_timestamp(f"{options_names} option requires --force option. Node: {node}")
 
                 data = dict(id=pool_id, name=pool_name, force=force, recovery_import=recovery_import,
                         omit_missing=ignore_missing_write_log, ignore_unfinished_resilver=ignore_unfinished_resilver)
                 result=post('/pools/import', data)
                 if result and result['error']:
-                    print_with_timestamp('{}. Node: {}'.format(result['error'],node))
+                    print_with_timestamp(f"{result['error']}. Node: {node}")
                 if check_given_pool_name_in_current_node(pool_name):
-                    print_with_timestamp('Pool: {} was imported on node: {}'.format(pool_name,node))
+                    print_with_timestamp(f"Pool: {pool_name} was imported on node: {node}")
                 else:
-                    print_with_timestamp('Pool: {} was NOT imported on node: {}'.format(pool_name,node))
+                    print_with_timestamp(f"Pool: {pool_name} was NOT imported on node: {node}")
             else:
-                print_with_timestamp('Searching for pools available for import. Node: {}'.format(node))
+                print_with_timestamp(f"Searching for pools available for import. Node: {node}")
                 print_pools_available_for_import(pools_details)
         else:
-            sys_exit_with_timestamp('No pools available for import. Node: {}'.format(node))
+            sys_exit_with_timestamp(f"No pools available for import. Node: {node}")
 
-            
+
 def activate():
     ''' Online activation only
     '''
     global node
     global action_message
     for node in nodes:
-        action_message = 'Sending Activation request, node: {}'.format(node)
+        action_message = f"Sending Activation request, node: {node}"
         if online:
             post('/product/activation/activate-product')
             if error:
-                print_with_timestamp('Error: Product activation failed. Node: {}'.format(node))
+                print_with_timestamp(f"Error: Product activation failed. Node: {node}")
             else:
-                print_with_timestamp('Product successfully activated. Node: {}'.format(node))
+                print_with_timestamp(f"Product successfully activated. Node: {node}")
         else:
-            print_with_timestamp('Error: Offline activation not implemented yet. Please use --online option. Node: {}'.format(node))
+            print_with_timestamp(f"Error: Offline activation not implemented yet. Please use --online option. Node: {node}")
 
 
 def info():
@@ -3525,10 +3527,10 @@ def info():
 
     for node in nodes:
         ## GET
-        action_message = 'Reading setup details from: {}'.format(node)
+        action_message = f"Reading setup details from: {node}"
         version = get('/product')["version"]   ## it was 'header' till up29
         serial_number = get('/product')["serial_number"]
-        serial_number = '{} TRIAL'.format(serial_number) if serial_number.startswith('T') else serial_number
+        serial_number = f"{serial_number} TRIAL" if serial_number.startswith('T') else serial_number
         storage_capacity = get('/product')['storage_capacity']     ## -1  means Unlimited
         storage_capacity = int(storage_capacity/pow(1024,4)) if storage_capacity > -1 else 'Unlimited'
         server_name = get('/product')["server_name"]
@@ -3550,9 +3552,9 @@ def info():
         for lic_key in extensions.keys():
             licence_type = key_name[ extensions[lic_key]['type']]
             licence_storage =  extensions[lic_key]['value']
-            licence_storage = '' if licence_storage in 'None' else ' {} TB'.format(licence_storage)
+            licence_storage = '' if licence_storage in 'None' else f" {licence_storage} TB"
             licence_description = '{:>30}:'.format( licence_type + licence_storage)
-            print_out_licence_keys.append('{}\t{}'.format( licence_description , lic_key ))
+            print_out_licence_keys.append(f"{licence_description}\t{lic_key}")
         print_out_licence_keys.sort(reverse=True)
 
         print()
@@ -3621,7 +3623,7 @@ def list_snapshots():
 
     for node in nodes:
         ## GET
-        action_message = 'Listing snapshots from: {}'.format(node)
+        action_message = f"Listing snapshots from: {node}"
         host_name = get('/product')["host_name"]
         print('{:>30}:\t{}'.format("Host name",host_name))
 
@@ -3686,7 +3688,7 @@ def check_given_pool_name(ignore_error=None):
                 return True
         else:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+                sys_exit_with_timestamp(f"Error: {pool_name} does not exist on Node: {node}")
             return False
 
 
@@ -3699,19 +3701,19 @@ def check_given_volume_name(ignore_error=None):
     global node
     for node in nodes:
         ## GET /pools/<pool_name>/nas-volumes
-        datasets = get('/pools/{POOL_NAME}/nas-volumes'.format(POOL_NAME=pool_name))
+        datasets = get(f"/pools/{pool_name}/nas-volumes")
         if datasets:
             datasets_names = [dataset['name'] for dataset in datasets]
             if volume_name in datasets_names:
                 return 'dataset'
         ## GET /pools/<pool_name>/volumes
-        volumes = get('/pools/{POOL_NAME}/volumes'.format(POOL_NAME=pool_name))
+        volumes = get(f"/pools/{pool_name}/volumes")
         if volumes:
             volumes_names = [volume['name'] for volume in volumes]
             if volume_name in volumes_names:
                 return 'volume'
         if ignore_error is None:
-            sys_exit_with_timestamp( 'Error: {} does not exist on {} Node: {}'.format(volume_name,pool_name,node))
+            sys_exit_with_timestamp(f"Error: {volume_name} does not exist on {pool_name} Node: {node}")
         else:
             return None
 
@@ -3721,12 +3723,12 @@ def jbods_listing(jbods):
     jbod = []
     if available_disks :
         for j,jbod in enumerate(jbods):
-            print("\tjbod-{}\n\t{}".format(j,line_separator))
+            print(f"\tjbod-{j}\n\t{line_separator}")
             if jbod :
                 for d,disk in enumerate(jbod):
                     print("\t{:2d} {}\t{} GB\t{}\t{}".format(
                         d,disk[1],disk[0]/1024/1024/1024,disk[3], disk[2]))
-        msg = "\n\tTotal: {} available disks found".format(available_disks)
+        msg = f"\n\tTotal: {available_disks} available disks found"
     else:
         msg = "JBOD is empty. Please choose the JBOD number in order to read disks."
     return msg
@@ -3803,12 +3805,12 @@ def create_volume(vol_type):
     if error:
         print_with_timestamp( f"Error: {error}" )
     else:
-        print_with_timestamp('{}/{}: Write cache logging (sync) set to: {}. {}{}'.format(pool_name,volume_name,sync,quota_text,reservation_text))
+        print_with_timestamp(f"{pool_name}/{volume_name}: Write cache logging (sync) set to: {sync}. {quota_text}{reservation_text}")
 
 
 def modify_volume(vol_type):
     global action_message
-    action_message = 'Sending modify volume request to: {}'.format(node)
+    action_message = f"Sending modify volume request to: {node}"
     print_with_timestamp(action_message)
     quota_text, reservation_text = ('','')
     ## PUT /pools/<string:poolname>/volumes/<string:volumename>/properties
@@ -3849,7 +3851,7 @@ def modify_volume(vol_type):
 
 def enable_smb_nfs():
     for service in storage_type:
-        endpoint = '/services/{SERVICE}'.format(SERVICE=service.lower())
+        endpoint = f"/services/{service.lower()}"
         enabled = get(endpoint)['enabled']
         if not enabled:
             put(endpoint,dict(enabled=True))
@@ -3863,13 +3865,13 @@ def create_storage_resource():
     global share_name
     global quantity
     global action_message
-    action_message = 'Sending create storage resource request to: {}'.format(node)
+    action_message = f"Sending create storage resource request to: {node}"
     initialize_pool_based_consecutive_number_generator()
     ####
     active_node = get_active_cluster_node_address_of_given_pool(pool_name)
 
     if not active_node:
-        sys_exit_with_timestamp( 'Error: {} does not exist on Node: {}'.format(pool_name,node))
+        sys_exit_with_timestamp(f"Error: {pool_name} does not exist on Node: {node}")
     else:
         node = active_node
 
@@ -3939,23 +3941,21 @@ def create_snapshot(vol_type,ignore_error=None):
     for node in nodes:
         ## Create snapshot of NAS vol
         if vol_type == 'dataset':
-            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots'.format(
-                   POOL_NAME=pool_name, DATASET_NAME=volume_name)
+            endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots"
             ## Auto-Snapshot-Name
             data = dict(name=auto_snap_name)            
         ## Create snapshot of SAN zvol
         if vol_type == 'volume':
-            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots'.format(
-                   POOL_NAME=pool_name, VOLUME_NAME=volume_name)
+            endpoint = f"/pools/{pool_name}/volumes/{volume_name}/snapshots"
             ## Auto-Snapshot-Name
             data = dict(snapshot_name=auto_snap_name)   
 
         ## POST
         post(endpoint, data)
-        print_with_timestamp('Snapshot of {}/{} has been successfully created.'.format(pool_name,volume_name))
+        print_with_timestamp(f"Snapshot of {pool_name}/{volume_name} has been successfully created.")
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))    
+                sys_exit_with_timestamp(f"Error: Target: {auto_target_name} creation on Node: {node} failed")
 
 
 def create_clone(vol_type, ignore_error=None):
@@ -3965,25 +3965,23 @@ def create_clone(vol_type, ignore_error=None):
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
-            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
-                POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
+            endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots/{auto_snap_name}/clones"
             ## vol
             clone_name = volume_name + time_stamp_clone_syntax() + auto_vol_clone_name
             data = dict(name=clone_name, primarycache=primarycache, secondarycache=secondarycache)
         ## Create clone of SAN zvol = volume
         if vol_type == 'volume':
-            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
-                POOL_NAME=pool_name, VOLUME_NAME=volume_name)
+            endpoint = f"/pools/{pool_name}/volumes/{volume_name}/clone"
             clone_name = volume_name + time_stamp_clone_syntax() + auto_zvol_clone_name
             data = dict(name=clone_name, snapshot=auto_snap_name, properties=properties)
 
 
         ## POST
         post(endpoint, data)
-        print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,auto_snap_name))
+        print_with_timestamp(f"Clone of {pool_name}/{volume_name}/{auto_snap_name} has been successfully created.")
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
+                sys_exit_with_timestamp(f"Error: Clone: {clone_name} creation on Node: {node} failed")
 
 
 def delete_snapshot_and_clone(vol_type, ignore_error=None):
@@ -3991,24 +3989,22 @@ def delete_snapshot_and_clone(vol_type, ignore_error=None):
     for node in nodes:
         ## Delete snapshot. It auto-deletes clone and share of NAS vol
         if vol_type == 'dataset':
-            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
-                       POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
+            endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots/{auto_snap_name}"
             delete(endpoint)
             if error:
-                print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name,node))
+                print_with_timestamp(f"Snapshot delete error: {auto_snap_name} does not exist on Node: {node}")
             else:
-                print_with_timestamp('Share, clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
+                print_with_timestamp(f"Share, clone and snapshot of {pool_name}/{volume_name} have been successfully deleted.")
             print()
         ## Delete snapshot and clone of SAN zvol (using recursively options)
         if vol_type == 'volume':
-            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}'.format(
-                   POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=auto_snap_name)
+            endpoint = f"/pools/{pool_name}/volumes/{volume_name}/snapshots/{auto_snap_name}"
             data = dict(recursively_children=True, recursively_dependents=True, force_umount=True)
             delete(endpoint,data)
             if error:
-                print_with_timestamp( 'Snapshot delete error: {} does not exist on Node: {}'.format(auto_snap_name,node))
+                print_with_timestamp(f"Snapshot delete error: {auto_snap_name} does not exist on Node: {node}")
             else:
-                print_with_timestamp('Clone and snapshot of {}/{} have been successfully deleted.'.format(pool_name,volume_name))
+                print_with_timestamp(f"Clone and snapshot of {pool_name}/{volume_name} have been successfully deleted.")
             print()
 
 
@@ -4019,25 +4015,23 @@ def create_clone_of_existing_snapshot(vol_type, ignore_error=None):
         ## dataset(vol) clone and volume(zvol) clone names can be the same as belong to different resources
         ## Create clone of NAS vol = dataset
         if vol_type == 'dataset':
-            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones'.format(
-                POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
+            endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots/{snapshot_name}/clones"
             ## vol
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             data = dict(name=clone_name, snapshot=snapshot_name)
         ## Create clone of SAN zvol = volume
         if vol_type == 'volume':
-            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/clone'.format(
-                POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name)
+            endpoint = f"/pools/{pool_name}/volumes/{volume_name}/clone"
             ## zvol
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
             data = dict(name=clone_name, snapshot=snapshot_name)
 
         ## POST
         post(endpoint,data)
-        print_with_timestamp('Clone of {}/{}/{} has been successfully created.'.format(pool_name,volume_name,snapshot_name))
+        print_with_timestamp(f"Clone of {pool_name}/{volume_name}/{snapshot_name} has been successfully created.")
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Clone: {} creation on Node: {} failed'.format(clone_name,node))
+                sys_exit_with_timestamp(f"Error: Clone: {clone_name} creation on Node: {node} failed")
 
 
 def delete_clone_existing_snapshot(vol_type, ignore_error=None):
@@ -4046,26 +4040,24 @@ def delete_clone_existing_snapshot(vol_type, ignore_error=None):
         ## Delete existing clone and share of NAS vol
         if vol_type == 'dataset':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
-            endpoint = '/pools/{POOL_NAME}/nas-volumes/{DATASET_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{VOL_CLONE_NAME}'.format(
-                       POOL_NAME=pool_name, DATASET_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, VOL_CLONE_NAME=vol_clone_name)
+            endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots/{snapshot_name}/clones/{vol_clone_name}"
             data = dict(name=clone_name)
             delete(endpoint,data)
             if error:
-                print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
+                print_with_timestamp(f"Clone delete error: {clone_name} does not exist on Node: {node}")
             else:
-                print_with_timestamp('Share and clone of {}/{}/{} have been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+                print_with_timestamp(f"Share and clone of {pool_name}/{volume_name}/{snapshot_name} have been successfully deleted.")
             print()
         ## Delete existing clone of SAN zvol
         if vol_type == 'volume':
             clone_name = 'Clone_of_' + volume_name + '_' + snapshot_name
-            endpoint = '/pools/{POOL_NAME}/volumes/{VOLUME_NAME}/snapshots/{SNAPSHOT_NAME}/clones/{CLONE_NAME}'.format(
-                   POOL_NAME=pool_name, VOLUME_NAME=volume_name, SNAPSHOT_NAME=snapshot_name, CLONE_NAME=clone_name)
+            endpoint = f"/pools/{pool_name}/volumes/{volume_name}/snapshots/{snapshot_name}/clones/{clone_name}"
             data = dict(name=clone_name)
             delete(endpoint,data)
             if error:
-                print_with_timestamp( 'Clone delete error: {} does not exist on Node: {}'.format(clone_name,node))
+                print_with_timestamp(f"Clone delete error: {clone_name} does not exist on Node: {node}")
             else:
-                print_with_timestamp('Clone of {}/{}/{} has been successfully deleted.'.format(pool_name,volume_name,snapshot_name))
+                print_with_timestamp(f"Clone of {pool_name}/{volume_name}/{snapshot_name} has been successfully deleted.")
             print()
 
 
@@ -4073,13 +4065,12 @@ def create_target(ignore_error=None):
     global node
     for node in nodes:
 
-        targets = get('/pools/{POOL_NAME}/san/iscsi/targets'.format(POOL_NAME=pool_name))
+        targets = get(f"/pools/{pool_name}/san/iscsi/targets")
         if targets and target_name in [target['name']for target in targets]:
-            print_with_timestamp( 'Info: Target: {} already exist on Node: {}'.format(auto_target_name,node))
+            print_with_timestamp(f"Info: Target: {auto_target_name} already exist on Node: {node}")
 
         else:
-            endpoint = '/pools/{POOL_NAME}/san/iscsi/targets'.format(
-                       POOL_NAME=pool_name)
+            endpoint = f"/pools/{pool_name}/san/iscsi/targets"
             ## Auto-Target-Name
             data = dict(name=auto_target_name)
 
@@ -4087,122 +4078,106 @@ def create_target(ignore_error=None):
             target_object = post(endpoint, data)
             if error:
                 if ignore_error is None:
-                    sys_exit_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
+                    sys_exit_with_timestamp(f"Error: Target: {auto_target_name} creation on Node: {node} failed")
                 else:
-                    print_with_timestamp( 'Error: Target: {} creation on Node: {} failed'.format(auto_target_name,node))
+                    print_with_timestamp(f"Error: Target: {auto_target_name} creation on Node: {node} failed")
 
 
 def attach_volume_to_target(ignore_error=None):
     global node
     for node in nodes:
-        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
-                   POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
+        endpoint = f"/pools/{pool_name}/san/iscsi/targets/{auto_target_name}/luns"
         data = dict(name=volume_name, mode='wt', device_handler='vdisk_blockio')
         ## POST
         post(endpoint,data)
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
-                    auto_target_name,volume_name,node))
+                sys_exit_with_timestamp(f"Error: Cannot attach target: {auto_target_name} to {volume_name} on Node:{node}")
 
-        print_with_timestamp('Volume: {}/{} has been successfully attached to target.'.format(
-            pool_name,volume_name))
-        print("\n\tTarget:\t{}".format(auto_target_name))
-        print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
+        print_with_timestamp(f"Volume: {pool_name}/{volume_name} has been successfully attached to target.")
+        print(f"\n\tTarget:\t{auto_target_name}")
+        print(f"\tVolume:\t{pool_name}/{volume_name}\n")
 
 
 def attach_volume_to_iscsi_target(ignore_error=None):
     global node
     for node in nodes:
-        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
-                   POOL_NAME=pool_name, TARGET_NAME=target_name)
+        endpoint = f"/pools/{pool_name}/san/iscsi/targets/{target_name}/luns"
         data = dict(name=volume_name, mode='wt', device_handler='vdisk_blockio')
         ## POST
         post(endpoint,data)
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
-                    target_name,volume_name,node))
+                sys_exit_with_timestamp(f"Error: Cannot attach target: {target_name} to {volume_name} on Node:{node}")
 
-        print_with_timestamp('Volume: {}/{} has been successfully attached to target.'.format(
-            pool_name,volume_name))
-        print("\n\tTarget:\t{}".format(target_name))
-        print("\tVolume:\t{}/{}\n".format(pool_name,volume_name))
+        print_with_timestamp(f"Volume: {pool_name}/{volume_name} has been successfully attached to target.")
+        print(f"\n\tTarget:\t{target_name}")
+        print(f"\tVolume:\t{pool_name}/{volume_name}\n")
 
 
 def detach_volume_from_iscsi_target(ignore_error=None):
     global node
     for node in nodes:
         # DELETE /pools/<string:poolname>/san/iscsi/targets/<string:target_name>/luns/<string:zvol>
-        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns/{VOLUME_NAME}'.format(
-                   POOL_NAME=pool_name, TARGET_NAME=target_name, VOLUME_NAME=volume_name)
+        endpoint = f"/pools/{pool_name}/san/iscsi/targets/{target_name}/luns/{volume_name}"
         ## DELETE
         delete(endpoint)
         if error:
             if ignore_error is None:
-                print_with_timestamp('{}'.format(error))
-                sys_exit_with_timestamp( 'Error: Cannot detach volume: {} from {} on Node:{}'.format(
-                    volume_name, target_name, node))
+                print_with_timestamp(f"{error}")
+                sys_exit_with_timestamp(f"Error: Cannot detach volume: {volume_name} from {target_name} on Node:{node}")
 
-        print_with_timestamp('Volume: {}/{} has been successfully detached from target {}.'.format(
-            pool_name,volume_name, target_name))
+        print_with_timestamp(f"Volume: {pool_name}/{volume_name} has been successfully detached from target {target_name}.")
 
 
 def detach_disk_from_pool(ignore_error=None):
 
     global node
     global action_message
-    action_message = 'Sending disk detach from pool request to: {}'.format(node)
+    action_message = f"Sending disk detach from pool request to: {node}"
 
     for node in nodes:
         # POST /pools/POOL_NAME/disks/DISK_ID/detach
-        endpoint = '/pools/{POOL_NAME}/disks/{DISK_WWN}/detach'.format(
-                   POOL_NAME=pool_name, DISK_WWN=disk_wwn)
+        endpoint = f"/pools/{pool_name}/disks/{disk_wwn}/detach"
         ## POST
         post(endpoint,None)
         if error:
             if ignore_error is None:
-                print_with_timestamp('{}'.format(error))
-                sys_exit_with_timestamp( 'Error: Cannot detach disk: {} from {} on Node:{}'.format(
-                    disk_wwn, pool_name, node))
+                print_with_timestamp(f"{error}")
+                sys_exit_with_timestamp(f"Error: Cannot detach disk: {disk_wwn} from {pool_name} on Node:{node}")
 
-        print_with_timestamp('Disk: {} has been successfully detached from pool {}.'.format(
-            disk_wwn, pool_name))
+        print_with_timestamp(f"Disk: {disk_wwn} has been successfully detached from pool {pool_name}.")
 
 
 def attach_clone_to_target(ignore_error=None):
     global node
     for node in nodes:
-        endpoint = '/pools/{POOL_NAME}/san/iscsi/targets/{TARGET_NAME}/luns'.format(
-                   POOL_NAME=pool_name, TARGET_NAME=auto_target_name)
+        endpoint = f"/pools/{pool_name}/san/iscsi/targets/{auto_target_name}/luns"
         data = dict(name=clone_name)
         ## POST
         post(endpoint,data)
         if error:
             if ignore_error is None:
-                sys_exit_with_timestamp( 'Error: Cannot attach target: {} to {} on Node:{}'.format(
-                    auto_target_name,clone_name,node))
+                sys_exit_with_timestamp(f"Error: Cannot attach target: {auto_target_name} to {clone_name} on Node:{node}")
 
-        print_with_timestamp('Clone: {} has been successfully attached to target.'.format(
-            clone_name))
-        print("\n\tTarget:\t{}".format(auto_target_name))
-        print("\tClone:\t{}\n".format(clone_name))
+        print_with_timestamp(f"Clone: {clone_name} has been successfully attached to target.")
+        print(f"\n\tTarget:\t{auto_target_name}")
+        print(f"\tClone:\t{clone_name}\n")
 
 
 def create_share_for_auto_clone(ignore_error=None):
     global node
     for node in nodes:
         endpoint = '/shares'
-        data = dict(name=share_name,
-                path='{POOL_NAME}/{CLONE_NAME}'.format(POOL_NAME=pool_name, CLONE_NAME=clone_name),
-                smb=dict(enabled=True, visible=visible))   ### add visible=False
+        data = dict(name = share_name,
+                    path = f"{pool_name}/{clone_name}",
+                    smb = dict(enabled=True, visible=visible))   ### add visible=False
         ## POST
         post(endpoint,data)
         if error:
-            sys_exit_with_timestamp( 'Error: Share: {} creation on Node: {} failed'.format(share_name,node))
+            sys_exit_with_timestamp(f"Error: Share: {share_name} creation on Node: {node} failed")
 
-        print_with_timestamp('Share for {}/{} has been successfully created.'.format(
-                pool_name,clone_name))
+        print_with_timestamp(f"Share for {pool_name}/{clone_name} has been successfully created.")
         print(f"\n\tShare:\t\\\\{node}\{share_name}")
         print(f"\tClone:\t{pool_name}/{clone_name}\n")
 
@@ -4251,9 +4226,9 @@ def create_existing_backup_clone(vol_type):
 
 
 def count_available_disks(jbods):
-    if jbods:
-        return [ bool(d) for jbod in jbods for d in jbod ].count(True)
-    sys_exit_with_timestamp( 'Error: No disks available.')
+    if not jbods:
+        sys_exit_with_timestamp( 'Error: No disks available.')
+    return [ bool(d) for jbod in jbods for d in jbod ].count(True)
 
 
 def merge_sublists(list_of_lists):
@@ -4279,12 +4254,11 @@ def split_for_metro_cluster(jbods,vdev_disks=2):
     jbods_2way_mirrors = [ [ disk for disk in jbod if disk[3] == place ] for jbod in jbods if jbod for place in ("local","remote") ]
     if vdev_disks == 2:
         return jbods_2way_mirrors
-    else:
-        ## split into 4 JBODs for 4-way mirror (2 local and 2 remote)
-        jbods_4way_mirrors =[]
-        for i in range(4):
-            jbods_4way_mirrors.append(jbods_2way_mirrors[i%2][int(i/2)::2])
-        return jbods_4way_mirrors
+    ## split into 4 JBODs for 4-way mirror (2 local and 2 remote)
+    jbods_4way_mirrors =[]
+    for i in range(4):
+        jbods_4way_mirrors.append(jbods_2way_mirrors[i%2][int(i/2)::2])
+    return jbods_4way_mirrors
 
 
 def remove_disks(jbods):
@@ -4299,7 +4273,7 @@ def remove_disks(jbods):
 
         ## do not remove if all drives are same size
         return [[disk for disk in jbod if disk[0] >= (average_disk_size - disk_size_tolerance)] for jbod in jbods]
-
+    return jbods
 
 def check_all_disks_size_equal_or_in_provided_range(jbods):
     jbods_disks_size  = [ [disk[0] for disk in jbod]  for jbod in jbods ]
@@ -4331,7 +4305,7 @@ def user_choice():
             if choice in '0123456789LCQ':
                 return choice
             print('\tInvalid choice')
-        except:
+        except KeyboardInterrupt:
             sys_exit( f"Interrupted{' '*13}")
 
 
@@ -4400,8 +4374,7 @@ def read_jbods_and_create_pool(choice='0'):
             ## show
             msg = jbods_listing(jbods)
 
-            '''
-            THIS IS FOR MULTI-JBOD TESTS ONLY
+            ''' THIS IS FOR MULTI-JBOD TESTS ONLY
             empty_jbod=False
             jbods = [[(17179869184L, u'sdk', u'wwn-0x6000c2900d9d4b8ad978e58cbeb69ec0', u'local'),
                           (32212254720L, u'sdc', u'wwn-0x6000c2986862e791e2f6a3b3caf812ea', u'local'),
@@ -4461,8 +4434,7 @@ def read_jbods_and_create_pool(choice='0'):
                           (17179869184L, u'sday', u'wwn-0x6000c291c86b55a3a398cca93e624f69', u'local'),
                           (17179869184L, u'sdn', u'wwn-0x6000c29ad0d25a4badcc0d0fd90cb36f', u'local'),
                           (17179869184L, u'sdas', u'wwn-0x6000c29b4ca5b5bc4af7e354e1e50f28', u'local'),
-                          (17179869184L, u'sdg', u'wwn-0x6000c2955f680ea82af988fd222ce8d9', u'local')]]
-            '''
+                          (17179869184L, u'sdg', u'wwn-0x6000c2955f680ea82af988fd222ce8d9', u'local')]]'''
         elif choice in "C":
             if not menu:
                 jbods = remove_disks(jbods)
@@ -4504,7 +4476,10 @@ def read_jbods_and_create_pool(choice='0'):
         ## end-of-while loop
     ## display pool details
     if pool_name in get_pools_names():
-        print("\n\tNode {} {}: {}*{}[{} disk]".format(node, pool_name, *get_pool_details(node, pool_name)))
+        #print("\n\tNode {} {}: {}*{}[{} disk]".format(node, pool_name, *get_pool_details(node, pool_name)))
+        vdevs_count, vdev_type, disks_per_vdev = get_pool_details(node, pool_name)
+        print(f"\n\tNode {node} {pool_name}: {vdevs_count}*{vdev_type}[{disks_per_vdev} disk]")
+        
 
 
 def command_processor() :
@@ -4512,57 +4487,57 @@ def command_processor() :
     print()
 
     if action == 'clone':
-        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name )   ## if both provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: clone command expects 2 arguments (pool, volume), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
         create_new_backup_clone( vol_type )
 
     elif action == 'clone_existing_snapshot':
-        c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
-        if c < 3:
-            sys_exit_with_timestamp( 'Error: clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), args_count must be equal 3
+        if args_count < 3:
+            sys_exit_with_timestamp(f"Error: clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
         create_existing_backup_clone( vol_type )
 
     elif action == 'delete_clone':
-        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_clone command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name )   ## if both provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: delete_clone command expects 2 arguments (pool, volume), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_snapshot_and_clone( vol_type, ignore_error=True )
 
     elif action == 'delete_clones':
-        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_clones command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name )   ## if both provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: delete_clones command expects 2 arguments (pool, volume), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_clones( vol_type )
 
     elif action == 'delete_snapshots':
-        c = count_provided_args( pool_name, volume_name )   ## if both provided (not None), c must be equal 2
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: delete_snapshots command expects 2 arguments (pool, volume), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name )   ## if both provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: delete_snapshots command expects 2 arguments (pool, volume), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_snapshots( vol_type )
 
     elif action == 'delete_clone_existing_snapshot':
-        c = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), c must be equal 3
-        if c < 3:
-            sys_exit_with_timestamp( 'Error: delete_clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name, snapshot_name )   ## if all provided (not None), args_count must be equal 3
+        if args_count < 3:
+            sys_exit_with_timestamp(f"Error: delete_clone_existing_snapshot command expects 3 arguments (pool, volume, snapshot), {args_count} provided.")
         vol_type = check_given_volume_name()
         delete_clone_existing_snapshot( vol_type, ignore_error=True )
 
     elif action == 'create_pool':
-        ##c = count_provided_args( pool_name )
+        ##args_count = count_provided_args( pool_name )
         read_jbods_and_create_pool()
 
     elif action == 'export':
-        c = count_provided_args( pool_name )   ## if all provided (not None), c must be equal 1
-        if c < 1:
-            sys_exit_with_timestamp( 'Error: export command expects pool name), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name )   ## if all provided (not None), args_count must be equal 1
+        if args_count < 1:
+            sys_exit_with_timestamp(f"Error: export command expects pool name), {args_count} provided.")
         export()
 
     elif action == 'scrub':
@@ -4575,68 +4550,68 @@ def command_processor() :
         if zvols_per_target> 15:
             sys_exit_with_timestamp( 'Error: the zvols_per_target must be in range 1..15.')
 
-        c = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), c must be equal 3
-        if c < 5:
-            sys_exit_with_timestamp( 'Error: create_storage_resource command expects (pool, volume, storage_type), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), args_count must be equal 3
+        if args_count < 5:
+            sys_exit_with_timestamp(f"Error: create_storage_resource command expects (pool, volume, storage_type), {args_count} provided.")
         if 'iqn' in target_name:
             if storage_volume_type != 'volume':
                 sys_exit_with_timestamp( 'Error: inconsistent options.')
         create_storage_resource()
 
     elif action == 'attach_volume_to_iscsi_target':
-        c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
-        if c < 3:
-            sys_exit_with_timestamp( 'Error: attach command expects (pool, volume, target_name), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), args_count must be equal 3
+        if args_count < 3:
+            sys_exit_with_timestamp(f"Error: attach command expects (pool, volume, target_name), {args_count} provided.")
         attach_volume_to_iscsi_target()
 
     elif action == 'detach_volume_from_iscsi_target':
-        c = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), c must be equal 3
-        if c < 3:
-            sys_exit_with_timestamp( 'Error: detach command expects (pool, volume, target_name), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, volume_name, target_name )   ## if all provided (not None), args_count must be equal 3
+        if args_count < 3:
+            sys_exit_with_timestamp(f"Error: detach command expects (pool, volume, target_name), {args_count} provided.")
         detach_volume_from_iscsi_target()
 
     elif action == 'detach_disk_from_pool':
-        c = count_provided_args( pool_name, disk_wwn)   ## if all provided (not None), c must be equal 2
-        if c < 2:
-            sys_exit_with_timestamp( 'Error: detach command expects (pool, disk_wwn), {} provided.'.format(c))
+        args_count = count_provided_args( pool_name, disk_wwn)   ## if all provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: detach command expects (pool, disk_wwn), {args_count} provided.")
         detach_disk_from_pool()
 
     elif action == 'modify_volume':
-        c = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), c must be equal 3
+        args_count = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), args_count must be equal 3
         if volume_name == 'auto':
             sys_exit_with_timestamp( 'Error: modify_volume command expects volume name to be specified')
-        if c < 3:
-            sys_exit_with_timestamp( 'Error: modify_volume command expects (pool, volume, sync or new_size), {} provided.'.format(c))
+        if args_count < 3:
+            sys_exit_with_timestamp(f"Error: modify_volume command expects (pool, volume, sync or new_size), {args_count} provided.")
         vol_type = check_given_volume_name()
         modify_volume(vol_type)
 
     elif action == 'set_host':
-        c = count_provided_args( host_name, server_name, server_description )   ## if all provided (not None), c must be equal 3 set_host
-        if c not in (1,2,3):
+        args_count = count_provided_args( host_name, server_name, server_description )   ## if all provided (not None), args_count must be equal 3 set_host
+        if args_count not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
-        c = count_provided_args( timezone, ntp, ntp_servers )
-        if c not in (1,2,3):
+        args_count = count_provided_args( timezone, ntp, ntp_servers )
+        if args_count not in (1,2,3):
             sys_exit_with_timestamp( 'Error: set_time command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
-        c = count_provided_args( nic_name, new_ip_addr, new_mask, new_gw, new_dns )
-        if c not in (2,3,4,5):
+        args_count = count_provided_args( nic_name, new_ip_addr, new_mask, new_gw, new_dns )
+        if args_count not in (2,3,4,5):
             sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
-        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
-        if c not in (2,3,4):
+        args_count = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
+        if args_count not in (2,3,4):
             sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
-        c = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
-        if c not in (0,1,2):
+        args_count = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
+        if args_count not in (0,1,2):
             sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
         delete_bond(nic_name)
 
@@ -4649,8 +4624,8 @@ def command_processor() :
     elif action == 'add_ring':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: add_ring command expects exactly 1 IP address')
-        c = count_provided_args( ring_nics )
-        if c not in (1,):
+        args_count = count_provided_args( ring_nics )
+        if args_count not in (1,):
             sys_exit_with_timestamp( 'Error: add_ring command expects --ring_nics')
         add_ring()
 
@@ -4662,16 +4637,16 @@ def command_processor() :
     elif action == 'set_mirror_path':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP address')
-        c = count_provided_args( mirror_nics )
-        if c not in (1,):
+        args_count = count_provided_args( mirror_nics )
+        if args_count not in (1,):
             sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
         set_mirror_path()
 
     elif action == 'create_vip':
         if len(nodes) !=1:
             sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
-        c = count_provided_args( pool_name, vip_name, vip_nics, vip_ip, vip_mask )
-        if c not in (4,5):
+        args_count = count_provided_args( pool_name, vip_name, vip_nics, vip_ip, vip_mask )
+        if args_count not in (4,5):
             sys_exit_with_timestamp( 'Error: create_vip command expects arguments: --pool --vip_name --vip_nics --vip_ip --vip_mask')
         create_vip()
 
@@ -4679,8 +4654,8 @@ def command_processor() :
         start_cluster()
 
     elif action == 'move':
-        c = count_provided_args( pool_name, delay )
-        if c not in (1,2):
+        args_count = count_provided_args( pool_name, delay )
+        if args_count not in (1,2):
             sys_exit_with_timestamp( 'Error: move command expects pool name to be specified')
         move()
 
@@ -4821,7 +4796,7 @@ def main() :
                 current_node = nodes[0] if trigger else nodes[1]
                 content = factory_setup_files_content[factory_file_name].replace('_node-a-ip-address_',current_node)
                 ending = current_node.split('.')[-1]
-                host_server_name = 'node-{}-ha00'.format(ending)
+                host_server_name = f"node-{ending}-ha00"
                 content = content.replace('node-80-ha00',host_server_name)
                 for i in range(content.count('--new_ip:nic')):
                     _current_node = current_node.replace('0.',str(i+1)+'.')
@@ -4852,9 +4827,9 @@ def main() :
                     content = content.replace('--ring_nics bond1 bond1', '--ring_nics ' + ' '.join(ring_nics))
             ending = current_node.split('.')[-1]
             file_name =  f"{factory_file_name}_{ending}.txt"
-            with open(file_name,'w') as f:
+            with open(file_name,'w',encoding='utf-8') as f:
                 f.write(content)
-                print_with_timestamp( '{}\twritten into current directory.'.format(file_name))
+                print_with_timestamp(f"{file_name}\twritten into current directory.")
     else:
         command_processor()
 
