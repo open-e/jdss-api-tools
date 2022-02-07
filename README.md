@@ -168,7 +168,7 @@ import                        	export                        	</pre>
     Every raidz2 vdev consists of disks from all 4 JBODs. An interactive menu will be started.
     In order to read disks, POWER-ON single JBOD only. Read disks selecting "0" for the first JBOD.
     Next, POWER-OFF the first JBOD and POWER-ON the second one. Read disks of the second JBOD selecting "1".
-    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "c" from the menu.
+    Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "args_count" from the menu.
 
         jdss-api-tools.exe create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220
 

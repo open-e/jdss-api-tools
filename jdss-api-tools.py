@@ -98,6 +98,7 @@ r"""
 2022-01-13  fixed create & delete clone, help text for scrub_action
 2022-02-03  Improve pylint score
 2022-02-06  Improve pylint score
+2022-02-07  Improve Reboot & Shutdown
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -1649,6 +1650,20 @@ def wait_for_zero_unmanaged_pools():
             sys_exit_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}" )
 
 
+def wait_for_cluster_started():
+    if not is_cluster_configured():
+        return
+    repeat = 300 # wait 25min
+    counter = 0
+    time.sleep(5)
+    while not is_cluster_started():
+        counter += 1
+        time.sleep(20)
+        print_with_timestamp( f"Waiting for the cluster to start" )
+        if counter == repeat:   ## timed out
+            sys_exit_with_timestamp( f"ERROR: Cluster faild to start" )
+
+
 def human_to_bytes(value):
     if value:
         value = value.strip('Bb')
@@ -1997,12 +2012,33 @@ def shutdown_nodes():
     if len(_nodes)>1:
         passive_node = [_node for _node in _nodes if _node not in node][0]
         wait_for_move_destination_node(passive_node)
-    wait_for_zero_unmanaged_pools()
     display_delay('Shutdown')
     for node in nodes:
+        wait_for_zero_unmanaged_pools()
+        wait_for_cluster_started()
         post('/power/shutdown',dict(force=False))
         print_with_timestamp( f"Shutdown: {node}" )
-    time.sleep(60)
+        wait_ping_lost_while_reboot()
+        time.sleep(15)
+
+
+def wait_ping_lost_while_reboot():
+    waiting_dots_printed = False
+    ## PING
+    counter = 0; repeat = 60
+    while type(ping3.ping(node)) is float:
+        if counter < 2:
+            print_with_timestamp(f"Node {node} rebooting ...")
+        elif counter > 1:
+            print('.',end='')
+            waiting_dots_printed = True
+        counter += 1
+        time.sleep(10)
+        if counter == repeat:   ## Connection timed out
+            sys_exit_with_timestamp(f"Connection timed out: {node}")
+
+    if waiting_dots_printed: print()
+    waiting_dots_printed = False
 
 
 def reboot_nodes():
@@ -2013,12 +2049,14 @@ def reboot_nodes():
     if len(_nodes)>1:
         passive_node = [_node for _node in _nodes if _node not in node][0]
         wait_for_move_destination_node(passive_node)
-    wait_for_zero_unmanaged_pools()
-    display_delay('Reboot')
     for node in nodes:
+        wait_for_zero_unmanaged_pools()
+        wait_for_cluster_started()
+        display_delay('Reboot')
         post('/power/reboot', dict(force=force))
         print_with_timestamp( f"Reboot: {node}" )
-    time.sleep(60)
+        wait_ping_lost_while_reboot()
+        time.sleep(15)
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
@@ -2808,7 +2846,7 @@ def managed_pools():
 
 def unmanaged_pools():
     result = get('/cluster/resources')
-    if result:
+    if result and type(result) is list:
         return [item['name'] for item in result if not item['managed']]
     return []
 
