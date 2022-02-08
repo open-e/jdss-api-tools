@@ -98,7 +98,7 @@ r"""
 2022-01-13  fixed create & delete clone, help text for scrub_action
 2022-02-03  Improve pylint score
 2022-02-06  Improve pylint score
-2022-02-08  Improve Reboot & Shutdown
+2022-02-08  Fix forced Reboot & Shutdown
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -2010,12 +2010,12 @@ def display_delay(msg):
 def shutdown_nodes():
     global node
     global action_message
-    action_message = f"Sending shutdown request to: {node}"
     for node in nodes:
+        action_message = f"Sending shutdown request to: {node}"
+        display_delay('Shutdown')
         if is_cluster_configured():
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
-        display_delay('Shutdown')
         print_with_timestamp(f"Shutdown: {node}")
         post('/power/shutdown', dict(force=force))
         if not force:
@@ -2045,12 +2045,12 @@ def wait_ping_lost_while_reboot():
 def reboot_nodes():
     global node
     global action_message
-    action_message = f"Sending reboot request to: {node}"
     for node in nodes:
+        action_message = f"Sending reboot request to: {node}"
+        display_delay('Reboot')
         if is_cluster_configured():
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
-        display_delay('Reboot')
         print_with_timestamp( f"Reboot: {node}" )
         post('/power/reboot', dict(force=force))
         if not force:
