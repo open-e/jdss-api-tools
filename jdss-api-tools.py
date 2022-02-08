@@ -112,7 +112,7 @@ __version__ = 1.2
 
 ## Script global variables
 api_version             = '/api/v3'
-api_timeout             = None
+api_timeout             = 30
 action                  = ''
 action_message          = ''
 delay                   = 0
@@ -165,6 +165,8 @@ def call_requests(method,endpoint,data = None):
         error_message = r.json()['error']['message']
         http_code = r.status_code
     except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
+        if endpoint in ('/power/reboot','/power/shutdown') and force:
+            return '' ## after the force down the node is GONE
         timeouted = 'ConnectTimeoutError' in str(err)
     #200, 201 or 204 = success, but JSONDecodeError passible        
     error = '' if http_code in (200,201,204) else error_message if error_message else http_code
@@ -1310,6 +1312,7 @@ def get_args(batch_args_line=None):
     parser.add_argument(
         '--force',
         action='store_true',
+        default=False,
         help='Force action'
     )
     parser.add_argument(
@@ -2008,18 +2011,16 @@ def shutdown_nodes():
     global node
     global action_message
     action_message = f"Sending shutdown request to: {node}"
-    _nodes = get_cluster_nodes_addresses()
-    if len(_nodes)>1:
-        passive_node = [_node for _node in _nodes if _node not in node][0]
-        wait_for_move_destination_node(passive_node)
-    display_delay('Shutdown')
     for node in nodes:
-        wait_for_zero_unmanaged_pools()
-        wait_for_cluster_started()
-        post('/power/shutdown',dict(force=False))
-        print_with_timestamp( f"Shutdown: {node}" )
-        wait_ping_lost_while_reboot()
-        time.sleep(15)
+        if is_cluster_configured():
+            wait_for_cluster_started()
+            wait_for_zero_unmanaged_pools()
+        display_delay('Shutdown')
+        print_with_timestamp(f"Shutdown: {node}")
+        post('/power/shutdown', dict(force=force))
+        if not force:
+            wait_ping_lost_while_reboot()
+        time.sleep(5)
 
 
 def wait_ping_lost_while_reboot():
@@ -2045,18 +2046,16 @@ def reboot_nodes():
     global node
     global action_message
     action_message = f"Sending reboot request to: {node}"
-    _nodes = get_cluster_nodes_addresses()
-    if len(_nodes)>1:
-        passive_node = [_node for _node in _nodes if _node not in node][0]
-        wait_for_move_destination_node(passive_node)
     for node in nodes:
-        wait_for_zero_unmanaged_pools()
-        wait_for_cluster_started()
+        if is_cluster_configured():
+            wait_for_cluster_started()
+            wait_for_zero_unmanaged_pools()
         display_delay('Reboot')
-        post('/power/reboot', dict(force=force))
         print_with_timestamp( f"Reboot: {node}" )
-        wait_ping_lost_while_reboot()
-        time.sleep(15)
+        post('/power/reboot', dict(force=force))
+        if not force:
+            wait_ping_lost_while_reboot()
+        time.sleep(5)
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
