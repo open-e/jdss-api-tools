@@ -2010,6 +2010,9 @@ def display_delay(msg):
 def shutdown_nodes():
     global node
     global action_message
+    global api_timeout
+    if force:
+        api_timeout = 5
     for node in nodes:
         action_message = f"Sending shutdown request to: {node}"
         display_delay('Shutdown')
@@ -2045,6 +2048,9 @@ def wait_ping_lost_while_reboot():
 def reboot_nodes():
     global node
     global action_message
+    global api_timeout
+    if force:
+        api_timeout = 5
     for node in nodes:
         action_message = f"Sending reboot request to: {node}"
         display_delay('Reboot')
