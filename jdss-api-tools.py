@@ -98,7 +98,8 @@ r"""
 2022-01-13  fixed create & delete clone, help text for scrub_action
 2022-02-03  Improve pylint score
 2022-02-06  Improve pylint score
-2022-02-08  Fix forced Reboot & Shutdown
+2022-02-09  Fix forced Reboot & Shutdown
+2022-02-10  Fix Move Function
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -162,7 +163,7 @@ def call_requests(method,endpoint,data = None):
                  DELETE = requests.delete)[method](url=f"https://{node}:{api_port}/{api_version.lstrip('/')}/{endpoint.lstrip('/')}",
                                                    json=data, auth=(api_user, api_password), timeout=api_timeout, verify=False)
         response = r.json()['data']
-        error_message = r.json()['error']['message']
+        error_message = str(r.json()['error']['message'])
         http_code = r.status_code
     except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
         if endpoint in ('/power/reboot','/power/shutdown') and force:
@@ -3202,19 +3203,19 @@ def move():
     active_node = ''
     passive_node = ''
     new_active_node = ''
-    for i,node in enumerate(nodes):
+####    for i,node in enumerate(nodes):
+    for node in nodes:
         if node not in command_line_node:
             wait_for_move_destination_node(node)
             #wait_for_node()
-
         ## GET
         pools = get('/pools')
-
         pools.sort(key=lambda k : k['name'])
         pool_names = [pool['name'] for pool in pools ]
+        
         if pool_name in pool_names:
             active_node = node
-            passive_node = nodes[(i+1)%2]     # get node_id of other node (i+1)%2
+            passive_node = nodes[0 if nodes.index(node) else 1]   #
             display_delay('Move')
             print_with_timestamp(f"{pool_name} is moving from: {active_node} to: {passive_node} ")
             ## wait ...
@@ -3225,15 +3226,16 @@ def move():
             ## POST
             post(endpoint,data)
             if error:
-                sys_exit_with_timestamp( f"Cannot move pool {pool_name}. Error: {error} len={str(len(error))}" )
+                sys_exit_with_timestamp( f"Cannot move POOL: {pool_name}. Error: {error}" )
             else:
                 break
-    ## wait for pool import
-    time.sleep(15)
+    ## wait for pool import 
+    time.sleep(30)         # sleep must be at least 30 sec
     new_active_node = ''
     for _ in range(50):
         for node in nodes:
             ## GET
+            time.sleep(5)
             pools = get('/pools')
             if not pools:
                 continue
@@ -3245,7 +3247,6 @@ def move():
         if new_active_node:
             break
         print_with_timestamp('Moving in progress...')
-        time.sleep(5)
     if new_active_node == passive_node: ## after move (failover) passive node is active
         print_with_timestamp(f"{pool_name} is moved from: {active_node} to: {new_active_node} ")
     else:
