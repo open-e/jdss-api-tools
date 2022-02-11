@@ -3200,18 +3200,14 @@ def move():
         print_with_timestamp(f"Pool: {pool_name} was not found")
         return
 
-    active_node = ''
-    passive_node = ''
-    new_active_node = ''
-####    for i,node in enumerate(nodes):
+    active_node = passive_node = new_active_node = ''
     for node in nodes:
         if node not in command_line_node:
             wait_for_move_destination_node(node)
             #wait_for_node()
         ## GET
         pools = get('/pools')
-        pools.sort(key=lambda k : k['name'])
-        pool_names = [pool['name'] for pool in pools ]
+        pool_names = [pool['name'] for pool in pools]
         
         if pool_name in pool_names:
             active_node = node
@@ -3221,7 +3217,7 @@ def move():
             ## wait ...
             wait_for_move_destination_node(passive_node)
             wait_for_zero_unmanaged_pools()
-            data=dict(node_id= get_cluster_node_id(passive_node))
+            data=dict(node_id = get_cluster_node_id(passive_node))
             endpoint = f"/cluster/resources/{pool_name}/move-resource"
             ## POST
             post(endpoint,data)
@@ -3229,24 +3225,25 @@ def move():
                 sys_exit_with_timestamp( f"Cannot move POOL: {pool_name}. Error: {error}" )
             else:
                 break
-    ## wait for pool import 
-    time.sleep(30)         # sleep must be at least 30 sec
     new_active_node = ''
-    for _ in range(50):
+    for _ in range(120):    # wait for move completed with timeout
+        print_with_timestamp('Moving in progress...')
+        time.sleep(1)
         for node in nodes:
             ## GET
-            time.sleep(5)
             pools = get('/pools')
             if not pools:
                 continue
-            pool_names = [pool['name'] for pool in pools ]
+            pool_names = [pool['name'] for pool in pools]
             if pool_name in pool_names:
-                new_active_node = node
+                if node in active_node: # pool still not exported
+                    continue
+                else:
+                    new_active_node = node
             if new_active_node:
                 break
         if new_active_node:
             break
-        print_with_timestamp('Moving in progress...')
     if new_active_node == passive_node: ## after move (failover) passive node is active
         print_with_timestamp(f"{pool_name} is moved from: {active_node} to: {new_active_node} ")
     else:
