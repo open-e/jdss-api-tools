@@ -1645,10 +1645,10 @@ def wait_for_zero_unmanaged_pools():
     counter = 0
     time.sleep(5)
     while is_node_running_any_unmanaged_pool():
-        counter += 1
-        time.sleep(20)
         unmanaged_pools_names = unmanaged_pools()
         print_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}. Wait for managed state." )
+        counter += 1
+        time.sleep(20)
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
             sys_exit_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}" )
