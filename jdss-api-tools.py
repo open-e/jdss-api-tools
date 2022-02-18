@@ -99,7 +99,7 @@ r"""
 2022-02-03  Improve pylint score
 2022-02-06  Improve pylint score
 2022-02-09  Fix forced Reboot & Shutdown
-2022-02-10  Fix Move Function
+2022-02-18  Fix Move Function
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -2016,15 +2016,18 @@ def shutdown_nodes():
         api_timeout = 5
     for node in nodes:
         action_message = f"Sending shutdown request to: {node}"
-        display_delay('Shutdown')
-        if is_cluster_configured():
+        is_cluster = is_cluster_configured()
+        if is_cluster():
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
+        display_delay('Shutdown')
         print_with_timestamp(f"Shutdown: {node}")
         post('/power/shutdown', dict(force=force))
         if not force:
             wait_ping_lost_while_reboot()
         time.sleep(5)
+        if is_cluster:
+            break
 
 
 def wait_ping_lost_while_reboot():
@@ -2054,15 +2057,18 @@ def reboot_nodes():
         api_timeout = 5
     for node in nodes:
         action_message = f"Sending reboot request to: {node}"
-        display_delay('Reboot')
-        if is_cluster_configured():
+        is_cluster = is_cluster_configured()
+        if is_cluster():
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
+        display_delay('Reboot')
         print_with_timestamp( f"Reboot: {node}" )
         post('/power/reboot', dict(force=force))
         if not force:
             wait_ping_lost_while_reboot()
         time.sleep(5)
+        if is_cluster:
+            break
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
@@ -2493,15 +2499,7 @@ def print_san_snapshots_details(header,fields):
                     if field in ('name',):
                         value = snapshot_name
                     elif field in ('age',):
-                        #time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
-                        ####
-                        #### print('________________creation:',snapshot['creation'])
                         value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
-#                       if 'org.znapzend:src_plan' in snapshot.keys():
-#                           plan = snapshot['org.znapzend:src_plan']
-#                       else:
-#                           plan = ""
                     else:
                         value = snapshot[field]
                         if value in ('None',):
@@ -2718,7 +2716,8 @@ def set_scrub_scheduler():
     incr = int(28 / len(_pools_names))
     _day_of_the_month = day_of_the_month
     for _pool_name in sorted(_pools_names):
-        data = dict(day_of_the_month=_day_of_the_month, hour=hour, month_of_the_year=month_of_the_year, day_of_the_week=day_of_the_week, minute=minute)
+        data = dict(day_of_the_month=_day_of_the_month, month_of_the_year=month_of_the_year,
+                    day_of_the_week=day_of_the_week, hour=hour, minute=minute)
         _node = get_active_cluster_node_address_of_given_pool(_pool_name)
         if _node:
             node = _node
@@ -2726,7 +2725,6 @@ def set_scrub_scheduler():
             continue
         post(f"/pools/{_pool_name}/scrub/scheduler", data)
         print_with_timestamp( f"Scrub schedule set for: {_pool_name} on {node}" )
-        _day_of_the_month = str(int(_day_of_the_month)+incr)
 
 
 def scrub():
