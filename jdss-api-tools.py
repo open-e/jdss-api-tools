@@ -2017,7 +2017,7 @@ def shutdown_nodes():
     for node in nodes:
         action_message = f"Sending shutdown request to: {node}"
         is_cluster = is_cluster_configured()
-        if is_cluster():
+        if is_cluster:
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
         display_delay('Shutdown')
@@ -2058,7 +2058,7 @@ def reboot_nodes():
     for node in nodes:
         action_message = f"Sending reboot request to: {node}"
         is_cluster = is_cluster_configured()
-        if is_cluster():
+        if is_cluster:
             wait_for_cluster_started()
             wait_for_zero_unmanaged_pools()
         display_delay('Reboot')
