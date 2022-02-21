@@ -113,7 +113,7 @@ __version__ = 1.2
 
 ## Script global variables
 api_version             = '/api/v3'
-api_timeout             = 30
+api_timeout             = 300
 action                  = ''
 action_message          = ''
 delay                   = 0
@@ -1652,6 +1652,8 @@ def wait_for_zero_unmanaged_pools():
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
             sys_exit_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}" )
+    if force :
+        time.sleep(60) ## need some time to complete all operations
 
 
 def wait_for_cluster_started():
@@ -1666,6 +1668,22 @@ def wait_for_cluster_started():
         print_with_timestamp( f"Waiting for the cluster to start" )
         if counter == repeat:   ## timed out
             sys_exit_with_timestamp( f"ERROR: Cluster faild to start" )
+
+def wait_for_pools_online():
+    repeat = 300 # wait 25min
+    counter = 0
+    time.sleep(5)
+    online = False
+    while not online:
+        online = all(pool['health'] in 'ONLINE' for pool in get('/pools'))
+        if online:
+            break
+        counter += 1
+        time.sleep(5)
+        print_with_timestamp( f"Waiting for all pools ONLINE status" )
+        if counter == repeat:   ## timed out
+            sys_exit_with_timestamp( f"ERROR: failed to get pools ONLINE status" )
+
 
 
 def human_to_bytes(value):
@@ -1845,10 +1863,10 @@ def human2seconds(age):
                 'weeks',   '*'+str(60*60*24*7)).replace(
                 'months', '*'+str(60*60*24*30)).replace(
                 'years', '*'+str(60*60*24*365)))
-        except:
+        except (NameError,ValueError):
             print(f"Age:{age} Syntax error")
             print(human2seconds.__doc__)
-            exit() ## cannot use print_with_exit as this func is called
+            sys.exit() ## cannot use print_with_exit as this func is called
                    ## before intialize the print_with_exit
         return seconds
 
@@ -1865,8 +1883,7 @@ def snapshot_creation_to_seconds(creation):
         myformat = "%Y-%m-%d %H:%M:%S"
         mydt = datetime.datetime.strptime(mytime, myformat)
         return time.time() - time.mktime(mydt.timetuple())
-    else:
-        return time.time() - float(creation)
+    return time.time() - float(creation)
 
 
 def seconds2human(seconds):
@@ -1880,8 +1897,7 @@ def seconds2human(seconds):
             continue
         if value == 1:
             return f"{str(value)} {name[:-1]}"
-        else:
-            return f"{str(value)} {name}"
+        return f"{str(value)} {name}"
 
 
 def consecutive_number_generator(increment):
@@ -2008,33 +2024,12 @@ def display_delay(msg):
         backspace(len(s))                       # back n chars
         time.sleep(1)
 
-def shutdown_nodes():
-    global node
-    global action_message
-    global api_timeout
-    if force:
-        api_timeout = 5
-    for node in nodes:
-        action_message = f"Sending shutdown request to: {node}"
-        is_cluster = is_cluster_configured()
-        if is_cluster:
-            wait_for_cluster_started()
-            wait_for_zero_unmanaged_pools()
-        display_delay('Shutdown')
-        print_with_timestamp(f"Shutdown: {node}")
-        post('/power/shutdown', dict(force=force))
-        if not force:
-            wait_ping_lost_while_reboot()
-        time.sleep(5)
-        if is_cluster:
-            break
-
 
 def wait_ping_lost_while_reboot():
     waiting_dots_printed = False
     ## PING
     counter = 0; repeat = 60
-    while type(ping3.ping(node)) is float:
+    while isinstance(ping3.ping(node),float):
         if counter < 2:
             print_with_timestamp(f"Node {node} rebooting ...")
         elif counter > 1:
@@ -2049,24 +2044,31 @@ def wait_ping_lost_while_reboot():
     waiting_dots_printed = False
 
 
-def reboot_nodes():
+def reboot_nodes(shutdown=False):
     global node
     global action_message
     global api_timeout
+    mode = 'shutdown' if shutdown else 'reboot'
     if force:
         api_timeout = 5
     for node in nodes:
-        action_message = f"Sending reboot request to: {node}"
+        action_message = f"Sending {'Forced ' if force else ''}{mode} request to: {node}"
+        wait_for_node()
+        display_delay(mode.capitalize())
         is_cluster = is_cluster_configured()
         if is_cluster:
             wait_for_cluster_started()
+            if 'batch_setup' in action :
+                wait = 60 if force else 30 
+                print_with_timestamp("Wait {wait} sec for failover(move) ...")
+                time.sleep(wait) # for test running in loop need time for failover
             wait_for_zero_unmanaged_pools()
-        display_delay('Reboot')
-        print_with_timestamp( f"Reboot: {node}" )
-        post('/power/reboot', dict(force=force))
+            wait_for_pools_online()
+        print_with_timestamp(f"{'Forced ' if force else ''}{mode}: {node}")
+        time.sleep(5)
+        post(f"/power/{mode}", dict(force=force))
         if not force:
             wait_ping_lost_while_reboot()
-        time.sleep(5)
         if is_cluster:
             break
 
@@ -2137,7 +2139,8 @@ def add_fields_seperator(fields,fields_length,seperator_length):
 
 
 def natural_sub_dict_sort_by_name_key(items):
-    if items and type(items) is list and type(items[0]) is dict and 'name' in items[0].keys():
+
+    if items and isinstance(items,list) and isinstance(items[0],dict) and 'name' in items[0].keys():
         format_string = '{0:0>'+str(max((len(item['name']) for item in items)))+'}' #natural sorting
         items.sort(key=lambda k : format_string.format(str(k['name'])).lower())     #human sort
         return items
@@ -2146,7 +2149,7 @@ def natural_sub_dict_sort_by_name_key(items):
 
 
 def natural_list_sort(items):
-    if items and type(items) is list:
+    if items and isinstance(items,list):
         format_string = '{0:0>'+str(max((len(item) for item in items)))+'}' ## natural sorting
         items.sort(key=lambda k : format_string.format(str(k)).lower())     ## human sort
         return items
@@ -2319,7 +2322,7 @@ def delete_snapshot(vol_type, snapshot_name):
         delete( f"/pools/{pool_name}/volumes/{volume_name}/snapshots/{snapshot_name}" )
     if vol_type in 'dataset':
         delete( f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots/{snapshot_name}" )
-    return False if error else True
+    return not bool(error) # false if error
     
     
 def get_snapshot_clones(snapshot_name):
@@ -2358,10 +2361,12 @@ def print_nas_snapshots_details(header,fields):
         snapshot_exist = False
         pool_name = pool['name']
         nas_volumes = get_nas_volumes_names()
-        if not nas_volumes: continue    ## SKIP if no vol
+        if not nas_volumes:
+            continue    ## SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
-            if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
+            if not snapshots or not snapshots['results'] or snapshots['results']== 0:
+                continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
@@ -2638,7 +2643,7 @@ def print_interfaces_details(header,fields):
         for i,field in enumerate(fields):
             value = '-'
             if field in ('negotiated_speed','speed'):
-                if type(interface[field]) is int:
+                if isinstance(interface[field],int):
                     interface[field] /= 1000
             if field in interface.keys():
                 value = str(interface[field])
@@ -2813,9 +2818,7 @@ def get_active_cluster_node_address_of_given_pool(pool_name):
 
 
 def is_cluster_configured():
-    result = get('/cluster/nodes')
-#    return True if result and len(result)>1 else False
-    return bool(result and len(result)>1)
+    return bool(get('/cluster/nodes'))
 
 
 def is_cluster_started():
@@ -2823,34 +2826,33 @@ def is_cluster_started():
     result = get('/cluster')
     # {u'status': u'started', u'enabled': True}
     result = result['status'] if result else ''
-#    return True if 'started' in result else False
     return bool('started' in result)
 
 
 def is_node_running_all_managed_pools():
     result = get('/cluster/resources')
-    if result:
+    if result and isinstance(result,list):
         return all((item['managed'] for item in result))
-    return True  ## result is None if no cluster configured
+    return True  ## result is '' if no cluster configured
 
 
 def is_node_running_any_unmanaged_pool():
     result = get('/cluster/resources')
-    if result:
+    if result and isinstance(result,list):
         return not all((item['managed'] for item in result))
-    return False  ## result is None if no cluster configured
+    return False  ## result is '' if no cluster configured
 
 
 def managed_pools():
     result = get('/cluster/resources')
-    if result:
+    if result and isinstance(result,list):
         return [item['name'] for item in result if item['managed']]
     return []
 
 
 def unmanaged_pools():
     result = get('/cluster/resources')
-    if result and type(result) is list:
+    if result and isinstance(result,list):
         return [item['name'] for item in result if not item['managed']]
     return []
 
@@ -3328,7 +3330,8 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
                 slaves = bond_nics,
                 bond_mode = bond_type.lower(),
                 bond_primary_reselect = 'always')
-    if new_gw: data["gateway"]=new_gw
+    if new_gw:
+        data["gateway"]=new_gw
     ## POST
     post(endpoint,data)
     if error: #bond already exist
@@ -3664,7 +3667,7 @@ def list_snapshots():
         ## GET
         action_message = f"Listing snapshots from: {node}"
         host_name = get('/product')["host_name"]
-        print('{:>30}:\t{}'.format("Host name",host_name))
+        print(f"{'Host name':>30}:\t{host_name}")
 
         ## PRINT NAS SNAPs DETAILS
         if all_snapshots:
@@ -3773,7 +3776,7 @@ def jbods_listing(jbods):
     return msg
 
 
-def read_jbod(n):
+def read_jbod(n):  #### to-do unused arg
     """
     read unused disks serial numbers in given JBOD n= 0,1,2,...
     """
@@ -3914,9 +3917,9 @@ def create_storage_resource():
     else:
         node = active_node
 
-    generate_automatic_volume_name = True if volume_name == 'auto' else False
-    generate_automatic_target_name = True if target_name == 'auto' else False
-    generate_automatic_share_name  = True if share_name  == 'auto' else False
+    generate_automatic_volume_name = ( volume_name == 'auto' )
+    generate_automatic_target_name = ( target_name == 'auto' )
+    generate_automatic_share_name  = ( share_name  == 'auto' )
     ##
     while quantity:
         _zvols_per_target = zvols_per_target
@@ -4327,10 +4330,9 @@ def check_all_disks_size_equal_or_in_provided_range(jbods):
     if within_tolerance:
         return True
 
-    print_with_timestamp(
-    'Error:\tAvaialable disks size (Max: {} Min: {})\n\t\t\t\tare not within provided size tolerance: {}.'.format(
-                *map(bytes2human,(max(all_disks_size),min(all_disks_size),disk_size_tolerance)))
-    )
+    max_disks_size, min_disks_size = map(bytes2human,(max(all_disks_size),min(all_disks_size)))
+    print_with_timestamp(f"Error:\tAvaialable disks size (Max: {max_disks_size} Min: {min_disks_size}) \
+                           \n\t\t\t\tare not within provided size tolerance: {disk_size_tolerance}.")
     return False
 
 
@@ -4371,7 +4373,8 @@ def read_jbods_and_create_pool(choice='0'):
         {line_separator}""" )
         print( f"\tGiven JBODs number: {given_jbods_num}" )
         print( f"\tPool to be created:\t{pool_name}: {vdevs_num}*{vdev_type}[{vdev_disks_num} disk]" )
-        if msg: print( f"\n\t{msg}\n\t" )
+        if msg:
+            print( f"\n\t{msg}\n\t" )
         return user_choice() 
 
     while 1:
@@ -4711,7 +4714,7 @@ def command_processor() :
         import_pool()
 
     elif action == 'shutdown':
-        shutdown_nodes()
+        reboot_nodes(shutdown=True)
 
     elif action == 'reboot':
         reboot_nodes()
@@ -4862,7 +4865,7 @@ def main() :
                 if mirror_nics:   ## same for mirror_nics & ring_nics if ring_nics not specified
                     content = content.replace('--mirror_nics bond1 bond1', '--mirror_nics ' + ' '.join(mirror_nics))
                     content = content.replace('--ring_nics bond1 bond1', '--ring_nics ' + ' '.join(mirror_nics))
-                if ring_nics: 
+                if ring_nics:
                     content = content.replace('--ring_nics bond1 bond1', '--ring_nics ' + ' '.join(ring_nics))
             ending = current_node.split('.')[-1]
             file_name =  f"{factory_file_name}_{ending}.txt"
@@ -4894,7 +4897,7 @@ def print_help_item(item):
         if next_help_item_line and (next_help_item_line in line) or ('########' in line):
             break
         if not found and first_help_item_line in line:
-            found = True 
+            found = True
         if found and len(line)>0:
             if line.split('.')[0].strip().isdigit():
                 line = '   ' + line.split('.')[1]
