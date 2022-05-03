@@ -100,6 +100,7 @@ r"""
 2022-02-06  Improve pylint score
 2022-02-09  Fix forced Reboot & Shutdown
 2022-02-18  Fix Move Function
+2022-05-03  Add stop cluster
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -559,6 +560,11 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s start_cluster --node 192.168.0.82{ENDF}
 
 
+{} {BOLD}Stop HA-cluster{END}. Please enter first node IP address only.
+
+    {LG}%(prog)s stop_cluster --node 192.168.0.82{ENDF}
+
+
 {} {BOLD}Move (failover){END} given pool.
 
     The current active node of given pool will be found and pool will be moved to passive node
@@ -848,8 +854,8 @@ def get_args(batch_args_line=None):
          choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
                     attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones  \
                     delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond               \
-                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster move info list_snapshots          \
-		    shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
+                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster stop_cluster move info            \
+                    list_snapshot shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
         help='Commands:   %(choices)s.'
     )
 
@@ -1361,6 +1367,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
+    #test_command_line = 'stop_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
@@ -3184,6 +3191,39 @@ def start_cluster():
         sys_exit_with_timestamp(f"Error: Cluster service start failed. {error if error else ''}")
 
 
+def stop_cluster():
+    global action_message
+    action_message = f"Sending cluster service stop request to: {node}"
+
+    stopped = False
+
+    ## to-do  cluster_nodes_addresses = get_cluster_nodes_addresses()
+    if not cluster_bind_set():
+        sys_exit_with_timestamp(f"Cannot stop cluster on {node}. Nodes are not bound yet.")
+
+    ## GET
+    if not is_cluster_started():
+        print_with_timestamp(f"Cluster on {node} is already stopped.")
+        return
+
+    ## POST
+    print_with_timestamp('Cluster service stopping...')
+    post('/cluster/stop-cluster', dict(mode='cluster'))
+
+    ## check stop
+    for _ in range(50):
+        if not is_cluster_started():
+            print()
+            print_with_timestamp('Cluster service stopped successfully.')
+            break
+        print('.', end='')
+        time.sleep(5)
+    else:
+        print()
+        sys_exit_with_timestamp(f"Error: Cluster service stop failed. {error if error else ''}")
+
+
+
 def move():
     global node
     global nodes
@@ -4694,6 +4734,9 @@ def command_processor() :
 
     elif action == 'start_cluster':
         start_cluster()
+
+    elif action == 'stop_cluster':
+        stop_cluster()
 
     elif action == 'move':
         args_count = count_provided_args( pool_name, delay )
