@@ -2038,7 +2038,7 @@ def wait_ping_lost_while_reboot():
     counter = 0; repeat = 60
     while isinstance(ping3.ping(node),float):
         if counter < 2:
-            print_with_timestamp(f"Node {node} rebooting ...")
+            print_with_timestamp(f"Node {node} stopping the system ...")
         elif counter > 1:
             print('.',end='')
             waiting_dots_printed = True
@@ -2062,22 +2062,22 @@ def reboot_nodes(shutdown=False):
         action_message = f"Sending {'Forced ' if force else ''}{mode} request to: {node}"
         wait_for_node()
         display_delay(mode.capitalize())
-        is_cluster = is_cluster_configured()
-        if is_cluster:
-            wait_for_cluster_started()
-            if 'batch_setup' in action :
-                wait = 60 if force else 30 
-                print_with_timestamp("Wait {wait} sec for failover(move) ...")
-                time.sleep(wait) # for test running in loop need time for failover
-            wait_for_zero_unmanaged_pools()
-            wait_for_pools_online()
+#        is_cluster = is_cluster_configured()
+#        if is_cluster:
+#            wait_for_cluster_started()
+        if 'batch_setup' in action :
+            wait = 60 if force else 30 
+            print_with_timestamp("Wait {wait} sec for failover(move) ...")
+            time.sleep(wait) # for test running in loop need time for failover
+        wait_for_zero_unmanaged_pools()
+        wait_for_pools_online()
         print_with_timestamp(f"{'Forced ' if force else ''}{mode}: {node}")
         time.sleep(5)
         post(f"/power/{mode}", dict(force=force))
         if not force:
             wait_ping_lost_while_reboot()
-        if is_cluster:
-            break
+#        if is_cluster:
+#               break
 
 
 def set_host_server_name(host_name=None, server_name=None, server_description=None):
