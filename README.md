@@ -578,7 +578,7 @@ activate                      	import                        	export
 
     Note: If you want complete system information, please use the info command instead.
 
-########################################################################################
+#######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
@@ -613,7 +613,7 @@ activate                      	import                        	export
 
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-########################################################################################
+#######################################################################################
 
 <b>Get help:</b>
 
