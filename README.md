@@ -36,9 +36,10 @@ activate                      	import                        	export
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --node 192.168.0.220
 
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
-    
+
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220
+
 
     <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
@@ -48,7 +49,7 @@ activate                      	import                        	export
     and primarycache set to metadata only.
 
         jdss-api-tools.exe clone --pool Pool-0 --volume vol00 --visible --primarycache metadata --node 192.168.0.220
-    
+
     The following examples are using default password and port and make the shares <b>invisible</b>.
 
         jdss-api-tools.exe clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220
@@ -219,7 +220,7 @@ activate                      	import                        	export
     Export with optional 5 seconds delay.
 
         jdss-api-tools.exe export --pool Pool-0 --delay 5 --node 192.168.0.220
-    
+
 
  8. <b>Shutdown</b> three JovianDSS servers using default port but non default password,
 
@@ -230,7 +231,7 @@ activate                      	import                        	export
         jdss-api-tools.exe --pswd password shutdown --node 192.168.0.220..222
 
     Shutdown with optional 10 seconds delay.
-    
+
         jdss-api-tools.exe shutdown --delay 10 --node 192.168.0.220
 
 
@@ -239,7 +240,7 @@ activate                      	import                        	export
         jdss-api-tools.exe reboot --node 192.168.0.220
 
     Forced reboot with optional 10 seconds delay.
-    
+
         jdss-api-tools.exe reboot --force --delay 10 --node 192.168.0.220
 
     The forced reboot can be used as hard-reset equivalent for deployment tests.
@@ -311,11 +312,11 @@ activate                      	import                        	export
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
     The second ring to be set on bond2 on first node and also on bond2 on the second cluster node.
 
-        jdss-api-tools.exe add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2  --node 192.168.0.80
+        jdss-api-tools.exe add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2 --node 192.168.0.80
 
     Same, but using default user & password.
 
-        jdss-api-tools.exe add_ring --ring_nics bond2 bond2  --node 192.168.0.80
+        jdss-api-tools.exe add_ring --ring_nics bond2 bond2 --node 192.168.0.80
 
 
 17. <b>Set HA-cluster ping nodes</b>.
@@ -324,7 +325,7 @@ activate                      	import                        	export
 
         jdss-api-tools.exe set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0 --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0.
+    Same, but with defaults: user = admin, password = admin, netmask = 255.255.255.0.
 
         jdss-api-tools.exe set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80
 
@@ -384,7 +385,7 @@ activate                      	import                        	export
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --primarycache metadata --secondarycache none --node 192.168.0.220
-    
+
     If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
 
         jdss-api-tools.exe create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220
@@ -426,8 +427,8 @@ activate                      	import                        	export
 
 24. <b>Modify volumes settings</b>. Modifiy volume (SAN) or dataset (NAS) setting.
 
-    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets(NAS)
-    and volume size for volumes(SAN).
+    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets (NAS)
+    and volume size for volumes (SAN).
 
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --sync always --node 192.168.0.220
         jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --sync disabled --node 192.168.0.220
@@ -443,7 +444,7 @@ activate                      	import                        	export
     Modify SAN volume size in human readable format i.e. 100GB, 1TB, etc.
     New size must be bigger than current size, but not bigger than double of current size.
 
-        jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB  --node 192.168.0.220
+        jdss-api-tools.exe modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB --node 192.168.0.220
 
 
 25. <b>Attach volume to iSCSI target</b>.
@@ -577,7 +578,7 @@ activate                      	import                        	export
 
     Note: If you want complete system information, please use the info command instead.
 
-########################################################################################
+#######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
@@ -585,10 +586,10 @@ activate                      	import                        	export
 
  And try it:
  
-        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+    C:\Python\Scripts\dist>jdss-api-tools.exe -h
 
  NOTE:
- To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ To fix anti-virus false positive problem of the exe file generated using PyInstaller,
  it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
 
         1) git clone https://github.com/pyinstaller/pyinstaller         # download the source
@@ -601,16 +602,18 @@ activate                      	import                        	export
 	
  Missing Python modules need to be installed with pip, e.g.:
 
-	pip install ping3
-	pip install colorama
-        ... 
+	C:\Python\Scripts>pip install ipcalc
+	C:\Python\Scripts>pip install ping3
+	C:\Python\Scripts>pip install colorama
+    ... 
 
  NOTE:
  Some modules may requrie MS Visual Studio:
- https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
+ https://visualstudio.microsoft.com/downloads
+
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
- ########################################################################################
+#######################################################################################
 
 <b>Get help:</b>
 

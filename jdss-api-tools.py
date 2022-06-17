@@ -1,36 +1,37 @@
-r"""
- After any modifications of source of jdss-api-tools.py,
- run pyinstaller to create new jdss-api-tools.exe:
+"""
+After any modifications of source of jdss-api-tools.py,
+run pyinstaller to create new jdss-api-tools.exe:
 
-	pyinstaller.exe --onefile jdss-api-tools.py
+pyinstaller.exe --onefile jdss-api-tools.py
 
- And try it:
-        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+And try it:
+C:\Python\Scripts\dist>jdss-api-tools.exe -h
 
- NOTE:
- To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
- it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
+NOTE:
+To fix anti-virus false positive problem of the exe file generated using PyInstaller,
+it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
 
-    1) git clone https://github.com/pyinstaller/pyinstaller             # download the source
-    2) cd pyinstaller
-    3) cd bootloader
-    4) python ./waf distclean all                   # to build the bootloader for your system
-    5) cd ..                            
-    5) python setup.py install                 # to install the fresh re-compiled pyinstaller  
-    6) pyinstaller.exe --onefile jdss-api-tools.py                 # to create the executable
-	
- Missing Python modules need to be installed with pip, e.g.:
+1) git clone https://github.com/pyinstaller/pyinstaller             # download the source
+2) cd pyinstaller
+3) cd bootloader
+4) python ./waf distclean all                                       # to build the bootloader for your system
+5) cd ..                            
+6) python setup.py install                                          # to install the fresh re-compiled pyinstaller
+7) pyinstaller.exe --onefile jdss-api-tools.py                      # to create the executable
 
-	pip install ping3
-	pip install colorama
-        ... 
+Missing Python modules need to be installed with pip, e.g.:
 
- NOTE:
- Some modules may requrie MS Visual Studio:
- https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
- In case of error: "msvcr100.dll missing...",
- download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
- 
+C:\Python\Scripts>pip install ipcalc
+C:\Python\Scripts>pip install ping3
+C:\Python\Scripts>pip install colorama
+
+NOTE:
+Some modules may require MS Visual Studio:
+https://visualstudio.microsoft.com/downloads
+
+In case of error: "msvcr100.dll missing...",
+download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
+
 
 2018-02-07  initial release
 2018-03-06  add create_pool
@@ -82,25 +83,25 @@ r"""
 2019-07-29  add attach_volume_to_iscsi_target (kris@dddistribution.be)
 2019-08-22  add delete clones
 2019-09-09  add delete snapshots
-2020-01-10  validation removed: in up28 it is NOT required to keep ping in the same subnet as ring
-2020-01-17  add primarycache and secondarycache option for create clones
-2020-01-23  add primarycache and secondarycache option for create storage resource
-2020-03-05  fixed get_all_volume_snapshots_older_than_given_age for detasets
-2020-03-05  add ".iscsi" segement into iscsi target template & add Europe/Amsterdam zone
-2020-03-16  add forced reboot be used as hard-reset equivalent(require up29 or newer)
+2020-01-10  validation removed: as from up28 it is NOT required to keep ping in the same subnet as ring
+2020-01-17  add primarycache and secondarycache option for create_clone
+2020-01-23  add primarycache and secondarycache option for create_storage_resource
+2020-03-05  fixed get_all_volume_snapshots_older_than_given_age for datasets
+2020-03-05  add ".iscsi" segment into iscsi target template & add Europe/Amsterdam timezone
+2020-03-16  add forced reboot be used as hard-reset equivalent (requires up29 or newer)
 2020-03-27  add cluster second ring
 2020-04-09  add volume size modify
-2020-05-20  add ".iscsi" segement into auto generated iscsi target
+2020-05-20  add ".iscsi" segment into auto generated iscsi target
 2021-04-07  add export pool command
 2021-05-31  move to python ver.3.9.5
 2021-06-09  replace imported module jovianapi with local function call_requests
 2021-09-06  fixed KeyError while delete snapshots
 2022-01-13  fixed create & delete clone, help text for scrub_action
-2022-02-03  Improve pylint score
-2022-02-06  Improve pylint score
-2022-02-09  Fix forced Reboot & Shutdown
-2022-02-18  Fix Move Function
-2022-05-03  Add stop cluster
+2022-02-03  improve pylint score
+2022-02-06  improve pylint score
+2022-02-09  fix forced reboot & shutdown
+2022-02-18  fix move function
+2022-05-03  add stop cluster
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -134,7 +135,7 @@ ENDF     = Fore.RESET           ## '\x1b[39m'
 
 KiB,MiB,GiB,TiB = (pow(1024,i) for i in (1,2,3,4))
 
-## TARGET NAMEsys, re, time, string, datetime, argparse, ping3, requests, json, urllib3
+## TARGET NAME sys, re, time, string, datetime, argparse, ping3, requests, json, urllib3
 target_name_prefix= "iqn.%s-%s.iscsi:jdss.target" % (time.strftime("%Y"),time.strftime("%m"))
 
 ## ZVOL NAME
@@ -246,7 +247,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --node 192.168.0.220{ENDF}
 
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
-    
+
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220{ENDF}
     {LG}%(prog)s clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220{ENDF}
 
@@ -258,7 +259,7 @@ def get_args(batch_args_line=None):
     and primarycache set to metadata only.
 
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --visible --primarycache metadata --node 192.168.0.220{ENDF}
-    
+
     The following examples are using default password and port and make the shares {BOLD}invisible{END}.
 
     {LG}%(prog)s clone --pool Pool-0 --volume vol00 --share_name vol00_backup --node 192.168.0.220{ENDF}
@@ -429,7 +430,7 @@ def get_args(batch_args_line=None):
     Export with optional 5 seconds delay.
 
     {LG}%(prog)s export --pool Pool-0 --delay 5 --node 192.168.0.220{ENDF}
-    
+
 
 {} {BOLD}Shutdown{END} three JovianDSS servers using default port but non default password,
 
@@ -440,7 +441,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s --pswd password shutdown --node 192.168.0.220..222{ENDF}
 
     Shutdown with optional 10 seconds delay.
-    
+
     {LG}%(prog)s shutdown --delay 10 --node 192.168.0.220{ENDF}
 
 
@@ -449,7 +450,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s reboot --node 192.168.0.220{ENDF}
 
     Forced reboot with optional 10 seconds delay.
-    
+
     {LG}%(prog)s reboot --force --delay 10 --node 192.168.0.220{ENDF}
 
     The forced reboot can be used as hard-reset equivalent for deployment tests.
@@ -521,11 +522,11 @@ def get_args(batch_args_line=None):
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
     The second ring to be set on bond2 on first node and also on bond2 on the second cluster node.
 
-    {LG}%(prog)s add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2  --node 192.168.0.80{ENDF}
+    {LG}%(prog)s add_ring --user admin --pswd password --bind_node_password admin --ring_nics bond2 bond2 --node 192.168.0.80{ENDF}
 
     Same, but using default user & password.
 
-    {LG}%(prog)s add_ring --ring_nics bond2 bond2  --node 192.168.0.80{ENDF}
+    {LG}%(prog)s add_ring --ring_nics bond2 bond2 --node 192.168.0.80{ENDF}
 
 
 {} {BOLD}Set HA-cluster ping nodes{END}.
@@ -534,7 +535,7 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s set_ping_nodes --user administrator --pswd password --netmask 255.255.0.0 --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
-    Same, but with defaults: user = admin, password = admin and netmask = 255.255.255.0.
+    Same, but with defaults: user = admin, password = admin, netmask = 255.255.255.0.
 
     {LG}%(prog)s set_ping_nodes --ping_nodes 192.168.0.240 192.168.0.241 192.168.0.242 --node 192.168.0.80{ENDF}
 
@@ -594,7 +595,7 @@ def get_args(batch_args_line=None):
     By default primarycache and secondarycache is set to all. It can be disabled or set to cache metadata only:
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --primarycache metadata --secondarycache none --node 192.168.0.220{ENDF}
-    
+
     If sync (Write Cache sync requests) is not provided the default is set, which is "always" for zvols and "standard" for datasets. Here the sync is set to "disabled".
 
     {LG}%(prog)s create_storage_resource --pool Pool-0 --storage_type iscsi --sync disabled --cluster ha-00 --node 192.168.0.220{ENDF}
@@ -636,8 +637,8 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Modify volumes settings{END}. Modifiy volume (SAN) or dataset (NAS) setting.
 
-    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets(NAS)
-    and volume size for volumes(SAN).
+    Current version modify only: Write cache logging (sync) settings, quota and reservation for datasets (NAS)
+    and volume size for volumes (SAN).
 
     {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync always --node 192.168.0.220{ENDF}
     {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --sync disabled --node 192.168.0.220{ENDF}
@@ -653,7 +654,7 @@ def get_args(batch_args_line=None):
     Modify SAN volume size in human readable format i.e. 100GB, 1TB, etc.
     New size must be bigger than current size, but not bigger than double of current size.
 
-    {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s modify_volume --pool Pool-0 --volume zvol00 --new_size 1024 GB --node 192.168.0.220{ENDF}
 
 
 {} {BOLD}Attach volume to iSCSI target{END}.
@@ -794,11 +795,11 @@ def get_args(batch_args_line=None):
 	pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
- 
-        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+
+    C:\Python\Scripts\dist>jdss-api-tools.exe -h
 
  NOTE:
- To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ To fix anti-virus false positive problem of the exe file generated using PyInstaller,
  it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
 
         1) git clone https://github.com/pyinstaller/pyinstaller         # download the source
@@ -811,13 +812,14 @@ def get_args(batch_args_line=None):
 	
  Missing Python modules need to be installed with pip, e.g.:
 
-	pip install ping3
-	pip install colorama
-        ... 
+    C:\Python\Scripts>pip install ipcalc
+    C:\Python\Scripts>pip install ping3
+    C:\Python\Scripts>pip install colorama
+    ...
 
  NOTE:
  Some modules may requrie MS Visual Studio:
- https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
+ https://visualstudio.microsoft.com/downloads
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
  ########################################################################################
@@ -888,7 +890,7 @@ def get_args(batch_args_line=None):
     parser.add_argument(
         '--volume',
         metavar='name',
-        #default='auto',  # 
+        #default='auto',  #
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
     )
     parser.add_argument(
@@ -901,24 +903,24 @@ def get_args(batch_args_line=None):
         '--size',
         metavar='size',
         default='1TB',
-        help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
+        help='Enter SAN (zvol) size in human readable format i.e. 100GB, 1TB, etc. Default=1TB'
     )
     parser.add_argument(
         '--new_size',
         metavar='new_size',
-        help='Enter SAN (zvol) NEW bigger size in human readable format i.e. 100GB, 1TB, etc., default=1TB'
+        help='Enter SAN (zvol) NEW bigger size in human readable format i.e. 100GB, 1TB, etc. Default=1TB'
     )
     parser.add_argument(
         '--blocksize',
         metavar='size',
         default='128KB',
-        help='Enter SAN (zvol) blocksize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default=128KB'
+        help='Enter SAN (zvol) blocksize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB. Default=128KB'
     )
     parser.add_argument(
         '--recordsize',
         metavar='size',
         default='1MB',
-        help='Enter NAS (vol) recordsize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB, default=1MB'
+        help='Enter NAS (vol) recordsize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB. Default=1MB'
     )
     parser.add_argument(
         '--quota',
@@ -934,7 +936,7 @@ def get_args(batch_args_line=None):
         '--provisioning',
         metavar='thin|thick',
         default='thin',
-        help='Enter thin or thick provisioning option, default=thin'
+        help='Enter thin or thick provisioning option. Default=thin'
     )
     parser.add_argument(
         '--sync',
@@ -946,19 +948,19 @@ def get_args(batch_args_line=None):
         '--logbias',
         metavar='latency|throughput',
         default='latency',
-        help='Enter logbias . Default=latency'
+        help='Enter logbias. Default=latency'
     )
     parser.add_argument(
         '--primarycache',
         metavar='all|none|metadata',
         default='all',
-        help='Enter primarycache: all, none, metadata'
+        help='Enter primarycache: all, none, metadata. Default=all'
     )
     parser.add_argument(
         '--secondarycache',
         metavar='all|none|metadata',
         default='all',
-        help='Enter secondarycache: all, none, metadata'
+        help='Enter secondarycache: all, none, metadata. Default=all'
     )
     parser.add_argument(
         '--compression',
@@ -983,21 +985,21 @@ def get_args(batch_args_line=None):
         metavar='number',
         default=1,
         type=int,
-        help='Enter number of storage resources to create, default=1'
+        help='Enter number of storage resources to create. Default=1'
     )
     parser.add_argument(
         '--start_with',
         metavar='number',
         default=0,
         type=int,
-        help='Enter starting number of the consecutive number, default=0'
+        help='Enter starting number of the consecutive number. Default=0'
     )
     parser.add_argument(
         '--zvols_per_target',
         metavar='number',
         default=1,
         type=int,
-        help='Enter number of zvols to be attached to a single target, default=1'
+        help='Enter number of zvols to be attached to a single target. Default=1'
     )
     parser.add_argument(
         '--increment',
@@ -1005,7 +1007,7 @@ def get_args(batch_args_line=None):
         choices=increment_options,
         default=100,
         type=int,
-        help='Enter the target auto-numbering incremental, default=100'
+        help='Enter the target auto-numbering incremental. Default=100'
     )
     parser.add_argument(
         '--cluster',
@@ -1022,7 +1024,7 @@ def get_args(batch_args_line=None):
         metavar='number',
         default=1,
         type=int,
-        help='Enter number of JBODs, default=1'
+        help='Enter number of JBODs. Default=1'
     )
     parser.add_argument(
         '--jbod_disks',
@@ -1130,7 +1132,7 @@ def get_args(batch_args_line=None):
         metavar='type',
         choices=['active-backup', 'balance-rr'],
         default='active-backup',
-        help='Enter bond type (balance-rr, active-backup), default=active-backup'
+        help='Enter bond type (balance-rr, active-backup). Default=active-backup'
     )
     parser.add_argument(
         '--bond_nics',
@@ -1187,27 +1189,27 @@ def get_args(batch_args_line=None):
         '--user',
         metavar='user',
         default='admin',
-        help='RESTapi user, default=admin'
+        help='RESTapi user. Default=admin'
     )
     parser.add_argument(
         '--pswd',
         metavar='password',
         default='admin',
-        help='Administrator password, default=admin'
+        help='Administrator password. Default=admin'
     )
     parser.add_argument(
         '--port',
         metavar='port',
         default=82,
         type=int,
-        help='RESTapi port, default=82'
+        help='RESTapi port. Default=82'
     )
     parser.add_argument(
         '--delay',
         metavar='seconds',
         default=30,
         type=int,
-        help='User defined reboot/shutdown or move delay, default=30 sec'
+        help='User defined reboot/shutdown or move delay. Default=30 sec'
     )
     parser.add_argument(
         '--disk_size_range',
@@ -1219,13 +1221,13 @@ def get_args(batch_args_line=None):
         '--tolerance',
         metavar='tolerance',
         default='5GB',
-        help='Disk size tolerance in human readable format i.e. 50GB. Treat smaller disks still as equal in size, default=5GB'
+        help='Disk size tolerance in human readable format i.e. 50GB. Treat smaller disks still as equal in size. Default=5GB'
     )
     parser.add_argument(
         '--share_name',
         metavar='name',
         default='auto',
-        help='Enter share name. Default for clone actions=auto_api_backup_share, default for creating NAS-resource=auto'
+        help='Enter share name. Default for clone actions=auto_api_backup_share. Default for creating NAS-resource=auto'
     )
     parser.add_argument(
         '--visible',
@@ -1238,21 +1240,21 @@ def get_args(batch_args_line=None):
         '--bind_node_password',
         metavar='password',
         default='admin',
-        help='Bind node password, default=admin'
+        help='Bind node password. Default=admin'
     )
     parser.add_argument(
         '--scrub_action',
         metavar='start|stop|status',
         choices=['start', 'stop', 'status'],
         default='start',
-        help='Enter scrub action, default=start'
+        help='Enter scrub action. Default=start'
     )
     parser.add_argument(
         '--day_of_the_month',
         metavar='day',
         nargs = '*',
         choices=[str(i) for i in range(1,32)],
-        help='Enter the day of a month of schedule plan, default=1'
+        help='Enter the day of a month of schedule plan. Default=1'
     )
     parser.add_argument(
         '--month_of_the_year',
@@ -1273,14 +1275,14 @@ def get_args(batch_args_line=None):
         metavar='hour',
         nargs = '*',
         choices=[str(i) for i in range(24)],
-        help='Enter the hour of schedule plan, default=0'
+        help='Enter the hour of schedule plan. Default=0'
     )
     parser.add_argument(
         '--minute',
         metavar='minute',
         nargs = '*',
         choices=[str(i) for i in range(60)],
-        help='Enter the minute of schedule plan, default=15'
+        help='Enter the minute of schedule plan. Default=15'
     )
     parser.add_argument(
         '--older_than',
@@ -1348,18 +1350,18 @@ def get_args(batch_args_line=None):
 
     ## TESTING ONLY!
     #test_mode = True
-    #test_command_line =  'activate --online  --node 192.168.0.82'
-    #test_command_line =  'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB  --node 192.168.0.42'
-    #test_command_line =  'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
-    #test_command_line =  'set_ping_nodes   --ping_nodes 192.168.0.30 192.168.0.40  --node 192.168.0.82'
-    #test_command_line =  'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
-    #test_command_line =  'set_scrub_scheduler --node 192.168.0.82'
+    #test_command_line = 'activate --online --node 192.168.0.82'
+    #test_command_line = 'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB --node 192.168.0.42'
+    #test_command_line = 'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
+    #test_command_line = 'set_ping_nodes --ping_nodes 192.168.0.30 192.168.0.40 --node 192.168.0.82'
+    #test_command_line = 'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
+    #test_command_line = 'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-NEW --volume vol00 --older_than 30min --delay 1 --node 192.168.0.32'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
     #test_command_line = 'delete_bond --nic bond0 --node 192.168.0.82'
-    #test_command_line = 'create_bond --bond_nics eth2 eth3 --bond_type active-backup --new_ip 192.168.33.82  --node 192.168.0.82'
+    #test_command_line = 'create_bond --bond_nics eth2 eth3 --bond_type active-backup --new_ip 192.168.33.82 --node 192.168.0.82'
     #test_command_line = 'move --pool Pool-0 --delay 0 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
@@ -1383,7 +1385,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --quantity 3 --start_with 223 --zvols_per_target 4 --node 192.168.0.80'
 
 
-    ## ARGSg
+    ## ARGS
     if test_mode:
         args = parser.parse_args(test_command_line.split())
     elif batch_args_line:
@@ -1415,14 +1417,14 @@ def get_args(batch_args_line=None):
     global all_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
     global to_print_timestamp_msg
-        
+
     api_port                    = args['port']
     api_user                    = args['user']
     api_password                = args['pswd']
     action                      = args['cmd']				## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
-    
+
                                 ## set default to auto except 'delete_clones', 'delete_snapshots'
     volume_name                 = volume_name if volume_name or action in ('delete_clones','delete_snapshots') else 'auto' 
     storage_type                = args['storage_type']			## it will be converted to upper below
@@ -1615,15 +1617,15 @@ def get_args(batch_args_line=None):
                 all_ip_addr.append(ip)
         for ip in all_ip_addr:
             if not valid_ip(ip):
-                sys_exit( f"IP address {ip} is invalid")
+                sys_exit(f"IP address {ip} is invalid.")
         ## detect doubles
         doubles =  len(nodes) != len(set(nodes))
         if doubles:
-            sys_exit( f"Double IP address: {', '.join(nodes)}")
+            sys_exit(f"Double IP address: {', '.join(nodes)}.")
 
     ## validate port
     if not 22 <= api_port <= 65535:
-        sys_exit( f"Port {api_port} is out of allowed range 22..65535")
+        sys_exit(f"Port {api_port} is out of allowed range 22..65535.")
 
 
 #_____________________END_OF_ARGS_____________________#
@@ -1642,9 +1644,9 @@ def wait_for_move_destination_node(test_node):
     while not is_node_alive(test_node):
         counter += 1
         time.sleep(20)
-        print_with_timestamp( f"Waiting for : {test_node}.")
+        print_with_timestamp(f"Waiting for : {test_node}.")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp( f"Time out of waiting for : {test_node}.")
+            sys_exit_with_timestamp(f"Time out of waiting for : {test_node}.")
 
 
 def wait_for_zero_unmanaged_pools():
@@ -1653,12 +1655,12 @@ def wait_for_zero_unmanaged_pools():
     time.sleep(5)
     while is_node_running_any_unmanaged_pool():
         unmanaged_pools_names = unmanaged_pools()
-        print_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}. Wait for managed state." )
+        print_with_timestamp(f"Unmanaged pools: {','.join(unmanaged_pools_names)}. Wait for managed state.")
         counter += 1
         time.sleep(20)
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
-            sys_exit_with_timestamp( f"Unmanaged pools: {','.join(unmanaged_pools_names)}" )
+            sys_exit_with_timestamp(f"Unmanaged pools: {','.join(unmanaged_pools_names)}")
     if force :
         time.sleep(60) ## need some time to complete all operations
 
@@ -1672,9 +1674,9 @@ def wait_for_cluster_started():
     while not is_cluster_started():
         counter += 1
         time.sleep(20)
-        print_with_timestamp( f"Waiting for the cluster to start" )
+        print_with_timestamp(f"Waiting for the cluster to start.")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp( f"ERROR: Cluster faild to start" )
+            sys_exit_with_timestamp(f"ERROR: Cluster failed to start.")
 
 def wait_for_pools_online():
     repeat = 300 # wait 25min
@@ -1687,9 +1689,9 @@ def wait_for_pools_online():
             break
         counter += 1
         time.sleep(5)
-        print_with_timestamp( f"Waiting for all pools ONLINE status" )
+        print_with_timestamp(f"Waiting for all pools ONLINE status.")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp( f"ERROR: failed to get pools ONLINE status" )
+            sys_exit_with_timestamp(f"ERROR: failed to get pools ONLINE status.")
 
 
 
@@ -2119,13 +2121,13 @@ def set_time(timezone=None, ntp=None, ntp_servers=None):
     ## exit if DNS is missing
     dns = get_dns()
     if ntp == 'ON' and not dns:
-        sys_exit_with_timestamp(f"Cannot set NTP. Missing DNS setting on node: {node}.")
+        sys_exit_with_timestamp(f"Cannot set NTP. Missing DNS setting on node: {node}")
 
     ## PUT
     put('/time',data)
 
     if error:
-        print_with_timestamp(f"Cannot set NTP. Error: {error}.")
+        print_with_timestamp(f"Cannot set NTP. Error: {error}")
 
     if timezone:
         print_with_timestamp(f"Set timezone: {timezone}")
@@ -2266,7 +2268,7 @@ def delete_clones(vol_type):
     if clones:
         for clone in clones:
             clone_name = clone[0]
-            print_with_timestamp( f"Clone: {clone_name} of {pool_name} {volume_name} will be deleted." )
+            print_with_timestamp(f"Clone: {clone_name} of {pool_name} {volume_name} will be deleted.")
         display_delay('DELETING clones ...')
         print()
         for clone in clones:
@@ -2274,12 +2276,12 @@ def delete_clones(vol_type):
             snapshot_name = clone[3]
             resp = delete_clone(vol_type,clone_name, snapshot_name)
             if error:
-                print_with_timestamp( f"Cannot delete clone: {clone_name} of {pool_name} {volume_name}.")
+                print_with_timestamp(f"Cannot delete clone: {clone_name} of {pool_name} {volume_name}.")
             else:
-                print_with_timestamp( f"Clone: {clone_name} of {pool_name} {volume_name} has been deleted." )
+                print_with_timestamp(f"Clone: {clone_name} of {pool_name} {volume_name} has been deleted.")
     else:
         _older_than_string_to_print = ' '.join(sorted(older_than_string_to_print.split(), key=lambda item: time_periods.index(item.split('-')[-1])))
-        print_with_timestamp( f"No clones older than {_older_than_string_to_print} found on {pool_name} {volume_name}." )
+        print_with_timestamp(f"No clones older than {_older_than_string_to_print} found on {pool_name} {volume_name}.")
 
 
 def delete_clone(vol_type,clone_name, snapshot_name):
@@ -2318,9 +2320,9 @@ def delete_snapshots(vol_type):
     for snapshot_name in snapshots_names:
         delete_snapshot(vol_type,snapshot_name)
         if error:
-            print_with_timestamp( f"Cannot delete snapshot: {snapshot_name}." )
+            print_with_timestamp(f"Cannot delete snapshot: {snapshot_name}.")
         else:
-            print_with_timestamp( f"Snapshot: {snapshot_name} deleted." )
+            print_with_timestamp(f"Snapshot: {snapshot_name} deleted.")
 
 
 def delete_snapshot(vol_type, snapshot_name):
@@ -2342,7 +2344,7 @@ def get_snapshot_clones(snapshot_name):
         clones_names = [clone['full_name'] for clone in clones]
     return clones_names or []
 
-####
+
 def get_all_volume_snapshots_older_than_given_age(vol_type):
     if vol_type in 'volume':
         snapshots = get(f"/pools/{pool_name}/volumes/{volume_name}/snapshots?page=0&per_page=0&sort_by=name&order=asc")
@@ -2353,9 +2355,9 @@ def get_all_volume_snapshots_older_than_given_age(vol_type):
         snapshots = get(f"/pools/{pool_name}/nas-volumes/{volume_name}/snapshots?page=0&per_page=0&sort_by=name&order=asc")
         if snapshots:
             try:
-                snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] for prop_item in snapshot['properties'] if prop_item['name']=='creation' and snapshot_creation_to_seconds(prop_item['value']) > older_than  ]
+                snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] for prop_item in snapshot['properties'] if prop_item['name']=='creation' and snapshot_creation_to_seconds(prop_item['value']) > older_than]
             except KeyError:
-                snapshots_names = [ snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than  ]
+                snapshots_names = [snapshot['name'] for snapshot in snapshots['entries'] if snapshot_creation_to_seconds(snapshot['creation']) > older_than]
     return snapshots_names or []
 
 
@@ -2379,10 +2381,10 @@ def print_nas_snapshots_details(header,fields):
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
                 ## convert list of properties into dict of name:values
                 try:
-                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ##properties list is optional.
+                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional.
                 except:
                     property_dict = False
-                    
+
                 for i,field in enumerate(fields):
                     value = '-'
                     if field in ('name',):
@@ -2435,7 +2437,7 @@ def print_nas_snapshots_details(header,fields):
                         value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))   
+                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
                         value = seconds2human(snapshot_creation_to_seconds(property_dict['creation'] if property_dict else snapshot['creation']))
                         try:
                             source_plan = property_dict['org.znapzend:src_plan'] if property_dict else snapshot['org.znapzend:src_plan']
@@ -2583,7 +2585,7 @@ def print_scrub_pools_details(header,fields):
         cluster_pools_names = get_cluster_pools_names()
         for pool_name in pools_names_to_scrub:
             if pool_name not in cluster_pools_names:
-                sys_exit_with_timestamp( f"Error: {pool_name} does not exist on node: {node}" )
+                sys_exit_with_timestamp(f"Error: {pool_name} does not exist on node: {node}.")
     else:
         pools_names_to_scrub = get_cluster_pools_names()
     pools_names_to_scrub.sort()
@@ -2687,9 +2689,9 @@ def set_default_gateway():
     dgw_interface = None
     dgw_interface = get('/network/default-gateway')['interface']
     if dgw_interface is None:
-        print_with_timestamp( 'No default gateway set')
+        print_with_timestamp('No default gateway set.')
     else:
-        print_with_timestamp( f"Default gateway set to: {dgw_interface}" )
+        print_with_timestamp(f"Default gateway set to: {dgw_interface}.")
 
 
 def set_dns(dns):
@@ -2698,8 +2700,8 @@ def set_dns(dns):
     ## PUT
     put('/network/dns', dict(servers=dns))
     if error:
-        print_with_timestamp( f"Error: setting DNS. {error}" )
-    print_with_timestamp( f"DNS set to: {', '.join(dns)}" )
+        print_with_timestamp(f"Error: setting DNS. {error}")
+    print_with_timestamp(f"DNS set to: {', '.join(dns)}")
 
 
 def get_dns():
@@ -2708,7 +2710,7 @@ def get_dns():
     ## GET
     dns = get(endpoint)
     if error:
-        print_with_timestamp( f"Error: getting DNS. {error}")
+        print_with_timestamp(f"Error: getting DNS. {error}")
     if dns is None:
         return None
     if len(dns['servers']) == 0:
@@ -2736,7 +2738,7 @@ def set_scrub_scheduler():
         else:
             continue
         post(f"/pools/{_pool_name}/scrub/scheduler", data)
-        print_with_timestamp( f"Scrub schedule set for: {_pool_name} on {node}" )
+        print_with_timestamp(f"Scrub schedule set for: {_pool_name} on {node}.")
 
 
 def scrub():
@@ -2749,7 +2751,7 @@ def scrub():
         cluster_pools_names = get_cluster_pools_names()
         for pool_name in pools_names_to_scrub:
             if pool_name not in cluster_pools_names:
-                sys_exit_with_timestamp( f"Error: {pool_name} does not exist on Node: {node}")
+                sys_exit_with_timestamp(f"Error: {pool_name} does not exist on Node: {node}.")
     else:
         pools_names_to_scrub = get_cluster_pools_names()
     pools_names_to_scrub.sort()
@@ -2778,7 +2780,7 @@ def export():
         cluster_pools_names = get_cluster_pools_names()
         for pool_name in pools_names_to_export:
             if pool_name not in cluster_pools_names:
-                sys_exit_with_timestamp( f"Error: {pool_name} does not exist on Node: {node}" )
+                sys_exit_with_timestamp(f"Error: {pool_name} does not exist on Node: {node}.")
     else:
         pools_names_to_export = get_cluster_pools_names()
     pools_names_to_export.sort()
@@ -2789,7 +2791,7 @@ def export():
         display_delay('Export')
         endpoint = f"/pools/{pool_name}/export"
         action_message = f"Sending export request to {pool_name} on : {node}"
-        # P O S T
+        # POST
         post(endpoint)
 
 
@@ -2961,7 +2963,7 @@ def get_ring_interface_of_first_node():
         n -= 1
         time.sleep(1)
     ## get return empty list
-    sys_exit_with_timestamp( 'Error getting ring interface: Cluster not bound yet.')
+    sys_exit_with_timestamp('Error getting ring interface: Cluster not bound yet.')
 
 
 def get_number_of_rings():
@@ -2990,7 +2992,7 @@ def get_rings():
         first_ring = []
         second_ring = []
     return tuple(first_ring), tuple(second_ring)
-    
+
 
 def get_cluster_nodes_addresses():
     global is_cluster
@@ -3060,7 +3062,7 @@ def create_vip():
     action_message = f"Sending create VIP request to: {node}"
 
     if not pool_name:
-        sys_exit_with_timestamp( 'Error: Pool name missing.')
+        sys_exit_with_timestamp('Error: Pool name missing.')
     ######
     #nics = convert_comma_separated_to_list(vip_nics)
     ###### nics = list(vip_nics)
@@ -3070,7 +3072,7 @@ def create_vip():
     if len(nics)==2:
         nic_a, nic_b = nics
     else:
-        sys_exit_with_timestamp( 'Error: --vip_nics expects one or two NICs')
+        sys_exit_with_timestamp('Error: --vip_nics expects one or two NICs')
     cluster_nodes_ids = get_cluster_nodes_ids()
     #cluster_ip_addresses = get_cluster_nodes_addresses()
     cluster = True if cluster_nodes_ids and len(cluster_nodes_ids) > 1 else False
@@ -3147,12 +3149,12 @@ def set_ping_nodes():
     current_ping_nodes = get_ping_nodes()
 
     if len(ping_nodes)<2:
-        print_with_timestamp( 'Warning: One ping node provided. At least 2 ping nodes are recommended')
+        print_with_timestamp('Warning: One ping node provided. At least 2 ping nodes are recommended.')
     for ping_node in ping_nodes:   
         if ping_node in current_ping_nodes:
             print_with_timestamp(f"Error: Ping node {ping_node} already set.")
             continue
-        ## in up28 it is NOT required to keep ping in the same subnet as ring
+        ## as from up28 it is NOT required to keep ping in the same subnet as ring
         ## POST
         post('/cluster/ping-nodes', dict(address=ping_node))
         if ping_node in get_ping_nodes():
@@ -3262,7 +3264,7 @@ def move():
             ## POST
             post(endpoint,data)
             if error:
-                sys_exit_with_timestamp( f"Cannot move POOL: {pool_name}. Error: {error}" )
+                sys_exit_with_timestamp(f"Cannot move POOL: {pool_name}. Error: {error}.")
             else:
                 break
     new_active_node = ''
@@ -3304,7 +3306,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     for ip in [new_ip_addr, new_mask, new_gw] + new_dns if new_dns else []:
         if ip:
             if not valid_ip(ip):
-                sys_exit(f"IP address {new_ip_addr} is invalid")
+                sys_exit(f"IP address {new_ip_addr} is invalid.")
     endpoint = f"/network/interfaces/{nic_name}"
     data = dict(configuration="static", address=new_ip_addr, netmask=new_mask)
     if new_gw or new_gw == '':
@@ -3331,9 +3333,9 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         print_with_timestamp(f"The acccess NIC {nic_name} changed to {new_ip_addr}")
     else:
         if get_interface_ip_addr(nic_name) == new_ip_addr:
-            print_with_timestamp(f"New IP address {new_ip_addr} set to {nic_name}")
+            print_with_timestamp(f"New IP address {new_ip_addr} set to {nic_name}".)
         else:
-            print_with_timestamp(f"ERROR: New IP address {new_ip_addr} set to {nic_name} FAILED")
+            print_with_timestamp(f"ERROR: New IP address {new_ip_addr} set to {nic_name} failed.")
 
     ## set default gateway interface
     if new_gw:
@@ -3350,7 +3352,7 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     action_message = f"Sending create bond request to: {node}"
 
     if len(bond_nics) <2:
-        sys_exit_with_timestamp( 'Error: at least two NICs required')
+        sys_exit_with_timestamp('Error: at least two NICs required.')
     ip_addr = new_ip_addr if new_ip_addr else node
     endpoint='/network/interfaces'
     if 'active-backup' in bond_type.lower():
@@ -3375,15 +3377,15 @@ def create_bond(bond_type, bond_nics, new_gw, new_dns):
     ## POST
     post(endpoint,data)
     if error: #bond already exist
-        print_with_timestamp( f"Error: cannot create bond with {','.join(bond_nics)} on {node}." )
+        print_with_timestamp(f"Error: cannot create bond with {','.join(bond_nics)} on {node}.")
         return
     time.sleep(1)
     ##
     nic_name = get_nic_name_of_given_ip_address(ip_addr)  ## global nic_name
     if nic_name and ('bond' in nic_name):
-        print_with_timestamp( f"{nic_name} created with IP: {new_ip_addr}" )
+        print_with_timestamp(f"{nic_name} created with IP: {new_ip_addr}")
     else:
-        sys_exit_with_timestamp( f"Error: cannot create bond with {','.join(bond_nics)} on {node}" )
+        sys_exit_with_timestamp(f"Error: cannot create bond with {','.join(bond_nics)} on {node}.")
     ## set default gateway interface
     if new_gw:
         set_default_gateway()
@@ -3403,7 +3405,7 @@ def delete_bond(bond_name):
 
     bond_slaves = get_bond_slaves(bond_name) ## list
     if bond_slaves is  None or len(bond_slaves)<2:
-        sys_exit_with_timestamp( f"Error : {bond_name} not found" )
+        sys_exit_with_timestamp(f"Error : {bond_name} not found.")
 
     first_nic_name, second_nic_name = sorted(bond_slaves)
     bond_ip_addr = get_interface_ip_addr(bond_name)
@@ -3414,9 +3416,9 @@ def delete_bond(bond_name):
     endpoint = f"/network/interfaces/{bond_name}"
     delete(endpoint)
     if error:
-        sys_exit_with_timestamp( f"Error, bond: {bond_name} cannot be deleted as it is used in cluster cofigurstion." )
+        sys_exit_with_timestamp(f"Error, bond: {bond_name} cannot be deleted as it is used in cluster configuration.")
     else:
-        print_with_timestamp( f"Bond: {bond_name} deleted." )
+        print_with_timestamp(f"Bond: {bond_name} deleted.")
         if timeouted:
             node = new_ip_addr  ## the node IP was changed
 
@@ -3429,7 +3431,7 @@ def delete_bond(bond_name):
         ## PUT
         put(endpoint,data)
         if error:
-            print_with_timestamp( f"Error: Cannot set gateway IP. {error}" )
+            print_with_timestamp(f"Error: Cannot set gateway IP. {error}.")
         time.sleep(1)
         ## set node IP address back to bond_ip_addr
         node = bond_ip_addr
@@ -3461,8 +3463,8 @@ def bind_cluster(bind_ip_addr):
     action_message = f"Sending Cluster Nodes Bind request to: {node}"
 
     if cluster_bind_set():
-        print_with_timestamp( "Cluster bind was already set" )
-        print_with_timestamp( f"Cluster bound: {node}<=>{bind_ip_addr}" )
+        print_with_timestamp("Cluster bind was already set.")
+        print_with_timestamp(f"Cluster bound: {node}<=>{bind_ip_addr}")
         return
 
     ## POST
@@ -3473,10 +3475,10 @@ def bind_cluster(bind_ip_addr):
 
     ## GET and check 
     if cluster_bind_set():
-        print_with_timestamp( f"Cluster bound: {node}<=>{bind_ip_addr}" )
+        print_with_timestamp(f"Cluster bound: {node}<=>{bind_ip_addr}")
     else:
-        sys_exit_with_timestamp( f"Error: cluster bind {node}<=>{bind_ip_addr} failed" )
-        
+        sys_exit_with_timestamp(f"Error: cluster bind {node}<=>{bind_ip_addr} failed.")
+
 
 def add_ring():
     global action_message
@@ -3845,7 +3847,7 @@ def zip_n(number_of_items_a_time,*args):
 def create_pool(pool_name,vdev_type,jbods):
     
     if pool_name in get_pools_names():
-        sys_exit_with_timestamp( f"Error: {pool_name} already exist on node {node}.")
+        sys_exit_with_timestamp(f"Error: {pool_name} already exist on node {node}.")
 
     vdev_type = vdev_type.replace('single','')
     print_with_timestamp("Creating pool. Please wait...")
@@ -3858,12 +3860,12 @@ def create_pool(pool_name,vdev_type,jbods):
 
     for _ in range(10):
         if check_given_pool_name(ignore_error=True):
-            print_with_timestamp( f"New storage pool: {pool_name} created" )
+            print_with_timestamp(f"New storage pool: {pool_name} created.")
             break
         #else:
         time.sleep(10)
     else:
-        sys_exit_with_timestamp( f"Error: Cannot create {pool_name}." )
+        sys_exit_with_timestamp(f"Error: Cannot create {pool_name}.")
 
 
 def create_volume(vol_type):
@@ -3885,7 +3887,7 @@ def create_volume(vol_type):
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
     if error:
-        print_with_timestamp( f"Error: {error}" )
+        print_with_timestamp(f"Error: {error}.")
     else:
         print_with_timestamp(f"{pool_name}/{volume_name}: Write cache logging (sync) set to: {sync}. {quota_text}{reservation_text}")
 
@@ -3901,34 +3903,34 @@ def modify_volume(vol_type):
         data=dict(property_name='sync',property_value=sync)
         if new_size:
             current_size = get_san_volume_size()
-            #print(new_size,current_size )
+            #print(new_size,current_size)
             if int(new_size) < int(current_size):
-                print_with_timestamp( f"Error: {pool_name}/{volume_name} Provided new size: \
-                        {bytes2human(new_size)} is smaller then current size:{bytes2human(current_size)}." )
+                print_with_timestamp(f"Error: {pool_name}/{volume_name} Provided new size: \
+                        {bytes2human(new_size)} is smaller then current size:{bytes2human(current_size)}.")
                 return
             if int(new_size) == int(current_size):
-                print_with_timestamp( f"Error: {pool_name}/{volume_name} Provided new size: \
-                        {bytes2human(new_size)} is euqal to current size:{bytes2human(current_size)}." )
+                print_with_timestamp(f"Error: {pool_name}/{volume_name} Provided new size: \
+                        {bytes2human(new_size)} is euqal to current size:{bytes2human(current_size)}.")
                 return
             if int(new_size) > 2* int(current_size):
-                print_with_timestamp( f"Error: {pool_name}/{volume_name} Provided new size: \
-                        {bytes2human(new_size)} cannot be bigger than double of current size:{bytes2human(current_size)}." )
+                print_with_timestamp(f"Error: {pool_name}/{volume_name} Provided new size: \
+                        {bytes2human(new_size)} cannot be bigger than double of current size:{bytes2human(current_size)}.")
                 return
-            data=dict(property_name='volsize',property_value=new_size) 
+            data=dict(property_name='volsize',property_value=new_size)
         result=put(endpoint,data)
     if vol_type == 'dataset':
         endpoint = f"/pools/{pool_name}/nas-volumes/{volume_name}"
-        data=dict( sync=sync, quota=quota, reservation=reservation )
+        data=dict(sync=sync, quota=quota, reservation=reservation)
         result = put(endpoint,data)
         quota_text = "Quota set to: {}, ".format(bytes2human(quota) if quota else '') if quota else ''
         reservation_text = "Reservation set to: {}.".format(bytes2human(reservation) if reservation else '') if reservation else ''
     if result and (result['error'] is None):
         if new_size:
-            print_with_timestamp( f"{pool_name}/{volume_name}: New volume size set to: {bytes2human(new_size)}." )
+            print_with_timestamp(f"{pool_name}/{volume_name}: New volume size set to: {bytes2human(new_size)}.")
         else:
-            print_with_timestamp( f"{pool_name}/{volume_name}: Write cache logging (sync) set to: {sync}. {quota_text}{reservation_text}" )
+            print_with_timestamp(f"{pool_name}/{volume_name}: Write cache logging (sync) set to: {sync}. {quota_text}{reservation_text}.")
     else:
-        print_with_timestamp( f"Error: {pool_name}/{volume_name} Modify volume request failed." )
+        print_with_timestamp(f"Error: {pool_name}/{volume_name} Modify volume request failed.")
 
 
 def enable_smb_nfs():
@@ -4270,7 +4272,7 @@ def create_share():
 
         shares = get('/shares')
         if shares and shares['entries'] and share_name in [share['name'] for share in shares['entries']]:
-            print_with_timestamp( f"Info: Share: {share_name} already exist on Node: {node}" )
+            print_with_timestamp(f"Info: Share: {share_name} already exist on Node: {node}.")
         else:
 
             endpoint = '/shares'
@@ -4281,9 +4283,9 @@ def create_share():
             ## P O S T
             post(endpoint,data)
             if error:
-                sys_exit_with_timestamp( f"Error: Share: {share_name} creation on Node: {node} failed" )
+                sys_exit_with_timestamp(f"Error: Share: {share_name} creation on Node: {node} failed")
 
-            print_with_timestamp( f"Share for {pool_name}/{volume_name} has been successfully created." )
+            print_with_timestamp(f"Share for {pool_name}/{volume_name} has been successfully created.")
             print( f"\n\tShare:\t\\\\{node}\{share_name}" )
             print( f"\tDataset:\t{pool_name}/{volume_name}\n" )
 
@@ -4309,7 +4311,7 @@ def create_existing_backup_clone(vol_type):
 
 def count_available_disks(jbods):
     if not jbods:
-        sys_exit_with_timestamp( 'Error: No disks available.')
+        sys_exit_with_timestamp('Error: No disks available.')
     return [ bool(d) for jbod in jbods for d in jbod ].count(True)
 
 
@@ -4630,14 +4632,14 @@ def command_processor() :
 
     elif action == 'create_storage_resource':
         if zvols_per_target> 15:
-            sys_exit_with_timestamp( 'Error: the zvols_per_target must be in range 1..15.')
+            sys_exit_with_timestamp('Error: the zvols_per_target must be in range 1..15.')
 
         args_count = count_provided_args( pool_name, volume_name, storage_type, size, sparse )   ## if all provided (not None), args_count must be equal 3
         if args_count < 5:
             sys_exit_with_timestamp(f"Error: create_storage_resource command expects (pool, volume, storage_type), {args_count} provided.")
         if 'iqn' in target_name:
             if storage_volume_type != 'volume':
-                sys_exit_with_timestamp( 'Error: inconsistent options.')
+                sys_exit_with_timestamp('Error: inconsistent options.')
         create_storage_resource()
 
     elif action == 'attach_volume_to_iscsi_target':
@@ -4661,7 +4663,7 @@ def command_processor() :
     elif action == 'modify_volume':
         args_count = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), args_count must be equal 3
         if volume_name == 'auto':
-            sys_exit_with_timestamp( 'Error: modify_volume command expects volume name to be specified')
+            sys_exit_with_timestamp('Error: modify_volume command expects volume name to be specified.')
         if args_count < 3:
             sys_exit_with_timestamp(f"Error: modify_volume command expects (pool, volume, sync or new_size), {args_count} provided.")
         vol_type = check_given_volume_name()
@@ -4670,66 +4672,66 @@ def command_processor() :
     elif action == 'set_host':
         args_count = count_provided_args( host_name, server_name, server_description )   ## if all provided (not None), args_count must be equal 3 set_host
         if args_count not in (1,2,3):
-            sys_exit_with_timestamp( 'Error: set_host command expects at least 1 of arguments: --host, --server, --description')
+            sys_exit_with_timestamp('Error: set_host command expects at least 1 of arguments: --host, --server, --description.')
         set_host_server_name(host_name, server_name, server_description)
 
     elif action == 'set_time':
         args_count = count_provided_args( timezone, ntp, ntp_servers )
         if args_count not in (1,2,3):
-            sys_exit_with_timestamp( 'Error: set_time command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers')
+            sys_exit_with_timestamp('Error: set_time command expects at least 1 of arguments: --timezone, --ntp, --ntp_servers.')
         set_time(timezone, ntp, ntp_servers)
 
     elif action == 'network':
         args_count = count_provided_args( nic_name, new_ip_addr, new_mask, new_gw, new_dns )
         if args_count not in (2,3,4,5):
-            sys_exit_with_timestamp( 'Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns')
+            sys_exit_with_timestamp('Error: network command expects at least 2 of arguments: --nic, --new_ip, --new_mask, --new_gw --new_dns or just --new_dns.')
         network(nic_name, new_ip_addr, new_mask, new_gw, new_dns)
 
     elif action == 'create_bond':
         args_count = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if args_count not in (2,3,4):
-            sys_exit_with_timestamp( 'Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
+            sys_exit_with_timestamp('Error: create_bond command expects at least 2 of arguments: --bond_type, --bond_nics.')
         create_bond(bond_type, bond_nics, new_gw, new_dns)
 
     elif action == 'delete_bond':
         args_count = count_provided_args( bond_type, bond_nics, new_gw, new_dns )
         if args_count not in (0,1,2):
-            sys_exit_with_timestamp( 'Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics')
+            sys_exit_with_timestamp('Error: delete_bond command expects at least 2 of arguments: --bond_type, --bond_nics.')
         delete_bond(nic_name)
 
     elif action == 'bind_cluster':
         if len(nodes) !=2:
-            sys_exit_with_timestamp( 'Error: bind_cluster command expects exactly 2 IP addresses')
+            sys_exit_with_timestamp('Error: bind_cluster command expects exactly 2 IP addresses.')
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
 
     elif action == 'add_ring':
         if len(nodes) !=1:
-            sys_exit_with_timestamp( 'Error: add_ring command expects exactly 1 IP address')
+            sys_exit_with_timestamp('Error: add_ring command expects exactly 1 IP address.')
         args_count = count_provided_args( ring_nics )
         if args_count not in (1,):
-            sys_exit_with_timestamp( 'Error: add_ring command expects --ring_nics')
+            sys_exit_with_timestamp('Error: add_ring command expects --ring_nics.')
         add_ring()
 
     elif action == 'set_ping_nodes':
         if len(ping_nodes) < 1:
-            sys_exit_with_timestamp( 'Error: set_ping_nodes command expects at least 1 IP address')
+            sys_exit_with_timestamp('Error: set_ping_nodes command expects at least 1 IP address.')
         set_ping_nodes()
 
     elif action == 'set_mirror_path':
         if len(nodes) !=1:
-            sys_exit_with_timestamp( 'Error: set_mirror_path command expects exactly 1 IP address')
+            sys_exit_with_timestamp('Error: set_mirror_path command expects exactly 1 IP address.')
         args_count = count_provided_args( mirror_nics )
         if args_count not in (1,):
-            sys_exit_with_timestamp( 'Error: set_mirror_path command expects --mirror_nics')
+            sys_exit_with_timestamp('Error: set_mirror_path command expects --mirror_nics.')
         set_mirror_path()
 
     elif action == 'create_vip':
         if len(nodes) !=1:
-            sys_exit_with_timestamp( 'Error: create_vip command expects exactly 1 node IP address')
+            sys_exit_with_timestamp('Error: create_vip command expects exactly 1 node IP address.')
         args_count = count_provided_args( pool_name, vip_name, vip_nics, vip_ip, vip_mask )
         if args_count not in (4,5):
-            sys_exit_with_timestamp( 'Error: create_vip command expects arguments: --pool --vip_name --vip_nics --vip_ip --vip_mask')
+            sys_exit_with_timestamp('Error: create_vip command expects arguments: --pool --vip_name --vip_nics --vip_ip --vip_mask.')
         create_vip()
 
     elif action == 'start_cluster':
@@ -4741,7 +4743,7 @@ def command_processor() :
     elif action == 'move':
         args_count = count_provided_args( pool_name, delay )
         if args_count not in (1,2):
-            sys_exit_with_timestamp( 'Error: move command expects pool name to be specified')
+            sys_exit_with_timestamp('Error: move command expects pool name to be specified.')
         move()
 
     elif action == 'info':
