@@ -586,10 +586,10 @@ activate                      	import                        	export
 
  And try it:
  
-        C:\Users\Administrator\AppData\Local\Programs\Python\Python39\dist\jdss-api-tools.exe -h
+    C:\Python\Scripts\dist>jdss-api-tools.exe -h
 
  NOTE:
- To fix AntiVirus false positive problem of the exe file generated using PyInstaller,
+ To fix anti-virus false positive problem of the exe file generated using PyInstaller,
  it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
 
         1) git clone https://github.com/pyinstaller/pyinstaller         # download the source
@@ -609,10 +609,11 @@ activate                      	import                        	export
 
  NOTE:
  Some modules may requrie MS Visual Studio:
- https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16#
+ https://visualstudio.microsoft.com/downloads
+
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
- ########################################################################################
+########################################################################################
 
 <b>Get help:</b>
 
