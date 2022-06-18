@@ -24,6 +24,7 @@ Missing Python modules need to be installed with pip, e.g.:
 C:\Python\Scripts>pip install ipcalc
 C:\Python\Scripts>pip install ping3
 C:\Python\Scripts>pip install colorama
+C:\Python\Scripts>pip install requests
 
 NOTE:
 Some modules may require MS Visual Studio:
@@ -809,12 +810,13 @@ def get_args(batch_args_line=None):
         5) cd ..                            
         5) python setup.py install             # to install the fresh re-compiled pyinstaller  
         6) pyinstaller.exe --onefile jdss-api-tools.py             # to create the executable
-	
+
  Missing Python modules need to be installed with pip, e.g.:
 
     C:\Python\Scripts>pip install ipcalc
     C:\Python\Scripts>pip install ping3
     C:\Python\Scripts>pip install colorama
+    C:\Python\Scripts>pip install requests
     ...
 
  NOTE:
@@ -822,7 +824,7 @@ def get_args(batch_args_line=None):
  https://visualstudio.microsoft.com/downloads
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
- ########################################################################################
+########################################################################################
 
 {BOLD}Get help:{END}
 

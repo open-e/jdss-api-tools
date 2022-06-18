@@ -585,7 +585,7 @@ activate                      	import                        	export
 	pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
- 
+
     C:\Python\Scripts\dist>jdss-api-tools.exe -h
 
  NOTE:
@@ -599,13 +599,14 @@ activate                      	import                        	export
         5) cd ..                            
         5) python setup.py install             # to install the fresh re-compiled pyinstaller  
         6) pyinstaller.exe --onefile jdss-api-tools.py             # to create the executable
-	
+
  Missing Python modules need to be installed with pip, e.g.:
 
 	C:\Python\Scripts>pip install ipcalc
 	C:\Python\Scripts>pip install ping3
 	C:\Python\Scripts>pip install colorama
-    ... 
+	C:\Python\Scripts>pip install requests
+    ...
 
  NOTE:
  Some modules may requrie MS Visual Studio:
@@ -628,7 +629,8 @@ activate                      	import                        	export
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from_iscsi_target
 detach_disk_from_pool         	delete_clone                  	delete_clones
@@ -641,5 +643,3 @@ info                          	list_snapshot                 	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	export
 </pre>
- 
- 
