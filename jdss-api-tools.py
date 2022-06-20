@@ -3451,7 +3451,7 @@ def delete_bond(bond_name):
 def node_id():
     ## GET
     product = get('/product')
-    version = product["version"] if product else '1.0'   ## it was 'header' till up29
+    version = product["header"] if product else "1.0"
     serial_number = get('/product')["serial_number"]
     server_name = get('/product')["server_name"]
     host_name = get('/product')["host_name"]
@@ -3614,21 +3614,21 @@ def info():
     for node in nodes:
         ## GET
         action_message = f"Reading setup details from: {node}"
-        version = get('/product')["version"]   ## it was 'header' till up29
+        version = get('/product')["header"]
         serial_number = get('/product')["serial_number"]
         serial_number = f"{serial_number} TRIAL" if serial_number.startswith('T') else serial_number
-        storage_capacity = get('/product')['storage_capacity']     ## -1  means Unlimited
-        storage_capacity = int(storage_capacity/pow(1024,4)) if storage_capacity > -1 else 'Unlimited'
+        storage_capacity = get('/product')["storage_capacity"]     ## -1  means Unlimited
+        storage_capacity = int(storage_capacity/pow(1024,4)) if storage_capacity > -1 else "Unlimited"
         server_name = get('/product')["server_name"]
         host_name = get('/product')["host_name"]
-        current_system_time = get('/time')['timestamp']
+        current_system_time = get('/time')["timestamp"]
         system_time = datetime.datetime.fromtimestamp(current_system_time).strftime('%Y-%m-%d %H:%M:%S')
-        time_zone = get('/time')['timezone']
-        ntp_status = get('/time')['daemon']
+        time_zone = get('/time')["timezone"]
+        ntp_status = get('/time')["daemon"]
         ntp_status = 'Yes' if ntp_status else 'No'
         product_key, = get('/licenses/product').keys()
-        dns = get('/network/dns')['servers']
-        default_gateway = get('/network/default-gateway')['interface']
+        dns = get('/network/dns')["servers"]
+        default_gateway = get('/network/default-gateway')["interface"]
         key_name={"strg":"Storage extension key",
                   "ha_rd":"Advanced HA Metro Cluster",
                   "ha_aa":"Standard HA Cluster"}
