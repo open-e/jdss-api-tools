@@ -16,7 +16,7 @@ set_time                      	network                       	create_bond
 delete_bond                   	bind_cluster                  	add_ring
 set_ping_nodes                	set_mirror_path               	create_vip
 start_cluster                 	stop_cluster                  	move
-info                          	list_snapshot                 	shutdown
+info                          	list_snapshots                	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	export
 </pre>
@@ -639,7 +639,7 @@ set_time                      	network                       	create_bond
 delete_bond                   	bind_cluster                  	add_ring
 set_ping_nodes                	set_mirror_path               	create_vip
 start_cluster                 	stop_cluster                  	move
-info                          	list_snapshot                 	shutdown
+info                          	list_snapshots                	shutdown
 reboot                        	batch_setup                   	create_factory_setup_files
 activate                      	import                        	export
 </pre>

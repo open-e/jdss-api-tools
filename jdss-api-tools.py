@@ -1311,7 +1311,7 @@ def get_args(batch_args_line=None):
         dest='all_snapshots',
         action='store_true',
         default=False,
-        help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only'
+        help='This option will list all snapshots, otherwise the info command will show most recent snapshot only'
     )
     parser.add_argument(
         '--online',
@@ -3674,17 +3674,17 @@ def info():
         fields = ('name', 'size',     'available',     'health', 'iostats' )
         print_pools_details(header,fields)
 
-        ## PRINT ZVOLs DETAILS
-        header= ('san_volume',    'size', 'used', 'available',        'block', 'sync', 'compressratio', 'dedup' )
-        fields= ('full_name', 'volsize', 'used', 'available', 'volblocksize', 'sync', 'compressratio', 'dedup' )
-        print_volumes_details(header,fields)
-
         ## PRINT DATASETs DETAILS
         header= ('nas_volume', 'recordsize', 'sync', 'compression',  'dedup')
         fields= ('full_name', 'recordsize', 'sync', 'compression',  'dedup')
         print_nas_volumes_details(header,fields)
 
-        ## PRINT NAS SNAPs DETAILS
+        ## PRINT ZVOLs DETAILS
+        header= ('san_volume',    'size', 'used', 'available',        'block', 'sync', 'compressratio', 'dedup' )
+        fields= ('full_name', 'volsize', 'used', 'available', 'volblocksize', 'sync', 'compressratio', 'dedup' )
+        print_volumes_details(header,fields)
+
+        ## PRINT DATASETs (NAS) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(nas_volume)', 'referenced','written','age')
         else:
@@ -3692,7 +3692,7 @@ def info():
         fields= ('name', 'referenced','written','age')
         print_nas_snapshots_details(header,fields)
 
-        ## PRINT SAN SNAPs DETAILS
+        ## PRINT ZVOLs (SAN) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(san_volume)', 'referenced','written','age')
         else:
@@ -3713,7 +3713,7 @@ def list_snapshots():
         host_name = get('/product')["host_name"]
         print(f"{'Host name':>30}:\t{host_name}")
 
-        ## PRINT NAS SNAPs DETAILS
+        ## PRINT DATASETs (NAS) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(nas_volume)', 'referenced','written','age')
         else:
@@ -3721,7 +3721,7 @@ def list_snapshots():
         fields= ('name', 'referenced','written','age')
         print_nas_snapshots_details(header,fields)
 
-        ## PRINT SAN SNAPs DETAILS
+        ## PRINT ZVOLs (SAN) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(san_volume)', 'referenced','written','age')
         else:
