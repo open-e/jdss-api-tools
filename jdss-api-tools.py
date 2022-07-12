@@ -103,6 +103,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-02-09  fix forced reboot & shutdown
 2022-02-18  fix move function
 2022-05-03  add stop cluster
+2022-07-22  add remove_disk_from_pool
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -676,6 +677,13 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Remove (delete) disk form pool{END}.
+
+    Only spare, single log and cache disks can be removed from pool.
+
+    {LG}%(prog)s remove_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
+
+
 {} {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
@@ -856,9 +864,10 @@ def get_args(batch_args_line=None):
         'cmd',
         metavar='command',
          choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
-                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool delete_clone delete_clones  \
-                    delete_snapshots delete_clone_existing_snapshot set_host set_time network create_bond delete_bond               \
-                    bind_cluster add_ring set_ping_nodes set_mirror_path create_vip start_cluster stop_cluster move info            \
+                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool remove_disk_from_pool       \
+                    delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
+                    create_bond delete_bond bind_cluster add_ring set_ping_nodes set_mirror_path                                    \
+                    create_vip start_cluster stop_cluster move info                                                                 \
                     list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
         help='Commands:   %(choices)s.'
     )
@@ -1369,12 +1378,13 @@ def get_args(batch_args_line=None):
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
+    test_command_line = 'remove_disk_from_pool --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
-    test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
+    #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
@@ -4235,6 +4245,25 @@ def detach_disk_from_pool(ignore_error=None):
         print_with_timestamp(f"Disk: {disk_wwn} has been successfully detached from pool {pool_name}")
 
 
+def remove_disk_from_pool(ignore_error=None):
+
+    global node
+    global action_message
+    action_message = f"Sending remove (delete) disk from pool request to: {node}"
+
+    for node in nodes:
+        # DELETE/pools/<string:poolname>/disks/<string:disk_id>
+        endpoint = f"/pools/{pool_name}/disks/{disk_wwn}"
+        ## DELETE
+        delete(endpoint,None)
+        if error:
+            if ignore_error is None:
+                print_with_timestamp(f"{error}")
+                sys_exit_with_timestamp(f"Error: Cannot remove disk: {disk_wwn} from {pool_name} on node: {node}")
+
+        print_with_timestamp(f"Disk: {disk_wwn} has been successfully removed from pool {pool_name}")
+
+
 def attach_clone_to_target(ignore_error=None):
     global node
     for node in nodes:
@@ -4661,6 +4690,12 @@ def command_processor() :
         if args_count < 2:
             sys_exit_with_timestamp(f"Error: detach command expects (pool, disk_wwn), {args_count} provided")
         detach_disk_from_pool()
+
+    elif action == 'remove_disk_from_pool':
+        args_count = count_provided_args( pool_name, disk_wwn)   ## if all provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: remove disk command expects (pool, disk_wwn), {args_count} provided")
+        remove_disk_from_pool()
 
     elif action == 'modify_volume':
         args_count = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), args_count must be equal 3
