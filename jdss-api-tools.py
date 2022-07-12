@@ -104,6 +104,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-02-18  fix move function
 2022-05-03  add stop cluster
 2022-07-22  add remove_disk_from_pool
+2022-07-22  add add_read_cache_disk
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -684,6 +685,14 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s remove_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
 
 
+{} {BOLD}Add read cache disk to pool{END}.
+
+    Only single read cache disk can be add a time.
+
+    {LG}%(prog)s add_read_cache_disk --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
+
+
+
 {} {BOLD}Scrub{END} start|stop|status.
 
     Scrub all pools. If the node belongs to cluster, scrub all pools in cluster.
@@ -864,7 +873,8 @@ def get_args(batch_args_line=None):
         'cmd',
         metavar='command',
          choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
-                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target detach_disk_from_pool remove_disk_from_pool       \
+                    attach_volume_to_iscsi_target detach_volume_from_iscsi_target                                                   \
+                    detach_disk_from_pool remove_disk_from_pool add_read_cache_disk                                                 \
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
                     create_bond delete_bond bind_cluster add_ring set_ping_nodes set_mirror_path                                    \
                     create_vip start_cluster stop_cluster move info                                                                 \
@@ -1378,7 +1388,10 @@ def get_args(batch_args_line=None):
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
+
     #test_command_line = 'remove_disk_from_pool --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
+    #test_command_line = 'add_read_cache_disk --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
+
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
@@ -3880,6 +3893,24 @@ def create_pool(pool_name,vdev_type,jbods):
         sys_exit_with_timestamp(f"Error: Cannot create {pool_name}")
 
 
+def add_read_cache_disk(pool_name,disk_wwn):
+    if pool_name not in get_pools_names():
+        sys_exit_with_timestamp(f"Error: {pool_name} not present on node {node}")
+
+    vdev_type = 'cache'
+    print_with_timestamp("Adding read cache. Please wait ...")
+
+    # POST/pools/<string:poolname>/vdevs
+    endpoint = f'/pools/{pool_name}/vdevs'
+    data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=[disk_wwn])])
+    # P O S T
+    ret =post(endpoint,data)
+    if ret == '' and error == 0:
+        print_with_timestamp(f"New read cache disk addded to pool: {pool_name}")
+    else:
+        print_with_timestamp(f"Error while adding cache disk to pool: {pool_name}")
+
+
 def create_volume(vol_type):
     global sync
     ## POST
@@ -4696,6 +4727,12 @@ def command_processor() :
         if args_count < 2:
             sys_exit_with_timestamp(f"Error: remove disk command expects (pool, disk_wwn), {args_count} provided")
         remove_disk_from_pool()
+
+    elif action == 'add_read_cache_disk':
+        args_count = count_provided_args( pool_name, disk_wwn)   ## if all provided (not None), args_count must be equal 2
+        if args_count < 2:
+            sys_exit_with_timestamp(f"Error: add read cache disk command expects (pool, disk_wwn), {args_count} provided")
+        add_read_cache_disk(pool_name,disk_wwn)
 
     elif action == 'modify_volume':
         args_count = count_provided_args( pool_name, volume_name, sync )   ## if all provided (not None), args_count must be equal 3
