@@ -105,6 +105,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-05-03  add stop cluster
 2022-07-22  add remove_disk_from_pool
 2022-07-22  add add_read_cache_disk
+2022-07-28  add list_snapshots options: all_dataset_snapshots, all_zvol_snapshots
 """
 
 import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -796,13 +797,12 @@ def get_args(batch_args_line=None):
 
     The list_snapshots command lists only the most recent snapshots.
     In order to list all snapshots use --all_snapshots option,
+    In order to list all dataset (NAS) snapshots use --all_dataset_snapshots option,
+    In order to list all zvol (SAN) snapshots use --all_zvol_snapshots option,
 
     {LG}%(prog)s list_snapshots --all_snapshots --node 192.168.0.220{ENDF}
-
-    or just --all.
-
-    {LG}%(prog)s list_snapshots --all --node 192.168.0.220{ENDF}
-
+    {LG}%(prog)s list_snapshots --all_dataset_snapshots --node 192.168.0.220{ENDF}
+    {LG}%(prog)s list_snapshots --all_zvol_snapshots --node 192.168.0.220{ENDF}
 
     Note: If you want complete system information, please use the info command instead.
 
@@ -1333,6 +1333,20 @@ def get_args(batch_args_line=None):
         help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only'
     )
     parser.add_argument(
+        '--all_dataset_snapshots',
+        dest='all_dataset_snapshots',
+        action='store_true',
+        default=False,
+        help='The info command will list all dataset snapshots (skipping zvol snapshots), otherwise the info command will show all most recent snapshot only'
+    )
+    parser.add_argument(
+        '--all_zvol_snapshots',
+        dest='all_zvol_snapshots',
+        action='store_true',
+        default=False,
+        help='The info command will list all zvol snapshots (skipping dataset snapshots), otherwise the info command will show all most recent snapshot only'
+    )
+    parser.add_argument(
         '--online',
         dest='online',
         action='store_true',
@@ -1439,7 +1453,7 @@ def get_args(batch_args_line=None):
     #global cluster_pool_names
     global target_name, cluster_name, quantity, start_with, zvols_per_target, increment, scrub_action
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute, setup_files
-    global all_snapshots, online
+    global all_snapshots, all_dataset_snapshots, all_zvol_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
     global to_print_timestamp_msg
 
@@ -1551,7 +1565,11 @@ def get_args(batch_args_line=None):
     menu                        = args['menu']
     setup_files                 = args['setup_files']
     all_snapshots               = args['all_snapshots']
-
+    all_dataset_snapshots       = args['all_dataset_snapshots']
+    all_zvol_snapshots          = args['all_zvol_snapshots']
+    all_snapshots               = True if all_dataset_snapshots or all_zvol_snapshots else all_snapshots
+                                  # setting all_snapshots to true if other params nee less checks,
+                                  # if not all_snapshots, only most recent are listed
     online                      = args['online']
 
     force                       = args['force']
@@ -3732,7 +3750,8 @@ def list_snapshots():
 
     for node in nodes:
         ## GET
-        action_message = f"Listing snapshots from: {node}"
+        snap_range_txt = 'Datasets ' if all_dataset_snapshots else 'zvol ' if all_zvol_snapshots else 'all ' if all_snapshots else ''
+        action_message = f"Listing {snap_range_txt}snapshots from: {node}"
         host_name = get('/product')["host_name"]
         print(f"{'Host name':>30}:\t{host_name}")
 
@@ -3742,7 +3761,8 @@ def list_snapshots():
         else:
             header= ('the_most_recent_snapshot_(nas_volume)', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
-        print_nas_snapshots_details(header,fields)
+        if not all_zvol_snapshots:
+            print_nas_snapshots_details(header,fields)
 
         ## PRINT SAN SNAPs DETAILS
         if all_snapshots:
@@ -3750,7 +3770,8 @@ def list_snapshots():
         else:
             header= ('the_most_recent_snapshot_(san_volume)', 'referenced','written','age')
         fields= ('name', 'referenced','written','age')
-        print_san_snapshots_details(header,fields)
+        if not all_dataset_snapshots:
+            print_san_snapshots_details(header,fields)
 
 
 def get_pool_details(node, pool_name):

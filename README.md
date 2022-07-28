@@ -582,13 +582,12 @@ import                        	export                        	</pre>
 
     The list_snapshots command lists only the most recent snapshots.
     In order to list all snapshots use --all_snapshots option,
+    In order to list all dataset (NAS) snapshots use --all_dataset_snapshots option,
+    In order to list all zvol (SAN) snapshots use --all_zvol_snapshots option,
 
         jdss-api-tools.exe list_snapshots --all_snapshots --node 192.168.0.220
-
-    or just --all.
-
-        jdss-api-tools.exe list_snapshots --all --node 192.168.0.220
-
+        jdss-api-tools.exe list_snapshots --all_dataset_snapshots --node 192.168.0.220
+        jdss-api-tools.exe list_snapshots --all_zvol_snapshots --node 192.168.0.220
 
     Note: If you want complete system information, please use the info command instead.
 
