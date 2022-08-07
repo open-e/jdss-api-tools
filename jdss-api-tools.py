@@ -2415,29 +2415,22 @@ def print_nas_snapshots_details(header,fields):
             continue            ## SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
-            if not snapshots or not snapshots['results'] or snapshots['results']== 0:
-                continue
+            if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
-                ## convert list of properties into dict of name:values
-                try:
-                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional
-                except:
-                    property_dict = False
-
                 for i,field in enumerate(fields):
                     value = '-'
                     if field in ('name',):
                         value = snapshot_name
-                    elif field in ('referenced',):
-                        value = property_dict['referenced'] if property_dict else snapshot['referenced']
-                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
-                    elif field in ('written',):
-                        value = property_dict['written'] if property_dict else snapshot['written']
-                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
                         value = 'xx minutes' ## fake value as only few snaps are checked in the loop
+                    else:
+                        value = snapshot[field]
+                        if value in ('None',):
+                            value = '-'
+                        elif str.isdigit(str(value)):
+                            value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     current_max_field_length = max(len(header[i]), len(value))
                     if current_max_field_length > fields_length[field]:
                         fields_length[field] = current_max_field_length
@@ -2460,41 +2453,27 @@ def print_nas_snapshots_details(header,fields):
             for snapshot in snapshots['entries']:
                 snapshot_details = []
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
-                ## convert list of properties into dict of name:values
-                #property_dict = {item['name']:item['value'] for item in snapshot['properties']}
-                try:
-                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional
-                except:
-                    property_dict = False
-
                 for field in fields:
                     value = '-'
                     if field in ('name',):
                         value = snapshot_name
-                    elif field in ('referenced',):
-                        value = property_dict['referenced'] if property_dict else snapshot['referenced']
-                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
-                    elif field in ('written',):
-                        value = property_dict['written'] if property_dict else snapshot['written']
-                        value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     elif field in ('age',):
-                        time_stamp_string = snapshot_name.split('_')[-1]
-                        #value = seconds2human(snapshot_creation_to_seconds(time_stamp_string))
-                        value = seconds2human(snapshot_creation_to_seconds(property_dict['creation'] if property_dict else snapshot['creation']))
-                        try:
-                            source_plan = property_dict['org.znapzend:src_plan'] if property_dict else snapshot['org.znapzend:src_plan']
-                        except:
-                            source_plan = False
-                        if source_plan:
-                            plan = source_plan
-                        else:
-                            plan = ""
+                        value = seconds2human(snapshot_creation_to_seconds(snapshot['creation']))
+                    else:
+                        value = snapshot[field]
+                        if value in ('None',):
+                            value = '-'
+                        elif str.isdigit(str(value)):
+                            value = bytes2human(value, format='%(value).0f%(symbol)s', symbols='customary')
                     snapshot_details.append(value)
-            print_out = field_format_template.format(*snapshot_details)
-            if all_snapshots:
+                if snapshot_details:
+                    print_out = field_format_template.format(*snapshot_details)
+                    if all_snapshots:
+                        print(print_out)
+            if not all_snapshots:
                 print(print_out)
-        if not all_snapshots:
-            print(print_out)
+            if all_snapshots:
+                print()
         fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
 
