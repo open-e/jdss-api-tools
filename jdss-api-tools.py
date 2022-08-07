@@ -666,12 +666,12 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
 
 
-{} {BOLD}Detach volume form iSCSI target{END}.
+{} {BOLD}Detach volume from iSCSI target{END}.
 
     {LG}%(prog)s detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220{ENDF}
 
 
-{} {BOLD}Detach disk form pool{END}.
+{} {BOLD}Detach disk from pool{END}.
 
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
@@ -679,7 +679,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
 
 
-{} {BOLD}Remove (delete) disk form pool{END}.
+{} {BOLD}Remove (delete) disk from pool{END}.
 
     Only spare, single log and cache disks can be removed from pool.
 
@@ -691,7 +691,6 @@ def get_args(batch_args_line=None):
     Only single read cache disk can be add a time.
 
     {LG}%(prog)s add_read_cache_disk --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220{ENDF}
-
 
 
 {} {BOLD}Scrub{END} start|stop|status.
@@ -803,6 +802,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s list_snapshots --all_snapshots --node 192.168.0.220{ENDF}
     {LG}%(prog)s list_snapshots --all_dataset_snapshots --node 192.168.0.220{ENDF}
     {LG}%(prog)s list_snapshots --all_zvol_snapshots --node 192.168.0.220{ENDF}
+
 
     Note: If you want complete system information, please use the info command instead.
 
@@ -1330,21 +1330,21 @@ def get_args(batch_args_line=None):
         dest='all_snapshots',
         action='store_true',
         default=False,
-        help='The info command will list all snapshots, otherwise the info command will show most recent snapshot only'
+        help='This option will list all snapshots, otherwise the info command will show most recent snapshot only'
     )
     parser.add_argument(
         '--all_dataset_snapshots',
         dest='all_dataset_snapshots',
         action='store_true',
         default=False,
-        help='The info command will list all dataset snapshots (skipping zvol snapshots), otherwise the info command will show all most recent snapshot only'
+        help='This option will list all dataset snapshots (skipping zvol snapshots), otherwise the info command will show most recent snapshot for both datasets and zvols only'
     )
     parser.add_argument(
         '--all_zvol_snapshots',
         dest='all_zvol_snapshots',
         action='store_true',
         default=False,
-        help='The info command will list all zvol snapshots (skipping dataset snapshots), otherwise the info command will show all most recent snapshot only'
+        help='This option will list all zvol snapshots (skipping dataset snapshots), otherwise the info command will show most recent snapshot for both datasets and zvols only'
     )
     parser.add_argument(
         '--online',
@@ -1402,10 +1402,8 @@ def get_args(batch_args_line=None):
     #test_command_line = 'delete_snapshots --pool Pool-0 --volume zvol100 --older_than 20min --delay 10 --node 192.168.0.80'
     #test_command_line = 'set_mirror_path --mirror_nics bond1 bond1 --node 192.168.0.80'
     #test_command_line = 'detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x500003948833b740 --node 192.168.0.80'
-
     #test_command_line = 'remove_disk_from_pool --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
     #test_command_line = 'add_read_cache_disk --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
-
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
@@ -1568,7 +1566,7 @@ def get_args(batch_args_line=None):
     all_dataset_snapshots       = args['all_dataset_snapshots']
     all_zvol_snapshots          = args['all_zvol_snapshots']
     all_snapshots               = True if all_dataset_snapshots or all_zvol_snapshots else all_snapshots
-                                  # setting all_snapshots to true if other params nee less checks,
+                                  # setting all_snapshots to true if other params need less checks,
                                   # if not all_snapshots, only most recent are listed
     online                      = args['online']
 
@@ -2414,7 +2412,7 @@ def print_nas_snapshots_details(header,fields):
         pool_name = pool['name']
         nas_volumes = get_nas_volumes_names()
         if not nas_volumes:
-            continue    ## SKIP if no vol
+            continue            ## SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
             if not snapshots or not snapshots['results'] or snapshots['results']== 0:
@@ -2424,7 +2422,7 @@ def print_nas_snapshots_details(header,fields):
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
                 ## convert list of properties into dict of name:values
                 try:
-                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional.
+                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional
                 except:
                     property_dict = False
 
@@ -2443,7 +2441,8 @@ def print_nas_snapshots_details(header,fields):
                     current_max_field_length = max(len(header[i]), len(value))
                     if current_max_field_length > fields_length[field]:
                         fields_length[field] = current_max_field_length
-        if not snapshot_exist: continue     ## SKIP if no snap
+        if not snapshot_exist:
+            continue            ##  SKIP if no snap
         if not is_field_separator_added:
             fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
@@ -2464,10 +2463,10 @@ def print_nas_snapshots_details(header,fields):
                 ## convert list of properties into dict of name:values
                 #property_dict = {item['name']:item['value'] for item in snapshot['properties']}
                 try:
-                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ##properties list is optional.
+                    property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional
                 except:
                     property_dict = False
-                    
+
                 for field in fields:
                     value = '-'
                     if field in ('name',):
@@ -3715,17 +3714,17 @@ def info():
         fields = ('name', 'size',     'available',     'health', 'iostats' )
         print_pools_details(header,fields)
 
-        ## PRINT ZVOLs DETAILS
-        header= ('san_volume',    'size', 'used', 'available',        'block', 'sync', 'compressratio', 'dedup' )
-        fields= ('full_name', 'volsize', 'used', 'available', 'volblocksize', 'sync', 'compressratio', 'dedup' )
-        print_volumes_details(header,fields)
-
         ## PRINT DATASETs DETAILS
         header= ('nas_volume', 'recordsize', 'sync', 'compression',  'dedup')
         fields= ('full_name', 'recordsize', 'sync', 'compression',  'dedup')
         print_nas_volumes_details(header,fields)
 
-        ## PRINT NAS SNAPs DETAILS
+        ## PRINT ZVOLs DETAILS
+        header= ('san_volume',    'size', 'used', 'available',        'block', 'sync', 'compressratio', 'dedup' )
+        fields= ('full_name', 'volsize', 'used', 'available', 'volblocksize', 'sync', 'compressratio', 'dedup' )
+        print_volumes_details(header,fields)
+
+        ## PRINT DATASETs (NAS) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(nas_volume)', 'referenced','written','age')
         else:
@@ -3733,7 +3732,7 @@ def info():
         fields= ('name', 'referenced','written','age')
         print_nas_snapshots_details(header,fields)
 
-        ## PRINT SAN SNAPs DETAILS
+        ## PRINT ZVOLs (SAN) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(san_volume)', 'referenced','written','age')
         else:
@@ -3755,7 +3754,7 @@ def list_snapshots():
         host_name = get('/product')["host_name"]
         print(f"{'Host name':>30}:\t{host_name}")
 
-        ## PRINT NAS SNAPs DETAILS
+        ## PRINT DATASETs (NAS) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(nas_volume)', 'referenced','written','age')
         else:
@@ -3764,7 +3763,7 @@ def list_snapshots():
         if not all_zvol_snapshots:
             print_nas_snapshots_details(header,fields)
 
-        ## PRINT SAN SNAPs DETAILS
+        ## PRINT ZVOLs (SAN) SNAPs DETAILS
         if all_snapshots:
             header= ('snapshot_(san_volume)', 'referenced','written','age')
         else:
@@ -4298,7 +4297,6 @@ def detach_disk_from_pool(ignore_error=None):
 
 
 def remove_disk_from_pool(ignore_error=None):
-
     global node
     global action_message
     action_message = f"Sending remove (delete) disk from pool request to: {node}"

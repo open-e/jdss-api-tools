@@ -7,7 +7,8 @@
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from_iscsi_target
 detach_disk_from_pool         	remove_disk_from_pool         	add_read_cache_disk
@@ -19,7 +20,9 @@ set_mirror_path               	create_vip                    	start_cluster
 stop_cluster                  	move                          	info
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
+import                        	export
+</pre>
+
 
 <b>Commands description:</b>
 
@@ -39,6 +42,7 @@ import                        	export                        	</pre>
 
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220
+
 
     <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
@@ -451,12 +455,12 @@ import                        	export                        	</pre>
         jdss-api-tools.exe attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-26. <b>Detach volume form iSCSI target</b>.
+26. <b>Detach volume from iSCSI target</b>.
 
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-27. <b>Detach disk form pool</b>.
+27. <b>Detach disk from pool</b>.
 
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
@@ -464,7 +468,7 @@ import                        	export                        	</pre>
         jdss-api-tools.exe detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
 
 
-28. <b>Remove (delete) disk form pool</b>.
+28. <b>Remove (delete) disk from pool</b>.
 
     Only spare, single log and cache disks can be removed from pool.
 
@@ -476,7 +480,6 @@ import                        	export                        	</pre>
     Only single read cache disk can be add a time.
 
         jdss-api-tools.exe add_read_cache_disk --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
-
 
 
 30. <b>Scrub</b> start|stop|status.
@@ -584,14 +587,14 @@ import                        	export                        	</pre>
     In order to list all snapshots use --all_snapshots option,
     In order to list all dataset (NAS) snapshots use --all_dataset_snapshots option,
     In order to list all zvol (SAN) snapshots use --all_zvol_snapshots option,
-
         jdss-api-tools.exe list_snapshots --all_snapshots --node 192.168.0.220
         jdss-api-tools.exe list_snapshots --all_dataset_snapshots --node 192.168.0.220
         jdss-api-tools.exe list_snapshots --all_zvol_snapshots --node 192.168.0.220
 
+
     Note: If you want complete system information, please use the info command instead.
 
-########################################################################################
+#######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
@@ -615,18 +618,19 @@ import                        	export                        	</pre>
 
  Missing Python modules need to be installed with pip, e.g.:
 
-    C:\Python\Scripts>pip install ipcalc
-    C:\Python\Scripts>pip install ping3
-    C:\Python\Scripts>pip install colorama
-    C:\Python\Scripts>pip install requests
+	C:\Python\Scripts>pip install ipcalc
+	C:\Python\Scripts>pip install ping3
+	C:\Python\Scripts>pip install colorama
+	C:\Python\Scripts>pip install requests
     ...
 
  NOTE:
  Some modules may requrie MS Visual Studio:
  https://visualstudio.microsoft.com/downloads
+
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-########################################################################################
+#######################################################################################
 
 <b>Get help:</b>
 
@@ -641,7 +645,8 @@ import                        	export                        	</pre>
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 scrub                         	set_scrub_scheduler           	create_storage_resource
 modify_volume                 	attach_volume_to_iscsi_target 	detach_volume_from_iscsi_target
 detach_disk_from_pool         	remove_disk_from_pool         	add_read_cache_disk
@@ -653,6 +658,5 @@ set_mirror_path               	create_vip                    	start_cluster
 stop_cluster                  	move                          	info
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
- 
- 
+import                        	export
+</pre>
