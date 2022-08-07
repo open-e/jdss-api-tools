@@ -3749,7 +3749,7 @@ def list_snapshots():
 
     for node in nodes:
         ## GET
-        snap_range_txt = 'Datasets ' if all_dataset_snapshots else 'zvol ' if all_zvol_snapshots else 'all ' if all_snapshots else ''
+        snap_range_txt = 'dataset ' if all_dataset_snapshots else 'zvol ' if all_zvol_snapshots else 'all ' if all_snapshots else ''
         action_message = f"Listing {snap_range_txt}snapshots from: {node}"
         host_name = get('/product')["host_name"]
         print(f"{'Host name':>30}:\t{host_name}")
