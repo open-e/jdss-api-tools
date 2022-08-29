@@ -787,14 +787,14 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s download_settings --directory c:\downloads --nodes 192.168.0.220 192.168.0.221{ENDF}
 
     It generates current system settings and download to provided directory.
-    More then one node is supported.
-    if the --directory option is mising, the settings file will be saved in the current directory.
-
+    More than one node is supported. if the --directory option is missing,
+    the settings file will be saved in the current directory.
+    
     {LG}%(prog)s download_settings --keep_settings --node 192.168.0.220{ENDF}
 
-    The just generated and downloaded settngs are NOT preserved in the storage node by default.
-    The just generated and downloaded settngs will be preseved if --keep_settings option is provided.
-    
+    The just generated and downloaded settings are NOT preserved in the storage node by default.
+    The just generated and downloaded settings will be preserved if --keep_settings option is provided.
+
 
 {} {BOLD}Print system info{END}.
 
