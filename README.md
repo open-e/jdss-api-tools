@@ -17,9 +17,10 @@ network                       	create_bond                   	delete_bond
 bind_cluster                  	add_ring                      	set_ping_nodes
 set_mirror_path               	create_vip                    	start_cluster
 stop_cluster                  	move                          	info
-list_snapshots                	shutdown                      	reboot
-batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
+download_settings             	list_snapshots                	shutdown
+reboot                        	batch_setup                   	create_factory_setup_files
+activate                      	import                        	export
+</pre>
 
 <b>Commands description:</b>
 
@@ -365,7 +366,7 @@ import                        	export                        	</pre>
 
 23. <b>Create storage resource</b>. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
-    Defaults are: size = 1TB, blocksize = 128KB, recordsize = 1MB, provisioning = thin, volume = auto, target = auto, share_name = auto.
+    Defaults are: size = 1TB, blocksize = 16KB, recordsize = 1MB, provisioning = thin, volume = auto, target = auto, share_name = auto.
     The blocksize or recordsize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB.
 
     Example for iSCSI target with specified volume, target, size, blocksize and provisioning.
@@ -562,7 +563,21 @@ import                        	export                        	</pre>
     Note: The off-line activation is not implemented yet.
 
 
-35. <b>Print system info</b>.
+35. <b>Download current system settings</b>.
+
+        jdss-api-tools.exe download_settings --directory c:\downloads --nodes 192.168.0.220 192.168.0.221
+
+    It generates current system settings and download to provided directory.
+    More then one node is supported.
+    if the --directory option is mising, the settings file will be saved in the current directory.
+
+        jdss-api-tools.exe download_settings --keep_settings --node 192.168.0.220
+
+    The just generated and downloaded settngs are NOT preserved in the storage node by default.
+    The just generated and downloaded settngs will be preseved if --keep_settings option is provided.
+    
+
+36. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -576,7 +591,7 @@ import                        	export                        	</pre>
         jdss-api-tools.exe info --all --node 192.168.0.220
 
 
-36. <b>Print only snapshot info</b>.
+37. <b>Print only snapshot info</b>.
 
         jdss-api-tools.exe list_snapshots --node 192.168.0.220
 
@@ -651,8 +666,9 @@ network                       	create_bond                   	delete_bond
 bind_cluster                  	add_ring                      	set_ping_nodes
 set_mirror_path               	create_vip                    	start_cluster
 stop_cluster                  	move                          	info
-list_snapshots                	shutdown                      	reboot
-batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
+download_settings             	list_snapshots                	shutdown
+reboot                        	batch_setup                   	create_factory_setup_files
+activate                      	import                        	export
+</pre>
  
  

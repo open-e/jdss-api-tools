@@ -106,9 +106,10 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-07-22  add remove_disk_from_pool
 2022-07-22  add add_read_cache_disk
 2022-07-28  add list_snapshots options: all_dataset_snapshots, all_zvol_snapshots
+2022-08-22  add download settings, change volblocksize default to 16k
 """
 
-import sys, re, time, string, datetime, argparse, ping3, requests, urllib3
+import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
 from colorama import init, Fore, Style
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -168,7 +169,11 @@ def call_requests(method,endpoint,data = None):
                  POST   = requests.post,
                  DELETE = requests.delete)[method](url=f"https://{node}:{api_port}/{api_version.lstrip('/')}/{endpoint.lstrip('/')}",
                                                    json=data, auth=(api_user, api_password), timeout=api_timeout, verify=False)
-        response = r.json()['data']
+
+        if endpoint.strip('/').startswith('settings') and endpoint.endswith('.cnf'): # binary output for download settings
+            response = r.content
+        else:
+            response = r.json()['data']        # json output
         error_message = str(r.json()['error']['message'])
         http_code = r.status_code
     except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
@@ -580,7 +585,7 @@ def get_args(batch_args_line=None):
 
 {} {BOLD}Create storage resource{END}. Creates iSCSI target with volume (zvol) or SMB/NFS share with dataset.
 
-    Defaults are: size = 1TB, blocksize = 128KB, recordsize = 1MB, provisioning = thin, volume = auto, target = auto, share_name = auto.
+    Defaults are: size = 1TB, blocksize = 16KB, recordsize = 1MB, provisioning = thin, volume = auto, target = auto, share_name = auto.
     The blocksize or recordsize can be: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB.
 
     Example for iSCSI target with specified volume, target, size, blocksize and provisioning.
@@ -777,6 +782,20 @@ def get_args(batch_args_line=None):
     Note: The off-line activation is not implemented yet.
 
 
+{} {BOLD}Download current system settings{END}.
+
+    {LG}%(prog)s download_settings --directory c:\downloads --nodes 192.168.0.220 192.168.0.221{ENDF}
+
+    It generates current system settings and download to provided directory.
+    More then one node is supported.
+    if the --directory option is mising, the settings file will be saved in the current directory.
+
+    {LG}%(prog)s download_settings --keep_settings --node 192.168.0.220{ENDF}
+
+    The just generated and downloaded settngs are NOT preserved in the storage node by default.
+    The just generated and downloaded settngs will be preseved if --keep_settings option is provided.
+    
+
 {} {BOLD}Print system info{END}.
 
     {LG}%(prog)s info --node 192.168.0.220{ENDF}
@@ -877,7 +896,7 @@ def get_args(batch_args_line=None):
                     detach_disk_from_pool remove_disk_from_pool add_read_cache_disk                                                 \
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
                     create_bond delete_bond bind_cluster add_ring set_ping_nodes set_mirror_path                                    \
-                    create_vip start_cluster stop_cluster move info                                                                 \
+                    create_vip start_cluster stop_cluster move info download_settings                                               \
                     list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
         help='Commands:   %(choices)s.'
     )
@@ -934,8 +953,8 @@ def get_args(batch_args_line=None):
     parser.add_argument(
         '--blocksize',
         metavar='size',
-        default='128KB',
-        help='Enter SAN (zvol) blocksize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB. Default=128KB'
+        default='16KB',
+        help='Enter SAN (zvol) blocksize: 4KB, 8KB, 16KB, 32KB, 64KB, 128KB, 256KB, 512KB, 1MB. Default=16KB'
     )
     parser.add_argument(
         '--recordsize',
@@ -1360,6 +1379,18 @@ def get_args(batch_args_line=None):
         help='Force action'
     )
     parser.add_argument(
+        '--directory',
+        metavar='directory',
+        default='',
+        help='Enter the directory where the settings file will be saved. Default is current directory'
+    )
+    parser.add_argument(
+        '--keep_settings',
+        action='store_true',
+        default=False,
+        help='Keep just generated and downloaded settings in the system'
+    )
+    parser.add_argument(
         '--recovery_import',
         dest='recovery_import',
         action='store_true',
@@ -1410,6 +1441,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'start_cluster --node 192.168.0.82'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
+    test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
@@ -1455,7 +1487,7 @@ def get_args(batch_args_line=None):
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute, setup_files
     global all_snapshots, all_dataset_snapshots, all_zvol_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
-    global to_print_timestamp_msg
+    global to_print_timestamp_msg, keep_settings, directory
 
     api_port                    = args['port']
     api_user                    = args['user']
@@ -1571,6 +1603,9 @@ def get_args(batch_args_line=None):
                                   # setting all_snapshots to true if other params nee less checks,
                                   # if not all_snapshots, only most recent are listed
     online                      = args['online']
+
+    directory                   = args['directory']
+    keep_settings               = args['keep_settings']
 
     force                       = args['force']
     recovery_import             = args['recovery_import']
@@ -2908,9 +2943,12 @@ def unmanaged_pools():
         return [item['name'] for item in result if not item['managed']]
     return []
 
+def get_host_name():
+    return get('/product')["host_name"]
 
 def generate_iscsi_target_and_volume_name(pool_name):
-    host_name = get('/product')["host_name"]
+#    host_name = get('/product')["host_name"]
+    host_name = get_host_name()
     if cluster_name:
         host_name = cluster_name
     consecutive_integer_tuple = next(pool_based_consecutive_number_generator[pool_name])
@@ -3655,13 +3693,14 @@ def info():
     for node in nodes:
         ## GET
         action_message = f"Reading setup details from: {node}"
-        version = get('/product')["header"]
-        serial_number = get('/product')["serial_number"]
+        product_dict = get('/product')
+        version = product_dict.get("header") if product_dict.get("header") else product_dict.get("version_name")
+        serial_number = product_dict["serial_number"]
         serial_number = f"{serial_number} TRIAL" if serial_number.startswith('T') else serial_number
-        storage_capacity = get('/product')["storage_capacity"]     ## -1  means Unlimited
+        storage_capacity = product_dict["storage_capacity"]     ## -1  means Unlimited
         storage_capacity = int(storage_capacity/pow(1024,4)) if storage_capacity > -1 else "Unlimited"
-        server_name = get('/product')["server_name"]
-        host_name = get('/product')["host_name"]
+        server_name = product_dict["server_name"]
+        host_name = product_dict["host_name"]
         current_system_time = get('/time')["timestamp"]
         system_time = datetime.datetime.fromtimestamp(current_system_time).strftime('%Y-%m-%d %H:%M:%S')
         time_zone = get('/time')["timezone"]
@@ -3742,6 +3781,32 @@ def info():
         print_san_snapshots_details(header,fields)
 
 
+
+def download_settings():
+    ''' Download system settings and save into file in provided directory
+    '''
+    global node
+    global action_message
+
+    for node in nodes:
+        action_message = f"Downloading settings from node: {node}"
+        endpoint = '/settings/save'
+        data = dict(system=True, storage=True)
+        settings_file_name = post(endpoint,data)
+        host_name = get_host_name()
+        endpoint = '/settings/{}'.format(settings_file_name)
+        # downnload settings
+        content = get(endpoint)
+        # delete just generated settings
+        if not keep_settings:
+            delete(endpoint)
+        settings_file_name = '{}_{}'.format(host_name,settings_file_name)
+        settings_file_name = os.path.join(directory,settings_file_name)
+        with open(settings_file_name,'wb') as settings_file:
+            settings_file.write(content)
+            print_with_timestamp(f"Settings from node: {node} saved into: {settings_file_name}")
+
+    
 def list_snapshots():
     ''' Pools
     '''
@@ -4541,7 +4606,7 @@ def read_jbods_and_create_pool(choice='0'):
             ## show
             msg = jbods_listing(jbods)
 
-            ''' THIS IS FOR MULTI-JBOD TESTS ONLY
+            ''' THIS IS FOR MULTI-JBOD TESTgS ONLY
             empty_jbod=False
             jbods = [[(17179869184L, u'sdk', u'wwn-0x6000c2900d9d4b8ad978e58cbeb69ec0', u'local'),
                           (32212254720L, u'sdc', u'wwn-0x6000c2986862e791e2f6a3b3caf812ea', u'local'),
@@ -4843,6 +4908,9 @@ def command_processor() :
 
     elif action == 'info':
         info()
+
+    elif action == 'download_settings':
+        download_settings()
 
     elif action == 'list_snapshots':
         list_snapshots()
