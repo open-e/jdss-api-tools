@@ -310,9 +310,11 @@ export                        	</pre>
 16. <b>Disconnect cluster</b>. Disconnect (Un-Bind) cluster nodes: node-b (192.168.0.81) with node-a (192.168.0.80).
 
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+
     After disconnect, the cluster setup is deleted. Both cluster nodes continue all services as single nodes.
-    The disconnect can be done while cluster is running in production. Before disconnect it is recomended to take screenschots
-    of the cluster cofiguration, so it will be easy to bind both nodes back.
+    The disconnect can be done while cluster is running in production.
+    Before disconnect it is recommended to take screenshots of the cluster configuration,
+    so it will be easy to bind both nodes back.
 
         jdss-api-tools.exe disconnect_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81
 
