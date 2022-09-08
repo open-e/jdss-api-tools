@@ -107,6 +107,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-07-22  add add_read_cache_disk
 2022-07-28  add list_snapshots options: all_dataset_snapshots, all_zvol_snapshots
 2022-08-22  add download settings, change volblocksize default to 16k
+2022-09-08  add disconnect_cluster
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -526,6 +527,16 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
+{} {BOLD}Disconnect cluster{END}. Disconnect (Un-Bind) cluster nodes: node-b (192.168.0.81) with node-a (192.168.0.80).
+
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+    After disconnect, the cluster setup is deleted. Both cluster nodes continue all services as single nodes.
+    The disconnect can be done while cluster is running in production. Before disconnect it is recomended to take screenschots
+    of the cluster cofiguration, so it will be easy to bind both nodes back.
+
+    {LG}%(prog)s disconnect_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
+
+
 {} {BOLD}Add ring{END}. Add second ring to the cluster.
 
     RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
@@ -895,7 +906,7 @@ def get_args(batch_args_line=None):
                     attach_volume_to_iscsi_target detach_volume_from_iscsi_target                                                   \
                     detach_disk_from_pool remove_disk_from_pool add_read_cache_disk                                                 \
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
-                    create_bond delete_bond bind_cluster add_ring set_ping_nodes set_mirror_path                                    \
+                    create_bond delete_bond bind_cluster disconnect_cluster add_ring set_ping_nodes set_mirror_path                 \
                     create_vip start_cluster stop_cluster move info download_settings                                               \
                     list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
         help='Commands:   %(choices)s.'
@@ -1423,6 +1434,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
     #test_command_line = 'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
+    test_command_line = 'disconnect_cluster --node 192.168.0.80 192.168.0.81'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-NEW --volume vol00 --older_than 30min --delay 1 --node 192.168.0.32'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
@@ -1438,10 +1450,10 @@ def get_args(batch_args_line=None):
     #test_command_line = 'add_read_cache_disk --pool Pool-TEST --disk_wwn wwn-0x500003948833b688 --node 192.168.0.32'
 
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
-    #test_command_line = 'start_cluster --node 192.168.0.82'
+    #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.42'
-    test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
+    #test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
@@ -3561,6 +3573,30 @@ def bind_cluster(bind_ip_addr):
         sys_exit_with_timestamp(f"Error: cluster bind {node}<=>{bind_ip_addr} failed")
 
 
+def disconnect_cluster(bind_ip_addr):
+    global action_message
+    action_message = f"Sending Cluster Nodes Disconnect request to: {node}"
+
+    if not cluster_bind_set():
+        print_with_timestamp("Disconnect failed")
+        print_with_timestamp(f"Nodes: {node} and {bind_ip_addr} are NOT binded yet.")
+        return
+
+    ## DELETE/cluster/nodes/<node_id>
+    node_id = get_cluster_node_id(node)
+    bind_node_id = get_cluster_node_id(bind_ip_addr)
+    endpoint = f'/cluster/nodes/{node_id}'
+    delete(endpoint)
+    endpoint = f'/cluster/nodes/{bind_node_id}'
+    delete(endpoint)
+    
+    ## GET and check 
+    if not cluster_bind_set():
+        print_with_timestamp(f"Nodes: {node} and {bind_ip_addr} are successfully disconnected.")
+    else:
+        sys_exit_with_timestamp("Disconnect failed")
+
+
 def add_ring():
     global action_message
     action_message = f"Sending Add Ring request to: {node}"
@@ -4864,6 +4900,12 @@ def command_processor() :
             sys_exit_with_timestamp('Error: bind_cluster command expects exactly 2 IP addresses')
         bind_ip_addr = nodes[1]
         bind_cluster(bind_ip_addr)
+
+    elif action == 'disconnect_cluster':
+        if len(nodes) !=2:
+            sys_exit_with_timestamp('Error: disconnect_cluster command expects exactly 2 IP addresses')
+        bind_ip_addr = nodes[1]
+        disconnect_cluster(bind_ip_addr)
 
     elif action == 'add_ring':
         if len(nodes) !=1:
