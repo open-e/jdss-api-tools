@@ -527,16 +527,21 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
 
 
-{} {BOLD}Disconnect cluster{END}. Disconnect (Un-Bind) cluster nodes: node-b (192.168.0.81) with node-a (192.168.0.80).
+{} {BOLD}Disconnect cluster{END}. Disconnect (Un-Bind) cluster nodes: node-a (192.168.0.80), node-b (192.168.0.81)
 
-    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
-
-    After disconnect, the cluster setup is deleted. Both cluster nodes continue all services as single nodes.
-    The disconnect can be done while cluster is running in production.
+    After disconnect command is completed, the cluster setup is deleted.
+    The disconnect can be done while cluster is running in production,
+    as after disconnect both cluster nodes will continue all services as single nodes.
     Before disconnect it is recommended to take screenshots of the cluster configuration,
     so it will be easy to bind both nodes back.
 
-    {LG}%(prog)s disconnect_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81{ENDF}
+    RESTapi user = admin, RESTapi password = password, node-b GUI password = admin.
+
+    {LG}%(prog)s disconnect_cluster --user admin --pswd password --bind_node_password admin --nodes 192.168.0.80 192.168.0.81{ENDF}
+
+    If user and passwords are set to “admin”, the credential options can be omitted:
+    
+    {LG}%(prog)s disconnect_cluster --nodes 192.168.0.80 192.168.0.81{ENDF}
 
 
 {} {BOLD}Add ring{END}. Add second ring to the cluster.
@@ -838,7 +843,7 @@ def get_args(batch_args_line=None):
 
     Note: If you want complete system information, please use the info command instead.
 
-########################################################################################
+#######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
@@ -873,7 +878,7 @@ def get_args(batch_args_line=None):
  https://visualstudio.microsoft.com/downloads
  In case of error: "msvcr100.dll missing...",
  download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": vcredist_x86.exe
-########################################################################################
+#######################################################################################
 
 {BOLD}Get help:{END}
 
