@@ -647,7 +647,6 @@ export                        	</pre>
 
  Missing Python modules need to be installed with pip, e.g.:
 
-    C:\Python\Scripts>pip install ipcalc
     C:\Python\Scripts>pip install ping3
     C:\Python\Scripts>pip install colorama
     C:\Python\Scripts>pip install requests

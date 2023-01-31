@@ -21,7 +21,6 @@ it needs to re-compile the pyinstaller bootloader. Follow step-by-step below:
 
 Missing Python modules need to be installed with pip, e.g.:
 
-C:\Python\Scripts>pip install ipcalc
 C:\Python\Scripts>pip install ping3
 C:\Python\Scripts>pip install colorama
 C:\Python\Scripts>pip install requests
@@ -108,6 +107,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-07-28  add list_snapshots options: all_dataset_snapshots, all_zvol_snapshots
 2022-08-22  add download settings, change volblocksize default to 16k
 2022-09-08  add disconnect_cluster
+2023-01-30  fix for variable referenced before assignment
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -867,7 +867,6 @@ def get_args(batch_args_line=None):
 
  Missing Python modules need to be installed with pip, e.g.:
 
-    C:\Python\Scripts>pip install ipcalc
     C:\Python\Scripts>pip install ping3
     C:\Python\Scripts>pip install colorama
     C:\Python\Scripts>pip install requests
@@ -1441,7 +1440,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'set_scrub_scheduler --pool Pool-PROD --node 192.168.0.82'
     #test_command_line = 'set_scrub_scheduler --node 192.168.0.82'
     #test_command_line = 'bind_cluster --node 192.168.0.82 192.168.0.83'
-    test_command_line = 'disconnect_cluster --node 192.168.0.80 192.168.0.81'
+    #test_command_line = 'disconnect_cluster --node 192.168.0.80 192.168.0.81'
     #test_command_line = 'add_ring --ring_nics eth4 eth4 --node 192.168.0.82'
     #test_command_line = 'delete_snapshots --pool Pool-NEW --volume vol00 --older_than 30min --delay 1 --node 192.168.0.32'
     #test_command_line = 'reboot --force --delay 0 --node 192.168.0.42'
@@ -1466,7 +1465,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST-0309-1100 --target iqn.2019-09:zfs-odps-backup01.disaster-recovery --node 192.168.0.32'
     #test_command_line = 'create_vip --pool Pool-0 --vip_name vip21 --vip_ip 192.168.21.100 --vip_nics eth2 eth2 --node 192.168.0.80'
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
-    #test_command_line = 'import --pool Pool-0 --node 192.168.0.80'
+    #test_command_line = 'import  --node 192.168.0.32'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
@@ -2443,6 +2442,7 @@ def get_snapshot_clones(snapshot_name):
 
 
 def get_all_volume_snapshots_older_than_given_age(vol_type):
+    snapshots = snapshots_names =  None
     if vol_type in 'volume':
         snapshots = get(f"/pools/{pool_name}/volumes/{volume_name}/snapshots?page=0&per_page=0&sort_by=name&order=asc")
         if snapshots:
