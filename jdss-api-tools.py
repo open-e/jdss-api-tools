@@ -1432,7 +1432,7 @@ def get_args(batch_args_line=None):
     test_mode = False
 
     ## TESTING ONLY!
-    #test_mode = True
+    test_mode = True
     #test_command_line = 'activate --online --node 192.168.0.82'
     #test_command_line = 'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB --node 192.168.0.42'
     #test_command_line = 'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
@@ -1458,7 +1458,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
-    #test_command_line = 'info --node 192.168.0.82'
+    test_command_line = 'info --node 192.168.0.82'
     #test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
@@ -2951,9 +2951,7 @@ def is_node_running_any_unmanaged_pool():
     pools = get('/pools')
     if result and isinstance(result,list):
         number_of_pools = len([pool['name']for pool in pools])
-        number_of_managed_pools = len([item['managed'] for item in result].count(True))
-        print(number_of_pools)
-        print(number_of_managed_pools)
+        number_of_managed_pools = [item['managed'] for item in result].count(True)
         return not (number_of_pools == number_of_managed_pools)
     ## result is '', cluster configured but no proper answer
     return True
