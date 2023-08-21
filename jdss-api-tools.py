@@ -2950,9 +2950,8 @@ def is_node_running_any_unmanaged_pool():
     result = get('/cluster/resources')
     pools = get('/pools')
     if result and isinstance(result,list):
-        number_of_pools = len([pool['name']for pool in pools])
-        number_of_managed_pools = [item['managed'] for item in result].count(True)
-        return not (number_of_pools == number_of_managed_pools)
+        number_of_unmanaged_pools = [item['managed'] for item in result].count(False)
+        return (number_of_unmanaged_pools > 0)
     ## result is '', cluster configured but no proper answer
     return True
 
