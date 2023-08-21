@@ -1458,7 +1458,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
-    #test_command_line = 'info --node 192.168.0.42'
+    #test_command_line = 'info --node 192.168.0.82'
     #test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
@@ -2935,18 +2935,28 @@ def is_cluster_started():
     return bool('started' in result)
 
 
-def is_node_running_all_managed_pools():
-    result = get('/cluster/resources')
-    if result and isinstance(result,list):
-        return all((item['managed'] for item in result))
-    return True  ## result is '' if no cluster configured
+#def is_node_running_all_managed_pools():
+#    result = get('/cluster/resources')
+#    if result and isinstance(result,list):
+#        return all((item['managed'] for item in result))
+#    return True  ## result is '' if no cluster configured
 
 
 def is_node_running_any_unmanaged_pool():
+    data = get('/licenses/extensions')
+    if 'ha' not in [item['type'][0:2] for item in data.values()]:
+        return False  
+
     result = get('/cluster/resources')
+    pools = get('/pools')
     if result and isinstance(result,list):
-        return not all((item['managed'] for item in result))
-    return False  ## result is '' if no cluster configured
+        number_of_pools = len([pool['name']for pool in pools])
+        number_of_managed_pools = len([item['managed'] for item in result].count(True))
+        print(number_of_pools)
+        print(number_of_managed_pools)
+        return not (number_of_pools == number_of_managed_pools)
+    ## result is '', cluster configured but no proper answer
+    return True
 
 
 def managed_pools():
