@@ -1433,7 +1433,7 @@ def get_args(batch_args_line=None):
     test_mode = False
 
     ## TESTING ONLY!
-    test_mode = True
+    #test_mode = True
     #test_command_line = 'activate --online --node 192.168.0.82'
     #test_command_line = 'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB --node 192.168.0.42'
     #test_command_line = 'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
