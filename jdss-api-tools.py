@@ -108,6 +108,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-08-22  add download settings, change volblocksize default to 16k
 2022-09-08  add disconnect_cluster
 2023-01-30  fix for variable referenced before assignment
+2023-08-22  fix is_node_running_any_unmanaged_pool
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -2943,16 +2944,22 @@ def is_cluster_started():
 
 
 def is_node_running_any_unmanaged_pool():
-    data = get('/licenses/extensions')
-    if 'ha' not in [item['type'][0:2] for item in data.values()]:
-        return False  
+    result = get('/licenses/extensions')
+    if result and isinstance(result,list):
+        if 'ha' not in [item['type'][0:2] for item in result.values()]:
+            return False  
+    else:
+        print_with_timestamp(f"REST API GET/licenses/extensions on: {node} FAILED")
+        return True  ## result is '', no proper answer, let us assume True
 
+    result = None
     result = get('/cluster/resources')
-    pools = get('/pools')
     if result and isinstance(result,list):
         number_of_unmanaged_pools = [item['managed'] for item in result].count(False)
-        return (number_of_unmanaged_pools > 0)
+        return number_of_unmanaged_pools > 0
+
     ## result is '', cluster configured but no proper answer
+    print_with_timestamp(f"REST API GET/cluster/resources on: {node} FAILED")
     return True
 
 
