@@ -1433,7 +1433,7 @@ def get_args(batch_args_line=None):
     test_mode = False
 
     ## TESTING ONLY!
-    #test_mode = True
+    test_mode = True
     #test_command_line = 'activate --online --node 192.168.0.82'
     #test_command_line = 'modify_volume --pool Pool-0 --volume zvol --new_size 11060GB --node 192.168.0.42'
     #test_command_line = 'network --nic bond0 --new_ip 192.168.0.85 --node 192.168.0.82'
@@ -1740,7 +1740,7 @@ def wait_for_move_destination_node(test_node):
     time.sleep(5)
     while not is_node_alive(test_node):
         counter += 1
-        time.sleep(20)
+        time.sleep(10)
         print_with_timestamp(f"Waiting for : {test_node}")
         if counter == repeat:   ## timed out
             sys_exit_with_timestamp(f"Time out of waiting for : {test_node}")
@@ -1754,7 +1754,7 @@ def wait_for_zero_unmanaged_pools():
         unmanaged_pools_names = unmanaged_pools()
         print_with_timestamp(f"Unmanaged pools: {','.join(unmanaged_pools_names)}. Wait for managed state")
         counter += 1
-        time.sleep(20)
+        time.sleep(10)
         if counter == repeat:   ## timed out
             unmanaged_pools_names = unmanaged_pools()
             sys_exit_with_timestamp(f"Unmanaged pools: {','.join(unmanaged_pools_names)}")
@@ -1770,7 +1770,7 @@ def wait_for_cluster_started():
     time.sleep(5)
     while not is_cluster_started():
         counter += 1
-        time.sleep(20)
+        time.sleep(10)
         print_with_timestamp(f"Waiting for the cluster to start")
         if counter == repeat:   ## timed out
             sys_exit_with_timestamp(f"ERROR: Cluster failed to start")
@@ -2936,16 +2936,9 @@ def is_cluster_started():
     return bool('started' in result)
 
 
-#def is_node_running_all_managed_pools():
-#    result = get('/cluster/resources')
-#    if result and isinstance(result,list):
-#        return all((item['managed'] for item in result))
-#    return True  ## result is '' if no cluster configured
-
-
 def is_node_running_any_unmanaged_pool():
     result = get('/licenses/extensions')
-    if result and isinstance(result,list):
+    if result:
         if 'ha' not in [item['type'][0:2] for item in result.values()]:
             return False  
     else:
@@ -2954,7 +2947,7 @@ def is_node_running_any_unmanaged_pool():
 
     result = None
     result = get('/cluster/resources')
-    if result and isinstance(result,list):
+    if result:
         number_of_unmanaged_pools = [item['managed'] for item in result].count(False)
         return number_of_unmanaged_pools > 0
 
@@ -2965,14 +2958,14 @@ def is_node_running_any_unmanaged_pool():
 
 def managed_pools():
     result = get('/cluster/resources')
-    if result and isinstance(result,list):
+    if result:
         return [item['name'] for item in result if item['managed']]
     return []
 
 
 def unmanaged_pools():
     result = get('/cluster/resources')
-    if result and isinstance(result,list):
+    if result:
         return [item['name'] for item in result if not item['managed']]
     return []
 
