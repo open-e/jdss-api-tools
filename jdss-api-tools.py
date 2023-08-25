@@ -2156,7 +2156,7 @@ def reboot_nodes(shutdown=False):
     global api_timeout
     mode = 'shutdown' if shutdown else 'reboot'
     if force:
-        api_timeout = 5
+        api_timeout = 20
     for node in nodes:
         action_message = f"Sending {'Forced ' if force else ''}{mode} request to: {node}"
         wait_for_node()
@@ -3403,7 +3403,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
     global node    ## the node IP can be changed
     global action_message
     global api_timeout
-    api_timeout = 5
+    api_timeout = 10
     access_nic_changed = False
     action_message = f"Sending network setting request to: {node}"
     timeouted = False
