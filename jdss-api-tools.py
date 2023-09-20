@@ -109,6 +109,8 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2022-09-08  add disconnect_cluster
 2023-01-30  fix for variable referenced before assignment
 2023-08-22  fix is_node_running_any_unmanaged_pool
+2023-09-08  add wait_for_all_cluster_resources_started in reboot and move function
+2023-09-20  fix zip_n function
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -1459,7 +1461,7 @@ def get_args(batch_args_line=None):
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --node 192.168.0.80'
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
-    test_command_line = 'info --node 192.168.0.82'
+    #test_command_line = 'info --node 192.168.0.82'
     #test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
@@ -1468,7 +1470,8 @@ def get_args(batch_args_line=None):
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import  --node 192.168.0.32'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
-    #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
+    #test_command_line = 'create_pool --pool Pool-PROD --vdev raidz2 --vdevs 2 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
+    test_command_line = 'create_pool --pool Pool-TEST --vdev raidz2 --vdevs 3 --vdev_disks 4 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare --quantity 3 --node 192.168.0.80'
@@ -1760,6 +1763,20 @@ def wait_for_zero_unmanaged_pools():
             sys_exit_with_timestamp(f"Unmanaged pools: {','.join(unmanaged_pools_names)}")
     if force :
         time.sleep(60) ## need some time to complete all operations
+
+
+def wait_for_all_cluster_resources_started():
+    if not is_cluster_configured():
+        return
+    repeat = 300 # wait 25min
+    counter = 0
+    time.sleep(5)
+    while not all_cluster_resources_started():
+        counter += 1
+        time.sleep(10)
+        print_with_timestamp(f"Waiting for all cluster resources started")
+        if counter == repeat:   ## timed out
+            sys_exit_with_timestamp(f"ERROR: Cluster failed to start all claster resources")
 
 
 def wait_for_cluster_started():
@@ -2149,6 +2166,9 @@ def wait_ping_lost_while_reboot():
     if waiting_dots_printed: print()
     waiting_dots_printed = False
 
+def all_cluster_resources_started():
+    return all(resource.get('status') == 'started' for resource in get("/cluster/resources"))
+
 
 def reboot_nodes(shutdown=False):
     global node
@@ -2165,9 +2185,10 @@ def reboot_nodes(shutdown=False):
 #        if is_cluster:
 #            wait_for_cluster_started()
         if 'batch_setup' in action :
-            wait = 60 if force else 30 
+            wait = 1  # 60 if force else 30 
             print_with_timestamp("Wait {wait} sec for failover(move) ...")
             time.sleep(wait) # for test running in loop need time for failover
+        wait_for_all_cluster_resources_started()
         wait_for_zero_unmanaged_pools()
         wait_for_pools_online()
         print_with_timestamp(f"{'Forced ' if force else ''}{mode}: {node}")
@@ -3365,6 +3386,7 @@ def move():
             print_with_timestamp(f"{pool_name} is moving from: {active_node} to: {passive_node}")
             ## wait ...
             wait_for_move_destination_node(passive_node)
+            wait_for_all_cluster_resources_started()
             wait_for_zero_unmanaged_pools()
             data=dict(node_id = get_cluster_node_id(passive_node))
             endpoint = f"/cluster/resources/{pool_name}/move-resource"
@@ -3995,14 +4017,20 @@ def read_jbod(n):  #### to-do unused arg
     return jbod
 
 
-def zip_n(number_of_items_a_time,*args):
+def zip_n(n, *iterables):
     ''' zip_n zips with given number of items a time
         (the orginal zip function take single item a time only)
     '''
-    iter_args = map(iter,args)
-    for _ in range(number_of_items_a_time):
-####    yield tuple([next(item) for item in iter_args])
-        yield tuple(next(item) for item in iter_args)
+    iterators = [iter(it) for it in iterables]
+    while True:
+        chunk = []
+        for iterator in iterators:
+            try:
+                for _ in range(n):
+                    chunk.append(next(iterator))
+            except StopIteration:
+                return
+        yield tuple(chunk)
 
 
 def create_pool(pool_name,vdev_type,jbods):
@@ -4012,10 +4040,11 @@ def create_pool(pool_name,vdev_type,jbods):
 
     vdev_type = vdev_type.replace('single','')
     print_with_timestamp("Creating pool. Please wait ...")
-
+    
     ## CREATE
     endpoint = '/pools'
     data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)])
+
     # P O S T
     post(endpoint,data)
 
