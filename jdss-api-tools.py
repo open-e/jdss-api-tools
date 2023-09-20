@@ -111,6 +111,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2023-08-22  fix is_node_running_any_unmanaged_pool
 2023-09-08  add wait_for_all_cluster_resources_started in reboot and move function
 2023-09-20  fix zip_n function
+2023-09-20  add destroy_test_pool
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -396,6 +397,13 @@ def get_args(batch_args_line=None):
     Repeat the procedure until all disks from all JBODs are read. Finally, create the pool selecting "args_count" from the menu.
 
     {LG}%(prog)s create_pool --pool Pool-0 --jbods 4 --vdevs 60 --vdev raidz2 --vdev_disks 4 --node 192.168.0.220{ENDF}
+
+
+{} {BOLD}Destroy TEST pool{END}:
+
+    The `destroy_test_pool` command deletes a test pool. The word "TEST" must be included in the pool name.    
+
+    {LG}%(prog)s destroy_test_pool --pool Pool-TEST --node 192.168.0.220{ENDF}
 
 
 {} {BOLD}Import pool{END}:
@@ -911,7 +919,7 @@ def get_args(batch_args_line=None):
     commands = parser.add_argument(
         'cmd',
         metavar='command',
-         choices =  'clone clone_existing_snapshot create_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
+         choices =  'clone clone_existing_snapshot create_pool destroy_test_pool scrub set_scrub_scheduler create_storage_resource modify_volume      \
                     attach_volume_to_iscsi_target detach_volume_from_iscsi_target                                                   \
                     detach_disk_from_pool remove_disk_from_pool add_read_cache_disk                                                 \
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
@@ -1470,8 +1478,9 @@ def get_args(batch_args_line=None):
     #test_command_line = 'delete_clones --pool Pool-0 --volume zvol100 --older_than 15_sec --delay 1 --node 192.168.0.32'
     #test_command_line = 'import  --node 192.168.0.32'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev mirror --vdevs 1 --vdev_disks 4 --node 192.168.0.82'
+    #test_command_line = 'destroy_test_pool --pool Pool-TEST --node 192.168.0.82'
     #test_command_line = 'create_pool --pool Pool-PROD --vdev raidz2 --vdevs 2 --vdev_disks 4 --disk_size_range 20GB 20GB --node 192.168.0.82'
-    test_command_line = 'create_pool --pool Pool-TEST --vdev raidz2 --vdevs 3 --vdev_disks 4 --node 192.168.0.82'
+    #test_command_line = 'create_pool --pool Pool-TEST --vdev raidz2 --vdevs 3 --vdev_disks 4 --node 192.168.0.82'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --volume TEST01 --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type iscsi --target testme --quantity 3 --node 192.168.0.80'
     #test_command_line = 'create_storage_resource --pool Pool-0 --storage_type smb --share_name testshare --quantity 3 --node 192.168.0.80'
@@ -4057,6 +4066,30 @@ def create_pool(pool_name,vdev_type,jbods):
     else:
         sys_exit_with_timestamp(f"Error: Cannot create {pool_name}")
 
+def create_pool(pool_name,vdev_type,jbods):
+    
+    if pool_name in get_pools_names():
+        sys_exit_with_timestamp(f"Error: {pool_name} already exist on node {node}")
+
+    vdev_type = vdev_type.replace('single','')
+    print_with_timestamp("Creating pool. Please wait ...")
+    
+    ## CREATE
+    endpoint = '/pools'
+    data = dict(name = pool_name, vdevs = [dict(type=vdev_type, disks=vdev_disks) for vdev_disks in zip_n(number_of_disks_in_jbod, *jbods)])
+
+    # P O S T
+    post(endpoint,data)
+
+    for _ in range(10):
+        if check_given_pool_name(ignore_error=True):
+            print_with_timestamp(f"New storage pool: {pool_name} created")
+            break
+        #else:
+        time.sleep(10)
+    else:
+        sys_exit_with_timestamp(f"Error: Cannot create {pool_name}")
+
 
 def add_read_cache_disk(pool_name,disk_wwn):
     if pool_name not in get_pools_names():
@@ -4099,6 +4132,26 @@ def create_volume(vol_type):
     else:
         print_with_timestamp(f"{pool_name}/{volume_name}: Write cache logging (sync) set to: {sync}. {quota_text}{reservation_text}")
 
+def destroy_test_pool(pool_name):
+
+    if 'TEST' not in pool_name:
+        sys_exit_with_timestamp(f"Error: The `destroy_test_pool` function deletes a pool, requiring the word 'TEST' to be part of the pool name.")
+    
+    if pool_name not in get_pools_names():
+        sys_exit_with_timestamp(f"Error: {pool_name} not found on node {node}")
+
+    ## DELETE
+    endpoint = f"/pools/{pool_name}"
+    delete(endpoint)
+
+    for _ in range(10):
+        if not check_given_pool_name(ignore_error=True):
+            print_with_timestamp(f"The test pool: {pool_name} deleted")
+            break
+        #else:
+        time.sleep(10)
+    else:
+        sys_exit_with_timestamp(f"Error: Cannot delete {pool_name}")
 
 def modify_volume(vol_type):
     global action_message
@@ -4844,6 +4897,10 @@ def command_processor() :
     elif action == 'create_pool':
         ##args_count = count_provided_args( pool_name )
         read_jbods_and_create_pool()
+
+    elif action == 'destroy_test_pool':
+        ##args_count = count_provided_args( pool_name )
+        destroy_test_pool(pool_name)
 
     elif action == 'export':
         args_count = count_provided_args( pool_name )   ## if all provided (not None), args_count must be equal 1
