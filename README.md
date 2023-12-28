@@ -20,7 +20,8 @@ create_vip                    	start_cluster                 	stop_cluster
 move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
+import                        	export                        	cli
+</pre>
 
 <b>Commands description:</b>
 
@@ -630,6 +631,15 @@ import                        	export                        	</pre>
 
     Note: If you want complete system information, please use the info command instead.
 
+
+40. <b>Enable/Disable CLI access</b>.
+
+        jdss-api-tools.exe cli --enable  --node 192.168.0.220
+        jdss-api-tools.exe cli --disable --node 192.168.0.220
+
+    The cli --enable will set default password "admin" default port 22223
+
+
 #######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
@@ -692,6 +702,7 @@ create_vip                    	start_cluster                 	stop_cluster
 move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
-import                        	export                        	</pre>
+import                        	export                        	cli
+</pre>
  
  

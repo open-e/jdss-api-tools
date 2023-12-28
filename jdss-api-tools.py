@@ -112,6 +112,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2023-09-08  add wait_for_all_cluster_resources_started in reboot and move function
 2023-09-20  fix zip_n function
 2023-09-20  add destroy_test_pool
+2023-12-28  add enable/disable cli
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -854,6 +855,15 @@ def get_args(batch_args_line=None):
 
     Note: If you want complete system information, please use the info command instead.
 
+
+{} {BOLD}Enable/Disable CLI access{END}.
+
+    {LG}%(prog)s cli --enable  --node 192.168.0.220{ENDF}
+    {LG}%(prog)s cli --disable --node 192.168.0.220{ENDF}
+
+    The cli --enable will set default password "admin" default port 22223
+
+
 #######################################################################################
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
@@ -925,7 +935,7 @@ def get_args(batch_args_line=None):
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
                     create_bond delete_bond bind_cluster disconnect_cluster add_ring set_ping_nodes set_mirror_path                 \
                     create_vip start_cluster stop_cluster move info download_settings                                               \
-                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export'.split(),
+                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export cli'.split(),
         help='Commands:   %(choices)s.'
     )
 
@@ -1439,6 +1449,20 @@ def get_args(batch_args_line=None):
         default=False,
         help='Forced import of pool with unfinished resilver'
     )
+    parser.add_argument(
+        '--enable',
+        dest='enabled',
+        action='store_true',
+        default=False,
+        help='To enable a function'
+    )
+    parser.add_argument(
+        '--disable',
+        dest='enabled',
+        action='store_false',
+        default=False,
+        help='To disable a function'
+    )
 
     test_mode = False
 
@@ -1470,6 +1494,8 @@ def get_args(batch_args_line=None):
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.82'
     #test_command_line = 'info --node 192.168.0.82'
+    test_command_line = 'cli --enable --node 192.168.0.82'
+    #test_command_line = 'cli --disable --node 192.168.0.82'
     #test_command_line = 'download_settings --directory c:\cli --nodes 192.168.0.32 192.168.0.42'
     #test_command_line = 'info --pool Pool-0 --volume zvol00 --node 192.168.0.82'
     #test_command_line = 'clone --pool Pool-TEST --volume vol00 --node 192.168.0.82'
@@ -1518,7 +1544,7 @@ def get_args(batch_args_line=None):
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute, setup_files
     global all_snapshots, all_dataset_snapshots, all_zvol_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
-    global to_print_timestamp_msg, keep_settings, directory
+    global to_print_timestamp_msg, keep_settings, directory, enabled
 
     api_port                    = args['port']
     api_user                    = args['user']
@@ -1642,6 +1668,8 @@ def get_args(batch_args_line=None):
     recovery_import             = args['recovery_import']
     ignore_missing_write_log    = args['ignore_missing_write_log']
     ignore_unfinished_resilver  = args['ignore_unfinished_resilver']
+
+    enabled                     = args['enabled']
 
     ## volumes use properties dict, but datasets not
     properties                  = dict( sync=sync,
@@ -2229,6 +2257,30 @@ def set_host_server_name(host_name=None, server_name=None, server_description=No
         print_with_timestamp(f"Set server name: {server_name}")
     if server_description:
         print_with_timestamp(f"Set server description: {server_description}")
+
+
+def set_cli(cli_port=22223, cli_password='admin'):
+    global action_message
+    if enabled:
+        action_message = f"Enabling CLI access on: {node}"
+    else:
+        action_message = f"Disabling CLI access on: {node}"
+
+    data = dict()
+    if enabled:
+        data["enabled"] = True
+        data["password"] = cli_password
+        data["port"] = cli_port
+    else:
+        data["enabled"] = False
+
+    ret = put('/services/cli',data)
+
+    if enabled:
+        print_with_timestamp(f"CLI access enabled on: {node}")
+    else:
+        print_with_timestamp(f"CLI access disabled on: {node}")
+
 
 
 def set_time(timezone=None, ntp=None, ntp_servers=None):
@@ -5068,6 +5120,9 @@ def command_processor() :
 
     elif action == 'reboot':
         reboot_nodes()
+
+    elif action == 'cli':
+        set_cli()
 
 
 ## FACTORY DEFAULT BATCH SETUP FILES
