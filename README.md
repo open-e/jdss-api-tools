@@ -7,7 +7,8 @@
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -22,6 +23,7 @@ list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
 </pre>
+
 
 <b>Commands description:</b>
 
@@ -41,6 +43,7 @@ import                        	export                        	cli
 
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache none --secondarycache none --node 192.168.0.220
         jdss-api-tools.exe clone --pool Pool-0 --volume zvol00 --primarycache metadata --secondarycache none --node 192.168.0.220
+
 
     <b>Create clone</b> of NAS volume vol00 from Pool-0 and share via new created SMB share.
 
@@ -178,7 +181,7 @@ import                        	export                        	cli
 
  6. <b>Destroy TEST pool</b>:
 
-    The `destroy_test_pool` command deletes a test pool. The word "TEST" must be included in the pool name.    
+    The destroy_test_pool command deletes a test pool. The word "TEST" must be included in the pool name.
 
         jdss-api-tools.exe destroy_test_pool --pool Pool-TEST --node 192.168.0.220
 
@@ -315,11 +318,11 @@ import                        	export                        	cli
         jdss-api-tools.exe bind_cluster --user admin --pswd password --bind_node_password admin --node 192.168.0.80 192.168.0.81
 
 
-17. <b>Disconnect cluster</b>. Disconnect (Un-Bind) cluster nodes: node-a (192.168.0.80), node-b (192.168.0.81)
+17. <b>Disconnect cluster</b>. Disconnect (Un-Bind) cluster nodes: node-a (192.168.0.80), node-b (192.168.0.81).
 
     After disconnect command is completed, the cluster setup is deleted.
     The disconnect can be done while cluster is running in production,
-    as after disconnect both cluster nodes will continue all services as single nodes.
+    as after disconnect both cluster nodes will continue to run all services as single nodes.
     Before disconnect it is recommended to take screenshots of the cluster configuration,
     so it will be easy to bind both nodes back.
 
@@ -477,12 +480,12 @@ import                        	export                        	cli
         jdss-api-tools.exe attach_volume_to_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-28. <b>Detach volume form iSCSI target</b>.
+28. <b>Detach volume from iSCSI target</b>.
 
         jdss-api-tools.exe detach_volume_from_iscsi_target --pool Pool-0 --volume zvol00 --target iqn.2019-06:ha-00.target0 --node 192.168.0.220
 
 
-29. <b>Detach disk form pool</b>.
+29. <b>Detach disk from pool</b>.
 
     Detach disk from pool works with mirrored vdevs
     or with disks in raidz vdevs which are during or stopped replace process.
@@ -490,7 +493,7 @@ import                        	export                        	cli
         jdss-api-tools.exe detach_disk_from_pool --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
 
 
-30. <b>Remove (delete) disk form pool</b>.
+30. <b>Remove (delete) disk from pool</b>.
 
     Only spare, single log and cache disks can be removed from pool.
 
@@ -502,7 +505,6 @@ import                        	export                        	cli
     Only single read cache disk can be add a time.
 
         jdss-api-tools.exe add_read_cache_disk --pool Pool-0 --disk_wwn wwn-0x5000c5008574a736 --node 192.168.0.220
-
 
 
 32. <b>Scrub</b> start|stop|status.
@@ -590,12 +592,12 @@ import                        	export                        	cli
 
 37. <b>Download current system settings</b>.
 
-        jdss-api-tools.exe download_settings --directory c:\downloads --nodes 192.168.0.220 192.168.0.221
+        jdss-api-tools.exe download_settings --directory C:\Downloads --nodes 192.168.0.220 192.168.0.221
 
     It generates current system settings and download to provided directory.
-    More than one node is supported. if the --directory option is missing,
+    More than one node is supported. If the --directory option is missing,
     the settings file will be saved in the current directory.
-    
+
         jdss-api-tools.exe download_settings --keep_settings --node 192.168.0.220
 
     The just generated and downloaded settings are NOT preserved in the storage node by default.
@@ -629,16 +631,16 @@ import                        	export                        	cli
         jdss-api-tools.exe list_snapshots --all_dataset_snapshots --node 192.168.0.220
         jdss-api-tools.exe list_snapshots --all_zvol_snapshots --node 192.168.0.220
 
+
     Note: If you want complete system information, please use the info command instead.
 
 
-40. <b>Enable/Disable CLI access</b>.
+40. <b>Enable/disable CLI access</b>.
 
         jdss-api-tools.exe cli --enable  --node 192.168.0.220
         jdss-api-tools.exe cli --disable --node 192.168.0.220
 
-    The cli --enable will set default password "admin" default port 22223
-
+    The cli --enable will set default password "admin" and default port 22223
 
 #######################################################################################
  After any modifications of source of jdss-api-tools.py,
@@ -664,6 +666,7 @@ import                        	export                        	cli
 
  Missing Python modules need to be installed with pip, e.g.:
 
+    C:\Python\Scripts>pip install ipcalc
     C:\Python\Scripts>pip install ping3
     C:\Python\Scripts>pip install colorama
     C:\Python\Scripts>pip install requests
@@ -689,7 +692,8 @@ import                        	export                        	cli
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -704,5 +708,3 @@ list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
 </pre>
- 
- 
