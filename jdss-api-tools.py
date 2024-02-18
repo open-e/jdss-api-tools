@@ -2556,6 +2556,7 @@ def print_nas_snapshots_details(header,fields):
                 continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
+                snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
                 ## convert list of properties into dict of name:values
                 try:
                     property_dict = {item['name']:item['value'] for item in snapshot['properties']} ## properties list is optional
