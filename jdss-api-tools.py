@@ -1811,7 +1811,7 @@ def wait_for_all_cluster_resources_started():
         time.sleep(10)
         print_with_timestamp(f"Waiting for all cluster resources started")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp(f"ERROR: Cluster failed to start all cluster resources")
+            sys_exit_with_timestamp(f"Error: Cluster failed to start all cluster resources")
 
 
 def wait_for_cluster_started():
@@ -1825,7 +1825,7 @@ def wait_for_cluster_started():
         time.sleep(10)
         print_with_timestamp(f"Waiting for the cluster to start")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp(f"ERROR: Cluster failed to start")
+            sys_exit_with_timestamp(f"Error: Cluster failed to start")
 
 def wait_for_pools_online():
     repeat = 300 # wait 25min
@@ -1840,7 +1840,7 @@ def wait_for_pools_online():
         time.sleep(5)
         print_with_timestamp(f"Waiting for all pools ONLINE status")
         if counter == repeat:   ## timed out
-            sys_exit_with_timestamp(f"ERROR: failed to get pools ONLINE status")
+            sys_exit_with_timestamp(f"Error: failed to get pools ONLINE status")
 
 
 
@@ -3525,7 +3525,7 @@ def network(nic_name, new_ip_addr, new_mask, new_gw, new_dns):
         if get_interface_ip_addr(nic_name) == new_ip_addr:
             print_with_timestamp(f"New IP address {new_ip_addr} set to {nic_name}")
         else:
-            print_with_timestamp(f"ERROR: New IP address {new_ip_addr} set to {nic_name} failed")
+            print_with_timestamp(f"Error: New IP address {new_ip_addr} set to {nic_name} failed")
 
     ## set default gateway interface
     if new_gw:
@@ -4004,7 +4004,7 @@ def check_given_pool_name(ignore_error=None):
     ''' If given pool_name exist:
             return True
         If given pool_name does not exist:
-            exit with ERROR     '''
+            exit with Error     '''
     global node
     for node in nodes:
         pools = None
@@ -4024,7 +4024,7 @@ def check_given_volume_name(ignore_error=None):
             dataset (NAS-vol)
             volume (SAN-zvol)
         If given volume_name does not exist:
-            sys.exit with ERROR     '''
+            sys.exit with Error     '''
     global node
     for node in nodes:
         ## GET /pools/<pool_name>/nas-volumes
