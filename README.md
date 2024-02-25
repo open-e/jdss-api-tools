@@ -7,7 +7,8 @@
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -690,7 +691,8 @@ import                        	export                        	cli
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
