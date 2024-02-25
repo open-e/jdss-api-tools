@@ -2552,8 +2552,7 @@ def print_nas_snapshots_details(header,fields):
             continue            ## SKIP if no vol
         for nas_volume in nas_volumes:
             snapshots = get(f"/pools/{pool_name}/nas-volumes/{nas_volume}/snapshots?page=0&per_page=10&sort_by=name&order=asc")
-            if not snapshots or not snapshots['results'] or snapshots['results']== 0:
-                continue
+            if not snapshots or not snapshots['results'] or snapshots['results']== 0: continue
             snapshot_exist = True
             for snapshot in snapshots['entries']:
                 snapshot_name = pool_name + '/' + nas_volume + '@' + snapshot['name']  ## pool/vol@snap
@@ -2578,7 +2577,8 @@ def print_nas_snapshots_details(header,fields):
                     current_max_field_length = max(len(header[i]), len(value))
                     if current_max_field_length > fields_length[field]:
                         fields_length[field] = current_max_field_length
-        if not snapshot_exist: continue     ## SKIP if no snap
+        if not snapshot_exist:
+            continue            ## SKIP if no snap
         if not is_field_separator_added:
             fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
@@ -2587,7 +2587,7 @@ def print_nas_snapshots_details(header,fields):
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
         print()
-        print( header_format_template.format( *(header)))
+        print(header_format_template.format( *(header)))
 
         for nas_volume in nas_volumes:
             snapshot_details = []
@@ -2626,11 +2626,14 @@ def print_nas_snapshots_details(header,fields):
                         else:
                             plan = ""
                     snapshot_details.append(value)
-            print_out = field_format_template.format(*snapshot_details)
-            if all_snapshots:
+                if snapshot_details:
+                    print_out = field_format_template.format(*snapshot_details)
+                    if all_snapshots:
+                        print(print_out)
+            if not all_snapshots:
                 print(print_out)
-        if not all_snapshots:
-            print(print_out)
+            if all_snapshots:
+                print()
         fields_length = {}.fromkeys(fields, 0)
         is_field_separator_added = False
 
@@ -2668,7 +2671,7 @@ def print_san_snapshots_details(header,fields):
                     if current_max_field_length > fields_length[field]:
                         fields_length[field] = current_max_field_length
         if not snapshot_exist:
-            continue            ##  SKIP if no snap
+            continue            ## SKIP if no snap
         if not is_field_separator_added:
             fields_length = add_fields_seperator(fields,fields_length,3)
             is_field_separator_added = True
@@ -2677,7 +2680,7 @@ def print_san_snapshots_details(header,fields):
         field_format_template   =  '{:<' +  '}{:>'.join([str(fields_length[field]) for field in fields]) + '}'
 
         print()
-        print( header_format_template.format( *(header)))
+        print(header_format_template.format( *(header)))
 
         for san_volume in san_volumes:
             snapshot_details = []
