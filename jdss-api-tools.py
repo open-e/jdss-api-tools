@@ -114,6 +114,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2023-09-20  fix zip_n function
 2023-09-20  add destroy_test_pool
 2023-12-28  add enable/disable cli
+2024-03-12  add pool initialize: start, cancel, suspend
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -126,7 +127,7 @@ __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.2
 
 ## Script global variables
-api_version             = '/api/v3'
+#api_version             = '/api/v3'  will be defined in call_requests
 api_timeout             = 300
 action                  = ''
 action_message          = ''
@@ -167,6 +168,7 @@ def api_connection_test_passed():
     
 def call_requests(method,endpoint,data = None):
     global error, timeouted
+    api_version = '/api/v4' if action in 'initialize' else '/api/v3'
     response = error = err = error_message = None
     http_code = 0; timeouted = False
     if endpoint not in '/conn_test': wait_for_node()
@@ -779,6 +781,26 @@ def get_args(batch_args_line=None):
     {LG}{BOLD}https:{END}//{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
 
 
+{} {BOLD}Initialize{END} start|cancel|suspend.
+
+    Initialize all pools. If the node belongs to cluster, initialize all pools in cluster.
+
+    {LG}%(prog)s initialize --node 192.168.0.220{ENDF}
+
+    Initialize on specified pools only.
+
+    {LG}%(prog)s initialize --pool Pool-0 --node 192.168.0.220{ENDF}
+    {LG}%(prog)s initialize --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220{ENDF}
+
+    Stop initialize scrub on all pools.
+
+    {LG}%(prog)s initialize --initialize_action cancel --node 192.168.0.220{ENDF}
+
+    Suspend initialize on all pools.
+
+    {LG}%(prog)s initialize --initialize_action suspend --node 192.168.0.220{ENDF}
+
+   
 {} {BOLD}Generate factory setup files for batch setup{END}.
 
     It creates and overwrites (if previously created) batch setup files.
@@ -935,7 +957,7 @@ def get_args(batch_args_line=None):
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
                     create_bond delete_bond bind_cluster disconnect_cluster add_ring set_ping_nodes set_mirror_path                 \
                     create_vip start_cluster stop_cluster move info download_settings                                               \
-                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export cli'.split(),
+                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export cli initialize'.split(),
         help='Commands:   %(choices)s.'
     )
 
@@ -1328,6 +1350,13 @@ def get_args(batch_args_line=None):
         help='Enter scrub action. Default=start'
     )
     parser.add_argument(
+        '--initialize_action',
+        metavar='start|cancel|suspend',
+        choices=['start', 'cancel', 'suspend'],
+        default='start',
+        help='Enter initialize action. Default=start'
+    )
+    parser.add_argument(
         '--day_of_the_month',
         metavar='day',
         nargs = '*',
@@ -1492,6 +1521,8 @@ def get_args(batch_args_line=None):
     #test_command_line = 'start_cluster --node 192.168.0.80'
     #test_command_line = 'stop_cluster --node 192.168.0.80'
     #test_command_line = 'info --node 192.168.0.82'
+    #test_command_line = 'initialize --initialize_action start --node 192.168.0.82'
+    #test_command_line = 'initialize --initialize_action cancel --node 192.168.0.82'
     #test_command_line = 'cli --enable --node 192.168.0.82'
     #test_command_line = 'cli --disable --node 192.168.0.82'
     #test_command_line = 'download_settings --directory C:\cli --nodes 192.168.0.32 192.168.0.42'
@@ -1538,7 +1569,8 @@ def get_args(batch_args_line=None):
     global vip_name, vip_nics, vip_ip, vip_mask, bind_node_password
     global pool_based_consecutive_number_generator
     #global cluster_pool_names
-    global target_name, cluster_name, quantity, start_with, zvols_per_target, increment, scrub_action
+    global target_name, cluster_name, quantity, start_with, zvols_per_target, increment
+    global scrub_action, initialize_action 
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute, setup_files
     global all_snapshots, all_dataset_snapshots, all_zvol_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
@@ -1639,6 +1671,7 @@ def get_args(batch_args_line=None):
     ping_nodes                  = args['ping_nodes']
 
     scrub_action                = args['scrub_action']
+    initialize_action           = args['initialize_action']
     day_of_the_month            = args['day_of_the_month']
     month_of_the_year           = args['month_of_the_year']
     day_of_the_week             = args['day_of_the_week']
@@ -2951,11 +2984,41 @@ def scrub():
     print_scrub_pools_details(header,fields)
 
 
+def initialize():
+    global node
+    global action_message
+    global pool_name
+    action_message = f"Sending initialize {initialize_action} request to: {node}"
+    if pools_names:
+        pools_names_to_initialize = pools_names
+        cluster_pools_names = get_cluster_pools_names()
+        for pool_name in pools_names_to_initialize:
+            if pool_name not in cluster_pools_names:
+                sys_exit_with_timestamp(f"Error: {pool_name} does not exist on node: {node}")
+    else:
+        pools_names_to_initialize = get_cluster_pools_names()
+    pools_names_to_initialize.sort()
+    for pool_name in pools_names_to_initialize:
+        to_print_timestamp_msg[node] = False
+        node = get_active_cluster_node_address_of_given_pool(pool_name)
+        to_print_timestamp_msg[node] = True
+        if initialize_action in ('start', 'cancel', 'suspend'):
+            endpoint = f"/pools/{pool_name}/initialize"
+            action_message = f"Sending initialize {initialize_action} request to {pool_name} on : {node}"
+            post(endpoint, dict(action=initialize_action))
+
+    ## print initialize pools details : not impemented yet
+    #    header = tuple('pool  state  initialize_start_time  end_time  rate  mins_left  examined  %        total'.split())
+    #    fields = tuple('pool  state  start_time              end_time  rate  mins_left  examined  percent  total'.split())
+    #    print_initialize_pools_details(header, fields)
+
+
+
 def export():
     global node
     global action_message
     global pool_name
-    action_message = f"Sending export {scrub_action} request to: {node}"
+    action_message = f"Sending export pool {pool_name} request to: {node}"
     if pools_names:
         pools_names_to_export = pools_names
         cluster_pools_names = get_cluster_pools_names()
@@ -4939,6 +5002,9 @@ def command_processor() :
 
     elif action == 'scrub':
         scrub()
+
+    elif action == 'initialize':
+        initialize()
 
     elif action == 'set_scrub_scheduler':
         set_scrub_scheduler()

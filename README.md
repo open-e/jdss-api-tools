@@ -7,8 +7,7 @@
 
 <b>Commands:</b>
 
-<pre>
-clone                         	clone_existing_snapshot       	create_pool
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -22,7 +21,7 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-</pre>
+initialize                    	</pre>
 
 <b>Commands description:</b>
 
@@ -555,7 +554,27 @@ import                        	export                        	cli
      <b>https:</b>//<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-34. <b>Generate factory setup files for batch setup</b>.
+34. <b>Initialize</b> start|cancel|suspend.
+
+    Initialize all pools. If the node belongs to cluster, initialize all pools in cluster.
+
+        jdss-api-tools.exe initialize --node 192.168.0.220
+
+    Initialize on specified pools only.
+
+        jdss-api-tools.exe initialize --pool Pool-0 --node 192.168.0.220
+        jdss-api-tools.exe initialize --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220
+
+    Stop initialize scrub on all pools.
+
+        jdss-api-tools.exe initialize --initialize_action cancel --node 192.168.0.220
+
+    Suspend initialize on all pools.
+
+        jdss-api-tools.exe initialize --initialize_action suspend --node 192.168.0.220
+
+   
+35. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -567,7 +586,7 @@ import                        	export                        	cli
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1
 
 
-35. <b>Execute factory setup files for batch setup</b>.
+36. <b>Execute factory setup files for batch setup</b>.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -580,7 +599,7 @@ import                        	export                        	cli
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-36. <b>Product activation</b>.
+37. <b>Product activation</b>.
 
         jdss-api-tools.exe activate --online --node 192.168.0.220
 
@@ -589,7 +608,7 @@ import                        	export                        	cli
     Note: The off-line activation is not implemented yet.
 
 
-37. <b>Download current system settings</b>.
+38. <b>Download current system settings</b>.
 
         jdss-api-tools.exe download_settings --directory C:\Downloads --nodes 192.168.0.220 192.168.0.221
 
@@ -603,7 +622,7 @@ import                        	export                        	cli
     The just generated and downloaded settings will be preserved if --keep_settings option is provided.
 
 
-38. <b>Print system info</b>.
+39. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -617,7 +636,7 @@ import                        	export                        	cli
         jdss-api-tools.exe info --all --node 192.168.0.220
 
 
-39. <b>Print only snapshot info</b>.
+40. <b>Print only snapshot info</b>.
 
         jdss-api-tools.exe list_snapshots --node 192.168.0.220
 
@@ -634,7 +653,7 @@ import                        	export                        	cli
     Note: If you want complete system information, please use the info command instead.
 
 
-40. <b>Enable/disable CLI access</b>.
+41. <b>Enable/disable CLI access</b>.
 
         jdss-api-tools.exe cli --enable  --node 192.168.0.220
         jdss-api-tools.exe cli --disable --node 192.168.0.220
@@ -691,8 +710,7 @@ import                        	export                        	cli
 
 <b>Commands:</b>
 
-<pre>
-clone                         	clone_existing_snapshot       	create_pool
+ <pre>clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -706,4 +724,4 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-</pre>
+initialize                    	</pre>
