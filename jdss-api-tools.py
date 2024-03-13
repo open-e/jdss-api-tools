@@ -800,6 +800,9 @@ def get_args(batch_args_line=None):
 
     {LG}%(prog)s initialize --initialize_action suspend --node 192.168.0.220{ENDF}
 
+
+    Note: The pool initialize function requires up30 or newer. The initialize progress can be checked in inspect or logs.
+
    
 {} {BOLD}Generate factory setup files for batch setup{END}.
 
