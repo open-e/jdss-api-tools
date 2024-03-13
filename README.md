@@ -573,6 +573,9 @@ initialize                    	</pre>
 
         jdss-api-tools.exe initialize --initialize_action suspend --node 192.168.0.220
 
+
+    Note: The pool initialize function requires up30 or newer. The initialize progress can be checked in inspect or logs.
+
    
 35. <b>Generate factory setup files for batch setup</b>.
 
