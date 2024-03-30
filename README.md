@@ -6,8 +6,8 @@
 
 
 <b>Commands:</b>
-
- <pre>clone                         	clone_existing_snapshot       	create_pool
+ <pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -21,7 +21,8 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-initialize                    	</pre>
+initialize
+</pre>
 
 <b>Commands description:</b>
 
@@ -576,7 +577,7 @@ initialize                    	</pre>
 
     Note: The pool initialize function requires up30 or newer. The initialize progress can be checked in inspect or logs.
 
-   
+
 35. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
@@ -713,7 +714,8 @@ initialize                    	</pre>
 
 <b>Commands:</b>
 
- <pre>clone                         	clone_existing_snapshot       	create_pool
+<pre>
+clone                         	clone_existing_snapshot       	create_pool
 destroy_test_pool             	scrub                         	set_scrub_scheduler
 create_storage_resource       	modify_volume                 	attach_volume_to_iscsi_target
 detach_volume_from_iscsi_target	detach_disk_from_pool         	remove_disk_from_pool
@@ -727,4 +729,5 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-initialize                    	</pre>
+initialize
+</pre>
