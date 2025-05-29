@@ -128,7 +128,7 @@ __author__  = 'janusz.bak@open-e.com'
 __version__ = 1.2
 
 ## Script global variables
-#api_version             = '/api/v3'   # will be defined in call_requests
+#api_version             = '/api/v3'  will be defined in call_requests
 api_timeout             = 300
 action                  = ''
 action_message          = ''
@@ -793,7 +793,7 @@ def get_args(batch_args_line=None):
     {LG}%(prog)s initialize --pool Pool-0 --node 192.168.0.220{ENDF}
     {LG}%(prog)s initialize --pool Pool-0 Pool-1 Pool-2 --node 192.168.0.220{ENDF}
 
-    Stop initialize on all pools.
+    Stop initialize scrub on all pools.
 
     {LG}%(prog)s initialize --initialize_action cancel --node 192.168.0.220{ENDF}
 
@@ -804,7 +804,7 @@ def get_args(batch_args_line=None):
 
     Note: The pool initialize function requires up30 or newer. The initialize progress can be checked in inspect or logs.
 
-
+   
 {} {BOLD}Generate factory setup files for batch setup{END}.
 
     It creates and overwrites (if previously created) batch setup files.
