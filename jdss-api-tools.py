@@ -115,6 +115,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 2023-09-20  add destroy_test_pool
 2023-12-28  add enable/disable cli
 2024-03-12  add pool initialize: start, cancel, suspend
+2025-05-29  add visible=True for SMB in create_share func
 """
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
@@ -4654,6 +4655,12 @@ def create_share():
             data = dict(name=share_name,
                     path= f"{pool_name}/{volume_name}",
                     smb=dict(enabled=bool('SMB' in storage_type)),
+                    nfs=dict(enabled=bool('NFS' in storage_type)))
+
+            data = dict(name=share_name,
+                    path= f"{pool_name}/{volume_name}",
+                    smb=dict(enabled=bool('SMB' in storage_type), 
+                            visible=True),  # Added visible=True
                     nfs=dict(enabled=bool('NFS' in storage_type)))
             ## P O S T
             post(endpoint,data)
