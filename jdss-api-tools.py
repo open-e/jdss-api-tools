@@ -120,6 +120,7 @@ download and install "Microsoft Visual C++ 2010 Redistributable Package (x86)": 
 
 import os, sys, re, time, string, datetime, argparse, ping3, requests, urllib3
 from colorama import init, Fore, Style
+from urllib.parse import quote
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -169,7 +170,7 @@ def api_connection_test_passed():
     
 def call_requests(method,endpoint,data = None):
     global error, timeouted
-    api_version = '/api/v4' if action in 'initialize' else '/api/v3'
+    api_version = '/api/v4' if endpoint.startswith('/odp/') or action == 'initialize' else '/api/v3'
     response = error = err = error_message = None
     http_code = 0; timeouted = False
     if endpoint not in '/conn_test': wait_for_node()
@@ -180,12 +181,13 @@ def call_requests(method,endpoint,data = None):
                  DELETE = requests.delete)[method](url=f"https://{node}:{api_port}/{api_version.lstrip('/')}/{endpoint.lstrip('/')}",
                                                    json=data, auth=(api_user, api_password), timeout=api_timeout, verify=False)
 
+        http_code = r.status_code
         if endpoint.strip('/').startswith('settings') and endpoint.endswith('.cnf'): # binary output for download settings
             response = r.content
         else:
             response = r.json()['data']        # json output
-        error_message = str(r.json()['error']['message'])
-        http_code = r.status_code
+        if http_code not in (200, 201, 204):
+            error_message = str(r.json()['error']['message'])
     except Exception as err: #Exception example :"HTTPSConnectionPool(host='192.168.0.82', port=82): Max retries exceeded with url: /api/v3/conn_test (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000002D67E009280>, 'Connection to 192.168.0.82 timed out. (connect timeout=15)'))"
         if endpoint in ('/power/reboot','/power/shutdown') and force:
             return '' ## after the force down the node is GONE
@@ -782,6 +784,26 @@ def get_args(batch_args_line=None):
     {LG}{BOLD}https:{END}//{BOLD}192.168.0.220{END}:82/api/v3/pools/{BOLD}Pool-0{END}/scrub/scheduler{ENDF}
 
 
+{} {BOLD}Get Destination Flag{END}.
+
+    Show whether the ODP destination flag is enabled or disabled for a zvol or NAS dataset.
+    The command detects the resource type from the pool and volume name.
+
+    {LG}%(prog)s get_destination_flag --pool Pool-0 --volume vol01 --node 192.168.0.220{ENDF}
+
+
+{} {BOLD}Set Destination Flag{END}.
+
+    Enable or disable the ODP destination flag for a zvol or NAS dataset. The command detects the
+    resource type and reads the flag again to verify the change.
+
+    {LG}%(prog)s set_destination_flag --pool Pool-0 --volume vol01 --destination_flag enable --node 192.168.0.220{ENDF}
+    {LG}%(prog)s set_destination_flag --pool Pool-0 --volume vol01 --destination_flag disable --node 192.168.0.220{ENDF}
+
+    Disabling uses the REST API v4 `/detach` endpoint to detach the resource from ODP.
+    The source can no longer send backups to that resource after detachment.
+
+
 {} {BOLD}Initialize{END} start|cancel|suspend.
 
     Initialize all pools. If the node belongs to cluster, initialize all pools in cluster.
@@ -961,7 +983,7 @@ def get_args(batch_args_line=None):
                     delete_clone delete_clones delete_snapshots delete_clone_existing_snapshot set_host set_time network            \
                     create_bond delete_bond bind_cluster disconnect_cluster add_ring set_ping_nodes set_mirror_path                 \
                     create_vip start_cluster stop_cluster move info download_settings                                               \
-                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export cli initialize'.split(),
+                    list_snapshots shutdown reboot batch_setup create_factory_setup_files activate import export cli initialize get_destination_flag set_destination_flag'.split(),
         help='Commands:   %(choices)s.'
     )
 
@@ -996,6 +1018,11 @@ def get_args(batch_args_line=None):
         metavar='name',
         #default='auto',  #
         help='Enter required volume name. Default=auto, volume name will be auto-generated'
+    )
+    parser.add_argument(
+        '--destination_flag',
+        choices=['enable', 'disable'],
+        help='Requested ODP destination flag state for set_destination_flag.'
     )
     parser.add_argument(
         '--storage_type',
@@ -1574,7 +1601,7 @@ def get_args(batch_args_line=None):
     global pool_based_consecutive_number_generator
     #global cluster_pool_names
     global target_name, cluster_name, quantity, start_with, zvols_per_target, increment
-    global scrub_action, initialize_action 
+    global scrub_action, initialize_action, destination_flag
     global day_of_the_month, month_of_the_year, day_of_the_week, hour, minute, setup_files
     global all_snapshots, all_dataset_snapshots, all_zvol_snapshots, online
     global force, recovery_import, ignore_missing_write_log, ignore_unfinished_resilver
@@ -1586,6 +1613,13 @@ def get_args(batch_args_line=None):
     action                      = args['cmd']				## the command
     pool_name                   = args['pool']
     volume_name                 = args['volume']
+    destination_flag            = args['destination_flag']
+
+    if action in ('get_destination_flag', 'set_destination_flag'):
+        if not pool_name or len(pool_name) != 1 or not volume_name:
+            sys_exit_with_timestamp(f'Error: {action} expects one --pool and one --volume')
+        if (action == 'set_destination_flag') != (destination_flag is not None):
+            sys_exit_with_timestamp('Error: --destination_flag is required for set_destination_flag only')
 
                                 ## set default to auto except 'delete_clones', 'delete_snapshots'
     volume_name                 = volume_name if volume_name or action in ('delete_clones','delete_snapshots') else 'auto' 
@@ -1777,6 +1811,8 @@ def get_args(batch_args_line=None):
             else:
                 expanded_nodes.append(ip)
         nodes = expanded_nodes
+        if action in ('get_destination_flag', 'set_destination_flag') and len(nodes) != 1:
+            sys_exit_with_timestamp(f'Error: {action} expects one --node')
         ## first node
         node = nodes[0]
         ## True if action msg need to be printed
@@ -4948,6 +4984,49 @@ def read_jbods_and_create_pool(choice='0'):
         
 
 
+def read_destination_flag(collection, resource_name):
+    result = get(f'/odp/{collection}')
+    if error or not isinstance(result, dict) or not isinstance(result.get('entries'), list):
+        sys_exit_with_timestamp(f'Error: Could not read ODP {collection}: {error or "unexpected response"}')
+
+    flags = [entry.get('odp_destination_flag') for entry in result['entries']
+             if entry.get('name') == resource_name]
+    if len(flags) != 1 or not isinstance(flags[0], bool):
+        sys_exit_with_timestamp(f'Error: ODP destination flag is unknown for {resource_name}')
+    return flags[0]
+
+
+def destination_flag_command():
+    pool = quote(pool_name, safe='')
+    resource_name = f'{pool_name}/{volume_name}'
+    matching_collections = []
+    for collection in ('volumes', 'nas-volumes'):
+        resources = get(f'/pools/{pool}/{collection}')
+        if error or not isinstance(resources, list):
+            sys_exit_with_timestamp(f'Error: Could not list {collection} in {pool_name}: {error or "unexpected response"}')
+        if any(resource.get('name') in (volume_name, resource_name) for resource in resources):
+            matching_collections.append(collection)
+
+    if len(matching_collections) != 1:
+        sys_exit_with_timestamp(f'Error: Could not uniquely identify {resource_name} as a zvol or NAS dataset')
+
+    collection, = matching_collections
+    enabled = read_destination_flag(collection, resource_name)
+    requested_enabled = destination_flag == 'enable'
+    if action == 'set_destination_flag' and enabled != requested_enabled:
+        resource = quote(volume_name, safe='')
+        operation = 'set-destination-flag' if requested_enabled else 'detach'
+        post(f'/odp/{collection}/{pool}/{resource}/{operation}')
+        if error:
+            sys_exit_with_timestamp(f'Error: Could not {destination_flag} ODP destination flag for {resource_name}: {error}')
+        enabled = read_destination_flag(collection, resource_name)
+        if enabled != requested_enabled:
+            state = 'enabled' if enabled else 'disabled'
+            sys_exit_with_timestamp(f'Error: ODP destination flag remains {state} for {resource_name}')
+
+    print('enabled' if enabled else 'disabled')
+
+
 def command_processor() :
 
     print()
@@ -5015,6 +5094,9 @@ def command_processor() :
 
     elif action == 'initialize':
         initialize()
+
+    elif action in ('get_destination_flag', 'set_destination_flag'):
+        destination_flag_command()
 
     elif action == 'set_scrub_scheduler':
         set_scrub_scheduler()

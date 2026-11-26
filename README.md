@@ -21,7 +21,8 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-initialize                    	</pre>
+initialize                    	get_destination_flag          	set_destination_flag
+</pre>
 
 <b>Commands description:</b>
 
@@ -554,7 +555,27 @@ initialize                    	</pre>
      <b>https:</b>//<b>192.168.0.220</b>:82/api/v3/pools/<b>Pool-0</b>/scrub/scheduler
 
 
-34. <b>Initialize</b> start|cancel|suspend.
+34. <b>Get Destination Flag</b>.
+
+    Show whether the ODP destination flag is enabled or disabled for a zvol or NAS dataset.
+    The command detects the resource type from the pool and volume name.
+
+        jdss-api-tools.exe get_destination_flag --pool Pool-0 --volume vol01 --node 192.168.0.220
+
+
+35. <b>Set Destination Flag</b>.
+
+    Enable or disable the ODP destination flag for a zvol or NAS dataset. The command detects the
+    resource type and reads the flag again to verify the change.
+
+        jdss-api-tools.exe set_destination_flag --pool Pool-0 --volume vol01 --destination_flag enable --node 192.168.0.220
+        jdss-api-tools.exe set_destination_flag --pool Pool-0 --volume vol01 --destination_flag disable --node 192.168.0.220
+
+    Disabling uses the REST API v4 `/detach` endpoint to detach the resource from ODP.
+    The source can no longer send backups to that resource after detachment.
+
+
+36. <b>Initialize</b> start|cancel|suspend.
 
     Initialize all pools. If the node belongs to cluster, initialize all pools in cluster.
 
@@ -577,7 +598,7 @@ initialize                    	</pre>
     Note: The pool initialize function requires up30 or newer. The initialize progress can be checked in inspect or logs.
 
    
-35. <b>Generate factory setup files for batch setup</b>.
+37. <b>Generate factory setup files for batch setup</b>.
 
     It creates and overwrites (if previously created) batch setup files.
     Setup files need to be edited and changed to required setup accordingly.
@@ -589,7 +610,7 @@ initialize                    	</pre>
         jdss-api-tools.exe create_factory_setup_files --nodes 192.168.0.80..81 --ping_nodes 192.168.0.30 192.168.0.40 --mirror_nics eth4 eth4 --new_gw 192.168.0.1 --new_dns 192.168.0.1
 
 
-36. <b>Execute factory setup files for batch setup</b>.
+38. <b>Execute factory setup files for batch setup</b>.
 
     This example runs setup for nodes 192.168.0.80 and 192.168.0.81.
     Both nodes need to be fresh rebooted with factory defaults: eth0 = 192.168.0.220.
@@ -602,16 +623,16 @@ initialize                    	</pre>
         jdss-api-tools.exe batch_setup --setup_files api_test_cluster_80.txt
 
 
-37. <b>Product activation</b>.
+39. <b>Product activation</b>.
 
         jdss-api-tools.exe activate --online --node 192.168.0.220
 
     Sends online Product Activation request.
-	On-line activation requires an internet connection.
+        On-line activation requires an internet connection.
     Note: The off-line activation is not implemented yet.
 
 
-38. <b>Download current system settings</b>.
+40. <b>Download current system settings</b>.
 
         jdss-api-tools.exe download_settings --directory C:\Downloads --nodes 192.168.0.220 192.168.0.221
 
@@ -625,7 +646,7 @@ initialize                    	</pre>
     The just generated and downloaded settings will be preserved if --keep_settings option is provided.
 
 
-39. <b>Print system info</b>.
+41. <b>Print system info</b>.
 
         jdss-api-tools.exe info --node 192.168.0.220
 
@@ -639,7 +660,7 @@ initialize                    	</pre>
         jdss-api-tools.exe info --all --node 192.168.0.220
 
 
-40. <b>Print only snapshot info</b>.
+42. <b>Print only snapshot info</b>.
 
         jdss-api-tools.exe list_snapshots --node 192.168.0.220
 
@@ -656,7 +677,7 @@ initialize                    	</pre>
     Note: If you want complete system information, please use the info command instead.
 
 
-41. <b>Enable/disable CLI access</b>.
+43. <b>Enable/disable CLI access</b>.
 
         jdss-api-tools.exe cli --enable  --node 192.168.0.220
         jdss-api-tools.exe cli --disable --node 192.168.0.220
@@ -667,7 +688,7 @@ initialize                    	</pre>
  After any modifications of source of jdss-api-tools.py,
  run pyinstaller to create new jdss-api-tools.exe:
 
-	pyinstaller.exe --onefile jdss-api-tools.py
+        pyinstaller.exe --onefile jdss-api-tools.py
 
  And try it:
 
@@ -727,4 +748,5 @@ move                          	info                          	download_settings
 list_snapshots                	shutdown                      	reboot
 batch_setup                   	create_factory_setup_files    	activate
 import                        	export                        	cli
-initialize                    	</pre>
+initialize                    	get_destination_flag          	set_destination_flag
+</pre>
